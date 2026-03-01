@@ -42,10 +42,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # Permitir solicitudes CORS
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -72,6 +75,13 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'horarios_backend.wsgi.application'
+
+
+# CORS
+# https://pypi.org/project/django-cors-headers/
+
+_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [s.strip() for s in _cors_origins.split(',') if s.strip()]
 
 
 # Database
