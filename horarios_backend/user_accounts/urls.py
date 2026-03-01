@@ -7,5 +7,5 @@ urlpatterns = [
     path('register/', RegisterView.as_view()),
     path('logout/',   LogoutView.as_view()),
     path('refresh/',  TokenRefreshView.as_view()),
-    path('me/',       MeView.as_view()),  # Datos del usuario actual
+    path('my-info/',       MeView.as_view()),  # Datos del usuario actual
 ]

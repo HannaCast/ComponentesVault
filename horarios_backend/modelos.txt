@@ -1,0 +1,330 @@
+# This is an auto-generated Django model module.
+# You'll have to do the following manually to clean this up:
+#   * Rearrange models' order
+#   * Make sure each model has one field with primary_key=True
+#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
+#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
+# Feel free to rename the models, but don't rename db_table values or field names.
+from django.db import models
+
+
+class AcademicPeriods(models.Model):
+    name = models.CharField(max_length=50)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    period_type = models.ForeignKey('PeriodTypes', models.DO_NOTHING)
+    start_month = models.IntegerField()
+    end_month = models.IntegerField()
+    order = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'academic_periods'
+
+
+class AuditLogs(models.Model):
+    user_id = models.IntegerField(blank=True, null=True)
+    table_name = models.CharField(max_length=100)
+    record_id = models.IntegerField(blank=True, null=True)
+    action = models.CharField(max_length=6)
+    former_data = models.JSONField()
+    new_data = models.JSONField(blank=True, null=True)
+    ip_address = models.CharField(max_length=45, blank=True, null=True)
+    user_agent = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = 'audit_logs'
+
+
+class CareerPeriodExceptions(models.Model):
+    career = models.ForeignKey('Careers', models.DO_NOTHING)
+    period_number = models.IntegerField()
+    reason = models.CharField(max_length=255, blank=True, null=True)
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'career_period_exceptions'
+
+
+class CareerSubjects(models.Model):
+    subjects = models.ForeignKey('Subjects', models.DO_NOTHING)
+    careers = models.ForeignKey('Careers', models.DO_NOTHING)
+    period_number = models.CharField(max_length=45)
+
+    class Meta:
+        managed = False
+        db_table = 'career_subjects'
+
+
+class Careers(models.Model):
+    name = models.CharField(max_length=100)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    short_name = models.CharField(max_length=20, blank=True, null=True)
+    code = models.CharField(max_length=50)
+    total_periods = models.IntegerField()
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'careers'
+
+
+class ClassroomCareers(models.Model):
+    pk = models.CompositePrimaryKey('id', 'careers_id', 'classrooms_id')
+    id = models.AutoField()
+    careers = models.ForeignKey(Careers, models.DO_NOTHING)
+    classrooms = models.ForeignKey('Classrooms', models.DO_NOTHING)
+
+    class Meta:
+        managed = False
+        db_table = 'classroom_careers'
+
+
+class ClassroomTypes(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'classroom_types'
+
+
+class Classrooms(models.Model):
+    pk = models.CompositePrimaryKey('id', 'universities_id')
+    id = models.AutoField()
+    name = models.CharField(max_length=100)
+    classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
+    code = models.CharField(max_length=20, blank=True, null=True)
+    floor = models.IntegerField(blank=True, null=True)
+    building = models.CharField(max_length=50, blank=True, null=True)
+    building_code = models.CharField(max_length=20, blank=True, null=True)
+    is_restricted = models.IntegerField()
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+    universities = models.ForeignKey('Universities', models.DO_NOTHING)
+
+    class Meta:
+        managed = False
+        db_table = 'classrooms'
+
+
+class Colors(models.Model):
+    name = models.CharField(max_length=45)
+    hex = models.CharField(max_length=6)
+    contrast_hex = models.CharField(max_length=6)
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'colors'
+
+
+class Groups(models.Model):
+    name = models.CharField(max_length=45)
+    career = models.ForeignKey(Careers, models.DO_NOTHING)
+    period_number = models.IntegerField()
+    letter = models.CharField(max_length=1)
+    status = models.IntegerField()
+    shift = models.ForeignKey('Shifts', models.DO_NOTHING)
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'groups'
+
+
+class Images(models.Model):
+    image_name = models.CharField(max_length=45)
+    mime_type = models.CharField(max_length=45)
+    extension = models.CharField(max_length=10)
+    sha256 = models.CharField(max_length=64)
+    file_size = models.IntegerField()
+    data = models.TextField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'images'
+
+
+class PeriodTypes(models.Model):
+    name = models.CharField(max_length=45)
+    code = models.CharField(max_length=45)
+    months_duration = models.IntegerField()
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'period_types'
+
+
+class Roles(models.Model):
+    name = models.CharField(max_length=45)
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'roles'
+
+
+class Shifts(models.Model):
+    name = models.CharField(max_length=100)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    order = models.IntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    status = models.CharField(max_length=45)
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'shifts'
+
+
+class Subjects(models.Model):
+    name = models.CharField(max_length=100)
+    short_name = models.CharField(max_length=10, blank=True, null=True)
+    code = models.CharField(max_length=50, blank=True, null=True)
+    description = models.CharField(max_length=45, blank=True, null=True)
+    hours_per_week = models.IntegerField()
+    color = models.ForeignKey(Colors, models.DO_NOTHING)
+    is_mandatory = models.IntegerField()
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'subjects'
+
+
+class TeacherAvailabilities(models.Model):
+    teacher = models.ForeignKey('Teachers', models.DO_NOTHING)
+    day_of_week = models.IntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    is_available = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'teacher_availabilities'
+
+
+class Teachers(models.Model):
+    name = models.CharField(max_length=100)
+    surname = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'teachers'
+
+
+class TeachersSubjects(models.Model):
+    teachers = models.ForeignKey(Teachers, models.DO_NOTHING)
+    subjects = models.ForeignKey(Subjects, models.DO_NOTHING)
+
+    class Meta:
+        managed = False
+        db_table = 'teachers_subjects'
+
+
+class TeachersUniversities(models.Model):
+    pk = models.CompositePrimaryKey('teachers_id', 'universities_id')
+    teachers = models.ForeignKey(Teachers, models.DO_NOTHING)
+    universities = models.ForeignKey('Universities', models.DO_NOTHING)
+    status = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'teachers_universities'
+
+
+class Universities(models.Model):
+    name = models.CharField(max_length=100)
+    short_name = models.CharField(max_length=10, blank=True, null=True)
+    image = models.ForeignKey(Images, models.DO_NOTHING)
+    user = models.ForeignKey('Users', models.DO_NOTHING)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    status = models.IntegerField()
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'universities'
+
+
+class Users(models.Model):
+    name = models.CharField(max_length=100)
+    surname = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
+    email = models.CharField(max_length=100)
+    password = models.CharField(max_length=255)
+    status = models.IntegerField()
+    role = models.ForeignKey(Roles, models.DO_NOTHING)
+    selected_university = models.ForeignKey(Universities, models.DO_NOTHING)
+    create_at = models.DateTimeField(blank=True, null=True)
+    create_by = models.DateTimeField(blank=True, null=True)
+    update_at = models.DateTimeField(blank=True, null=True)
+    update_by = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'users'
