@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'drf_spectacular',
     'user_accounts',
 ]
 
@@ -126,10 +127,20 @@ PASSWORD_HASHERS = [ # Usar bcrypt para encriptar contraseñas
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',  # Fallback para contraseñas antiguas
 ]
 
-REST_FRAMEWORK = {
+REST_FRAMEWORK = { # Configuración de Django REST Framework
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación OpenAPI
+    'TITLE': 'Sistema de Generación de Horarios Académicos',
+    'DESCRIPTION': 'API para la gestión y generación de horarios académicos',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SECURITY': [{'jwtAuth': []}],
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 from datetime import timedelta
