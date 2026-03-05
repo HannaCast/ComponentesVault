@@ -21,8 +21,7 @@ def seed_users(apps, schema_editor):
             'surname': 'Sistema',
             'last_name': 'Horarios',
             'role': role_admin,
-            'status': True,
-            'is_active': True,
+            'status': 1,
         },
         {
             'email': 'usuario@horarios.com',
@@ -31,8 +30,7 @@ def seed_users(apps, schema_editor):
             'surname': 'Sistema',
             'last_name': 'Horarios',
             'role': role_user,
-            'status': True,
-            'is_active': True,
+            'status': 1,
         },
     ]
 
