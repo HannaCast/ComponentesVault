@@ -1,8 +1,7 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
+from core.api_response import ApiResponse
 from .models import Colors
 from .serializers import ColorSerializer
 
@@ -15,15 +14,15 @@ class ColorListView(APIView):
         """ Lista todos los colores activos """
         colors = Colors.objects.filter(status=1)
         serializer = ColorSerializer(colors, many=True)
-        return Response(serializer.data)
+        return ApiResponse.success(serializer.data)
 
     def post(self, request):
         """ Crea un nuevo color """
         serializer = ColorSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return ApiResponse.created(serializer.data)
+        return ApiResponse.error(errors=serializer.errors)
 
 
 @extend_schema(tags=['Colors'])
@@ -40,37 +39,36 @@ class ColorDetailView(APIView):
         """ Obtiene un color por ID """
         color = self.get_object(pk)
         if color is None:
-            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = ColorSerializer(color)
-        return Response(serializer.data)
+            return ApiResponse.not_found()
+        return ApiResponse.success(ColorSerializer(color).data)
 
     def put(self, request, pk):
         """ Actualiza un color """
         color = self.get_object(pk)
         if color is None:
-            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return ApiResponse.not_found()
         serializer = ColorSerializer(color, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return ApiResponse.success(serializer.data, message='Color actualizado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
 
     def patch(self, request, pk):
         """ Actualiza parcialmente un color """
         color = self.get_object(pk)
         if color is None:
-            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return ApiResponse.not_found()
         serializer = ColorSerializer(color, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return ApiResponse.success(serializer.data, message='Color actualizado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
 
     def delete(self, request, pk):
         """ Desactiva un color (soft delete) """
         color = self.get_object(pk)
         if color is None:
-            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return ApiResponse.not_found()
         color.status = 0
         color.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return ApiResponse.deleted('Color desactivado exitosamente')

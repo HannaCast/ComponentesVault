@@ -133,6 +133,7 @@ REST_FRAMEWORK = { # Configuración de Django REST Framework
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'core.exception_handler.custom_exception_handler', # Manejo global de excepciones personalizado
 }
 
 SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación OpenAPI

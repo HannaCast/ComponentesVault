@@ -1,9 +1,9 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema
+from core.api_response import ApiResponse
 from .serializers import LoginSerializer, RegisterSerializer
 
 
@@ -14,13 +14,13 @@ class LoginView(TokenObtainPairView):
 
 @extend_schema(tags=['Auth'])
 class RegisterView(APIView):
-    permission_classes = []  # Público
+    permission_classes = []
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'message': 'Usuario creado'}, status=201)
-        return Response(serializer.errors, status=400)
+            return ApiResponse.created(message='Usuario creado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
 
 
 @extend_schema(tags=['Auth'])
@@ -29,16 +29,15 @@ class LogoutView(APIView):
     def post(self, request):
         token = RefreshToken(request.data["refresh"])
         token.blacklist()
-        return Response(status=205)
+        return ApiResponse.success(message='Sesión cerrada exitosamente')
 
 
 @extend_schema(tags=['Auth'])
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        # Devuelve los datos del usuario autenticado
         user = request.user
-        return Response({
+        return ApiResponse.success(data={
             'name': user.name,
             'email': user.email,
             'role': user.role.name if user.role else None,
