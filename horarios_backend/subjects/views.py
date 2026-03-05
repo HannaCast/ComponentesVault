@@ -2,10 +2,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
 from .models import Colors
 from .serializers import ColorSerializer
 
 
+@extend_schema(tags=['Colors'])
 class ColorListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -24,6 +26,7 @@ class ColorListView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(tags=['Colors'])
 class ColorDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
