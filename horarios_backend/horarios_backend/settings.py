@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'user_accounts',
+    'subjects',
 ]
 
 MIDDLEWARE = [
