@@ -4,9 +4,13 @@ from django.db import models
 
 class Role(models.Model):
     name = models.CharField(max_length=45)
-    status = models.BooleanField(default=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
+        managed = True
         db_table = 'roles'
 
 
@@ -22,19 +26,23 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
-    name = models.CharField(max_length=100)
-    surname = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=40)
-    email = models.EmailField(unique=True)
-    start_time = models.TimeField(null=True, blank=True)
-    end_time = models.TimeField(null=True, blank=True)
-    status = models.BooleanField(default=True)
-    role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True, blank=True)
+    id         = models.AutoField(primary_key=True)
+    name       = models.CharField(max_length=100)
+    surname    = models.CharField(max_length=100)
+    last_name  = models.CharField(max_length=100, blank=True, null=True)
+    email      = models.EmailField(max_length=100, unique=True)
+    status     = models.IntegerField(default=1)
+    role       = models.ForeignKey(Role, on_delete=models.DO_NOTHING, null=True, blank=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD  = 'email'
     REQUIRED_FIELDS = ['name', 'surname']
 
     class Meta:
+        managed = True
         db_table = 'users'

@@ -15,10 +15,11 @@ class AcademicPeriods(models.Model):
     start_month = models.IntegerField()
     end_month = models.IntegerField()
     order = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -46,10 +47,11 @@ class CareerPeriodExceptions(models.Model):
     period_number = models.IntegerField()
     reason = models.CharField(max_length=255, blank=True, null=True)
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -59,7 +61,12 @@ class CareerPeriodExceptions(models.Model):
 class CareerSubjects(models.Model):
     subjects = models.ForeignKey('Subjects', models.DO_NOTHING)
     careers = models.ForeignKey('Careers', models.DO_NOTHING)
-    period_number = models.CharField(max_length=45)
+    period_number = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -70,13 +77,14 @@ class Careers(models.Model):
     name = models.CharField(max_length=100)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
     short_name = models.CharField(max_length=20, blank=True, null=True)
-    code = models.CharField(max_length=50)
+    code = models.CharField(max_length=50, blank=True, null=True)
     total_periods = models.IntegerField()
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -84,10 +92,13 @@ class Careers(models.Model):
 
 
 class ClassroomCareers(models.Model):
-    pk = models.CompositePrimaryKey('id', 'careers_id', 'classrooms_id')
-    id = models.AutoField()
     careers = models.ForeignKey(Careers, models.DO_NOTHING)
     classrooms = models.ForeignKey('Classrooms', models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -98,10 +109,11 @@ class ClassroomTypes(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -109,21 +121,20 @@ class ClassroomTypes(models.Model):
 
 
 class Classrooms(models.Model):
-    pk = models.CompositePrimaryKey('id', 'universities_id')
-    id = models.AutoField()
     name = models.CharField(max_length=100)
     classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
     code = models.CharField(max_length=20, blank=True, null=True)
     floor = models.IntegerField(blank=True, null=True)
     building = models.CharField(max_length=50, blank=True, null=True)
     building_code = models.CharField(max_length=20, blank=True, null=True)
+    universities = models.ForeignKey('Universities', models.DO_NOTHING)
     is_restricted = models.IntegerField()
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
-    universities = models.ForeignKey('Universities', models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -135,10 +146,11 @@ class Colors(models.Model):
     hex = models.CharField(max_length=6)
     contrast_hex = models.CharField(max_length=6)
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -150,12 +162,13 @@ class Groups(models.Model):
     career = models.ForeignKey(Careers, models.DO_NOTHING)
     period_number = models.IntegerField()
     letter = models.CharField(max_length=1)
-    status = models.IntegerField()
     shift = models.ForeignKey('Shifts', models.DO_NOTHING)
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    status = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -169,10 +182,11 @@ class Images(models.Model):
     sha256 = models.CharField(max_length=64)
     file_size = models.IntegerField()
     data = models.TextField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -184,10 +198,10 @@ class PeriodTypes(models.Model):
     code = models.CharField(max_length=45)
     months_duration = models.IntegerField()
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -196,10 +210,10 @@ class PeriodTypes(models.Model):
 
 class Roles(models.Model):
     name = models.CharField(max_length=45)
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -212,11 +226,12 @@ class Shifts(models.Model):
     order = models.IntegerField()
     start_time = models.TimeField()
     end_time = models.TimeField()
-    status = models.CharField(max_length=45)
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    status = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -232,10 +247,11 @@ class Subjects(models.Model):
     color = models.ForeignKey(Colors, models.DO_NOTHING)
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -248,10 +264,11 @@ class TeacherAvailabilities(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField()
     is_available = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -263,10 +280,11 @@ class Teachers(models.Model):
     surname = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -276,6 +294,11 @@ class Teachers(models.Model):
 class TeachersSubjects(models.Model):
     teachers = models.ForeignKey(Teachers, models.DO_NOTHING)
     subjects = models.ForeignKey(Subjects, models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -283,10 +306,15 @@ class TeachersSubjects(models.Model):
 
 
 class TeachersUniversities(models.Model):
-    pk = models.CompositePrimaryKey('teachers_id', 'universities_id')
+    id = models.IntegerField(primary_key=True)
     teachers = models.ForeignKey(Teachers, models.DO_NOTHING)
     universities = models.ForeignKey('Universities', models.DO_NOTHING)
     status = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -296,15 +324,17 @@ class TeachersUniversities(models.Model):
 class Universities(models.Model):
     name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=10, blank=True, null=True)
+    institution_code = models.CharField(max_length=45, blank=True, null=True)
     image = models.ForeignKey(Images, models.DO_NOTHING)
     user = models.ForeignKey('Users', models.DO_NOTHING)
     start_time = models.TimeField()
     end_time = models.TimeField()
     status = models.IntegerField()
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -320,10 +350,11 @@ class Users(models.Model):
     status = models.IntegerField()
     role = models.ForeignKey(Roles, models.DO_NOTHING)
     selected_university = models.ForeignKey(Universities, models.DO_NOTHING)
-    create_at = models.DateTimeField(blank=True, null=True)
-    create_by = models.DateTimeField(blank=True, null=True)
-    update_at = models.DateTimeField(blank=True, null=True)
-    update_by = models.DateTimeField(blank=True, null=True)
+    last_login = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         managed = False

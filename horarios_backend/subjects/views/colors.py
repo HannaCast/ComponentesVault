@@ -13,8 +13,8 @@ class ColorListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """ Lista todos los colores activos sin paginación """
-        colors = Colors.objects.filter(status=1)
+        """ Lista los colores activos y no eliminados (para selects/dropdowns) """
+        colors = Colors.objects.filter(status=1, is_deleted=0)
         return ApiResponse.success(ColorListSerializer(colors, many=True).data)
 
     @require_permissions(IsAdmin)
@@ -102,7 +102,7 @@ class ColorPaginatedView(APIView):
 
         order_field = sort_by if order == 'ASC' else f'-{sort_by}'
 
-        queryset = Colors.objects.filter(is_deleted=False)
+        queryset = Colors.objects.filter(is_deleted=0)
 
         if status_param is not None:
             queryset = queryset.filter(status=1 if status_param.lower() == 'true' else 0)
@@ -131,9 +131,9 @@ class ColorDetailView(APIView):
 
 
     def get_object(self, pk):
-        """ Busca un color por su ID, retorna None si no existe """
+        """ Busca un color no eliminado por su ID, retorna None si no existe o fue eliminado """
         try:
-            return Colors.objects.get(pk=pk)
+            return Colors.objects.get(pk=pk, is_deleted=0)
         except Colors.DoesNotExist:
             return None
 
@@ -157,6 +157,16 @@ class ColorDetailView(APIView):
             return ApiResponse.success(ColorDetailSerializer(color).data, message='Color actualizado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
 
+    @require_permissions(IsAdmin)
+    def delete(self, request, pk):
+        """ Eliminación lógica: marca is_deleted = 1 """
+        color = self.get_object(pk)
+        if color is None:
+            return ApiResponse.not_found()
+        color.is_deleted = 1
+        color.save()
+        return ApiResponse.deleted('Color eliminado exitosamente')
+
 
 @extend_schema(tags=['Colors'])
 class ColorToggleStatusView(APIView):
@@ -166,7 +176,7 @@ class ColorToggleStatusView(APIView):
     def put(self, request, pk):
         """ Alterna el status de un color entre activo (1) e inactivo (0) """
         try:
-            color = Colors.objects.get(pk=pk)
+            color = Colors.objects.get(pk=pk, is_deleted=0)
         except Colors.DoesNotExist:
             return ApiResponse.not_found()
 
