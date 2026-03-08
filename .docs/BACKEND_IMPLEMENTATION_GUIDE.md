@@ -1,0 +1,706 @@
+# BACKEND — Guía de Implementación de Módulos
+
+> **Stack:** Django 6.0.1 · Django REST Framework · SimpleJWT · drf-spectacular · MySQL · BCrypt  
+> **Base URL:** `http://localhost:8000/api/v1/`  
+> **Documentación interactiva:** `http://localhost:8000/api/docs/`
+
+---
+
+## 1. Estructura general del proyecto
+
+```
+horarios_backend/              ← raíz del proyecto Django
+  manage.py
+  .env / .env.example
+  core/                        ← utilidades globales (NO en INSTALLED_APPS)
+    api_response.py            ← clase ApiResponse
+    exception_handler.py       ← manejo global de excepciones
+    permissions.py             ← IsAdmin, require_permissions
+  horarios_backend/            ← configuración Django
+    settings.py
+    urls.py                    ← URL raíz del proyecto
+  user_accounts/               ← app: autenticación y usuarios
+  subjects/                    ← app: materias y colores (referencia implementada)
+  universities/                ← app: universidades y configuración (por implementar)
+  careers/                     ← app: carreras y grupos (por implementar)
+  teachers/                    ← app: profesores (por implementar)
+  classrooms/                  ← app: salones (por implementar)
+  audit/                       ← app: logs de auditoría (por implementar)
+```
+
+---
+
+## 2. Estructura interna de cada app
+
+Todas las apps (excepto `user_accounts` y `audit`) siguen esta estructura de carpetas:
+
+```
+{app}/
+  migrations/
+  models/
+    __init__.py                ← exporta todos los modelos
+    {modelo}.py                ← un archivo por modelo
+  serializers/
+    __init__.py                ← exporta todos los serializers
+    {modelo}/
+      __init__.py              ← exporta los 4 serializers del modelo
+      {modelo}_write_serializer.py
+      {modelo}_detail_serializer.py
+      {modelo}_list_serializer.py
+      {modelo}_select_serializer.py
+  views/
+    __init__.py                ← exporta todas las vistas
+    {modelo}.py                ← un archivo por modelo
+  urls/
+    __init__.py                ← incluye todos los archivos de rutas
+    {modelo}.py                ← rutas de un modelo
+  admin.py
+  apps.py
+  tests.py
+  __init__.py
+```
+
+---
+
+## 3. Registro de apps en settings.py
+
+Cada nueva app debe añadirse a `INSTALLED_APPS` en `horarios_backend/settings.py`:
+
+```python
+INSTALLED_APPS = [
+    # ... apps de Django
+    'user_accounts',
+    'subjects',
+    'universities',   # agregar
+    'careers',        # agregar
+    'teachers',       # agregar
+    'classrooms',     # agregar
+    'audit',          # agregar
+]
+```
+
+Y su prefijo de URL en `horarios_backend/urls.py`:
+
+```python
+urlpatterns = [
+    path('api/v1/auth/',          include('user_accounts.urls')),
+    path('api/v1/',               include('subjects.urls')),
+    path('api/v1/',               include('universities.urls')),
+    path('api/v1/',               include('careers.urls')),
+    path('api/v1/',               include('teachers.urls')),
+    path('api/v1/',               include('classrooms.urls')),
+    path('api/v1/',               include('audit.urls')),
+]
+```
+
+---
+
+## 4. Patrón de endpoints por módulo
+
+Cada módulo implementa los siguientes endpoints (usando `colors` como referencia):
+
+| Método | URL | Vista | Descripción |
+|--------|-----|-------|-------------|
+| `GET` | `/api/v1/{recurso}/` | `{Modelo}ListView` | Lista los registros con `status = 1` e `is_deleted = 0`. Usa el serializer select — ideal para dropdowns. |
+| `POST` | `/api/v1/{recurso}/` | `{Modelo}ListView` | Crea un nuevo registro |
+| `GET` | `/api/v1/{recurso}/paginated/` | `{Modelo}PaginatedView` | Lista paginada con búsqueda y ordenamiento |
+| `GET` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Obtiene un registro por ID (solo si `is_deleted = 0`) |
+| `PUT` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Actualiza uno o varios campos |
+| `DELETE` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Marca el registro como eliminado (`is_deleted = 1`) |
+| `PUT` | `/api/v1/{recurso}/{pk}/toggle-status/` | `{Modelo}ToggleStatusView` | Alterna `status` entre 1 y 0 |
+
+---
+
+## 5. Reglas de negocio globales
+
+### Campos de ciclo de vida
+
+Cada modelo con gestión de estado tiene **dos campos diferenciados**:
+
+| Campo | Tipo | Propósito |
+|-------|------|-----------|
+| `status` | `IntegerField` (1 / 0) | Indica si el registro está **activo** o **inactivo**. Se usa para determinar si el recurso se toma en cuenta en la **generación de horarios**. |
+| `is_deleted` | `IntegerField` (1 / 0) | Indica si el registro ha sido **eliminado lógicamente**. Cuando es `1`, el registro es invisible para todos los endpoints de consulta. |
+
+### Comportamiento por operación
+
+- **`POST`**: crea el registro con `status = 1` e `is_deleted = 0`. Ambos valores son inyectados por el serializer; el cliente no los envía.
+- **`PUT`**: acepta todos los campos como opcionales (`partial=True`). Nunca modifica `is_deleted`.
+- **`DELETE`**: no elimina físicamente. Cambia `is_deleted = 1`. El registro queda oculto en todas las consultas posteriores.
+- **`toggle-status`**: alterna `status` entre 1 y 0. Permite activar o desactivar un recurso para la generación de horarios sin eliminarlo. **Este endpoint existe en todos los módulos**, independientemente del nivel de permiso requerido.
+- **Consultas (`GET` lista, `GET` paginado, `GET` por ID)**: siempre filtran por `is_deleted = 0`. Un registro con `is_deleted = 1` nunca es retornado ni accesible por ID.
+
+### Otras reglas
+
+- El campo `is_deleted` **nunca se expone en ningún serializer** (ni Write, ni Detail, ni List). Es un campo de infraestructura interno.
+- El endpoint paginado soporta `page`, `limit`, `search`, `sortBy` y `order`.
+- Todos los endpoints requieren autenticación JWT (`IsAuthenticated`).
+
+---
+
+## 6. Permisos por módulo
+
+Solo los módulos indicados requieren rol de administrador en escritura. El resto solo requiere estar autenticado.
+
+| App | Módulo | GET | POST | PUT | DELETE | toggle-status |
+|-----|--------|-----|------|-----|--------|---------------|
+| `subjects` | `colors` | ✅ Auth | 🔒 Admin | 🔒 Admin | 🔒 Admin | 🔒 Admin |
+| `universities` | `period_types` | ✅ Auth | 🔒 Admin | 🔒 Admin | 🔒 Admin | 🔒 Admin |
+| Todos los demás | todos | ✅ Auth | ✅ Auth | ✅ Auth | ✅ Auth | ✅ Auth |
+
+> **Nota:** `toggle-status` está presente en **todos los módulos sin excepción**. Es el mecanismo para controlar si un recurso participa en la generación de horarios (`status = 1`) o no (`status = 0`), independientemente de si está pendiente de eliminación.
+
+Para aplicar el permiso de administrador sobre un método específico se usa el decorador `@require_permissions(IsAdmin)` de `core.permissions`:
+
+```python
+from core.permissions import IsAdmin, require_permissions
+
+@require_permissions(IsAdmin)
+def post(self, request):
+    ...
+```
+
+---
+
+## 7. ApiResponse — respuestas estandarizadas
+
+Importar desde `core.api_response import ApiResponse`. Todos los métodos devuelven el mismo envelope:
+
+```json
+{
+  "error": false,
+  "statusCode": 200,
+  "message": "Operación exitosa",
+  "data": { ... }
+}
+```
+
+| Método | Uso | Status |
+|--------|-----|--------|
+| `ApiResponse.success(data, message)` | GET exitoso | 200 |
+| `ApiResponse.created(data, message)` | POST exitoso | 201 |
+| `ApiResponse.deleted(message)` | DELETE exitoso | 200 |
+| `ApiResponse.paginated(data, page, limit, total)` | GET paginado | 200 |
+| `ApiResponse.error(message, status_code, errors)` | Cualquier error | 4xx |
+| `ApiResponse.not_found(message)` | Recurso no encontrado | 404 |
+
+El método `paginated` agrega un campo extra `meta`:
+
+```json
+{
+  "error": false,
+  "statusCode": 200,
+  "data": [...],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 45,
+    "totalPages": 5
+  }
+}
+```
+
+---
+
+## 8. Convención de serializers
+
+Cada modelo tiene **cuatro serializers**:
+
+| Archivo | Clase | Uso | Campos |
+|---------|-------|-----|--------|
+| `{modelo}_write_serializer.py` | `{Modelo}WriteSerializer` | POST / PUT | Campos editables (sin `status`, `is_deleted`, `create_at`, etc.) |
+| `{modelo}_detail_serializer.py` | `{Modelo}DetailSerializer` | GET por ID, respuesta de PUT | Campos visibles del detalle |
+| `{modelo}_list_serializer.py` | `{Modelo}ListSerializer` | GET paginado | Campos mínimos para tabla (`id` + campos clave) |
+| `{modelo}_select_serializer.py` | `{Modelo}SelectSerializer` | GET lista (sin paginación) | Solo `id`, `name` y `short_name` (si existe). Para dropdowns/selects. |
+
+### Serializer Select
+
+El `SelectSerializer` es el que usa el endpoint `GET /api/v1/{recurso}/` (sin paginación). Su propósito es alimentar `<select>` y dropdowns en el frontend, por lo que solo expone los campos mínimos necesarios para identificar un registro.
+
+```python
+from rest_framework import serializers
+from {app}.models import {Modelo}
+
+class {Modelo}SelectSerializer(serializers.ModelSerializer):
+    """ Serializador para selects/dropdowns """
+    class Meta:
+        model  = {Modelo}
+        fields = ('id', 'name', 'short_name')  # omitir short_name si el modelo no lo tiene
+```
+
+El endpoint lista siempre filtra `status = 1` (activo para generación de horarios) **y** `is_deleted = 0` (no eliminado):
+
+```python
+def get(self, request):
+    registros = {Modelo}.objects.filter(status=1, is_deleted=0)
+    return ApiResponse.success({Modelo}SelectSerializer(registros, many=True).data)
+```
+
+**Campos que nunca deben aparecer en ningún serializer:**
+
+| Campo | Razón |
+|-------|-------|
+| `is_deleted` | Campo de infraestructura interna. El front nunca lo necesita. |
+| `status` | Nunca se envía en el cuerpo de escritura; se gestiona solo via `toggle-status`. Solo se puede incluir en Detail/List si el diseño lo requiere para visualización, pero **nunca en WriteSerializer**. |
+| `create_at`, `create_by`, `update_at`, `update_by` | Campos de auditoría internos. |
+
+El `WriteSerializer` siempre inyecta `status = 1` e `is_deleted = 0` en `create()`:
+
+```python
+def create(self, validated_data):
+    validated_data['status'] = 1
+    validated_data['is_deleted'] = 0
+    return {Modelo}.objects.create(**validated_data)
+```
+
+---
+
+## 9. Convención de vistas
+
+Todas las vistas extienden `APIView` y usan `@extend_schema(tags=['{NombreModulo}'])` en la clase. Para el endpoint paginado, se declaran explícitamente los parámetros con `OpenApiParameter`:
+
+```python
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+
+@extend_schema(tags=['{NombreModulo}'])
+class {Modelo}PaginatedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    SORT_FIELDS = {'id', 'name', ...}  # campos permitidos de ordenamiento
+
+    @extend_schema(
+        summary='Lista paginada de {modelos}',
+        description='...',
+        parameters=[
+            OpenApiParameter(name='page',   type=OpenApiTypes.INT, ...),
+            OpenApiParameter(name='limit',  type=OpenApiTypes.INT, ...),
+            OpenApiParameter(name='search', type=OpenApiTypes.STR, ...),
+            OpenApiParameter(name='status', type=OpenApiTypes.STR, enum=['true','false'], required=False, ...),
+            OpenApiParameter(name='sortBy', type=OpenApiTypes.STR, ...),
+            OpenApiParameter(name='order',  type=OpenApiTypes.STR, enum=['ASC','DESC'], ...),
+        ],
+    )
+    def get(self, request):
+        ...
+```
+
+Para que Swagger muestre el cuerpo de `POST` y `PUT`, se debe declarar `@extend_schema(request={Modelo}WriteSerializer)` en el método:
+
+```python
+@extend_schema(request={Modelo}WriteSerializer)
+def post(self, request):
+    ...
+```
+
+---
+
+## 10. Orden de implementación de apps y módulos
+
+### App: `user_accounts` ✅ (implementada)
+Modelos: `roles`, `users`
+
+Endpoints activos:
+- `POST /api/v1/auth/login/`
+- `POST /api/v1/auth/register/`
+- `POST /api/v1/auth/logout/`
+- `POST /api/v1/auth/refresh/`
+- `GET  /api/v1/auth/my-info/`
+
+---
+
+### App: `subjects` ✅ (implementada)
+Modelos: `colors` ✅, `subjects` (pendiente)
+
+Endpoints activos (`colors`):
+- `GET    /api/v1/colors/`
+- `POST   /api/v1/colors/`  🔒 Admin
+- `GET    /api/v1/colors/paginated/`
+- `GET    /api/v1/colors/{pk}/`
+- `PUT    /api/v1/colors/{pk}/`  🔒 Admin
+- `DELETE /api/v1/colors/{pk}/`  🔒 Admin
+- `PUT    /api/v1/colors/{pk}/toggle-status/`  🔒 Admin
+
+Modelo `subjects` (campos):
+```
+name, short_name, code, description, hours_per_week,
+color (FK → colors), is_mandatory, status,
+create_at, create_by, update_at, update_by
+```
+
+---
+
+### App: `universities` (por implementar)
+Modelos en orden de implementación: `images`, `period_types`, `universities`, `shifts`, `academic_periods`
+
+**`images`**
+```
+image_name, mime_type, extension, sha256, file_size, data,
+create_at, create_by, update_at, update_by
+```
+
+**`period_types`** 🔒 POST/PUT/DELETE requieren Admin
+```
+name, code, months_duration, status,
+create_at, create_by, update_at, update_by
+```
+
+**`universities`**
+```
+name, short_name, image (FK → images), user (FK → users),
+start_time, end_time, status,
+create_at, create_by, update_at, update_by
+```
+
+**`shifts`**
+```
+name, university (FK → universities), order,
+start_time, end_time, status,
+create_at, create_by, update_at, update_by
+```
+
+**`academic_periods`**
+```
+name, university (FK → universities), period_type (FK → period_types),
+start_month, end_month, order,
+create_at, create_by, update_at, update_by
+```
+
+---
+
+### App: `careers` (por implementar)
+Modelos en orden: `careers`, `groups`, `career_subjects`, `career_period_exceptions`
+
+**`careers`**
+```
+name, short_name, code, university (FK → universities),
+total_periods, status,
+create_at, create_by, update_at, update_by
+```
+
+**`groups`**
+```
+name, career (FK → careers), period_number, letter,
+shift (FK → shifts), status,
+create_at, create_by, update_at, update_by
+```
+
+**`career_subjects`** (tabla relacional, sin status)
+```
+subjects (FK → subjects), careers (FK → careers), period_number
+```
+
+**`career_period_exceptions`**
+```
+career (FK → careers), period_number, reason, status,
+create_at, create_by, update_at, update_by
+```
+
+---
+
+### App: `teachers` (por implementar)
+Modelos en orden: `teachers`, `teacher_availabilities`, `teachers_subjects`, `teachers_universities`
+
+**`teachers`**
+```
+name, surname, last_name, status,
+create_at, create_by, update_at, update_by
+```
+
+**`teacher_availabilities`**
+```
+teacher (FK → teachers), day_of_week, start_time, end_time,
+is_available, create_at, create_by, update_at, update_by
+```
+
+**`teachers_subjects`** (tabla relacional)
+```
+teachers (FK → teachers), subjects (FK → subjects)
+```
+
+**`teachers_universities`** (tabla relacional con status)
+```
+teachers (FK → teachers), universities (FK → universities), status
+```
+
+---
+
+### App: `classrooms` (por implementar)
+Modelos en orden: `classroom_types`, `classrooms`, `classroom_careers`
+
+**`classroom_types`**
+```
+name, description, status,
+create_at, create_by, update_at, update_by
+```
+
+**`classrooms`**
+```
+name, classroom_type (FK → classroom_types), code, floor,
+building, building_code, is_restricted,
+universities (FK → universities), status,
+create_at, create_by, update_at, update_by
+```
+
+**`classroom_careers`** (tabla relacional)
+```
+careers (FK → careers), classrooms (FK → classrooms)
+```
+
+---
+
+### App: `audit` (por implementar)
+Modelo único: `audit_logs`
+
+```
+user_id, table_name, record_id, action (INSERT/UPDATE/DELETE),
+former_data (JSON), new_data (JSON), ip_address, user_agent, created_at
+```
+
+> Esta app es de solo lectura. Solo se implementa `GET` (lista y paginado). No tiene POST/PUT/DELETE propio — los registros los genera el sistema automáticamente.
+
+---
+
+## 11. Ejemplo completo de implementación (referencia: `colors`)
+
+### `models/colors.py`
+```python
+from django.db import models
+
+class Colors(models.Model):
+    name         = models.CharField(max_length=45)
+    hex          = models.CharField(max_length=6)
+    contrast_hex = models.CharField(max_length=6)
+    status       = models.IntegerField()
+    is_deleted   = models.IntegerField(default=0)
+    create_at    = models.DateTimeField(blank=True, null=True)
+    create_by    = models.DateTimeField(blank=True, null=True)
+    update_at    = models.DateTimeField(blank=True, null=True)
+    update_by    = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        managed  = True
+        db_table = 'colors'
+```
+
+### `serializers/colors/color_write_serializer.py`
+```python
+from rest_framework import serializers
+from subjects.models import Colors
+
+class ColorWriteSerializer(serializers.ModelSerializer):
+    """ Serializador de escritura para Colors (POST, PUT) """
+    class Meta:
+        model  = Colors
+        fields = ('name', 'hex', 'contrast_hex')
+
+    def create(self, validated_data):
+        validated_data['status'] = 1
+        validated_data['is_deleted'] = 0
+        return Colors.objects.create(**validated_data)
+```
+
+### `serializers/colors/color_detail_serializer.py`
+```python
+from rest_framework import serializers
+from subjects.models import Colors
+
+class ColorDetailSerializer(serializers.ModelSerializer):
+    """ Serializador de detalle para Colors (GET por ID) """
+    class Meta:
+        model  = Colors
+        fields = ('id', 'name', 'hex', 'contrast_hex')
+```
+
+### `serializers/colors/color_list_serializer.py`
+```python
+from rest_framework import serializers
+from subjects.models import Colors
+
+class ColorListSerializer(serializers.ModelSerializer):
+    """ Serializador de listado para Colors (GET / paginado) """
+    class Meta:
+        model  = Colors
+        fields = ('id', 'name', 'hex')
+```
+
+### `views/colors.py` (estructura completa)
+```python
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+from django.db.models import Q
+from core.api_response import ApiResponse
+from core.permissions import IsAdmin, require_permissions
+from subjects.models import Colors
+from subjects.serializers import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer
+
+
+@extend_schema(tags=['Colors'])
+class ColorListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """ Lista los colores activos y no eliminados (para selects/dropdowns) """
+        colors = Colors.objects.filter(status=1, is_deleted=0)
+        return ApiResponse.success(ColorListSerializer(colors, many=True).data)
+
+    @require_permissions(IsAdmin)
+    @extend_schema(request=ColorWriteSerializer)
+    def post(self, request):
+        """ Crea un nuevo color """
+        serializer = ColorWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            color = serializer.save()
+            return ApiResponse.created(ColorDetailSerializer(color).data)
+        return ApiResponse.error(errors=serializer.errors)
+
+
+@extend_schema(tags=['Colors'])
+class ColorPaginatedView(APIView):
+    permission_classes = [IsAuthenticated]
+    SORT_FIELDS = {'id', 'name', 'hex', 'contrast_hex'}
+
+    @extend_schema(
+        summary='Lista paginada de colores',
+        description='Retorna los colores de forma paginada con soporte de búsqueda, filtro por status y ordenamiento.',
+        parameters=[
+            OpenApiParameter('page',   OpenApiTypes.INT, OpenApiParameter.QUERY, description='Número de página (default: 1)', default=1),
+            OpenApiParameter('limit',  OpenApiTypes.INT, OpenApiParameter.QUERY, description='Registros por página (default: 10)', default=10),
+            OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Buscar en nombre o hex', required=False),
+            OpenApiParameter('status', OpenApiTypes.STR, OpenApiParameter.QUERY, description='true (activos) / false (inactivos). Sin valor: todos los no eliminados.', enum=['true','false'], required=False),
+            OpenApiParameter('sortBy', OpenApiTypes.STR, OpenApiParameter.QUERY, description='Campo: id, name, hex, contrast_hex', default='id', required=False),
+            OpenApiParameter('order',  OpenApiTypes.STR, OpenApiParameter.QUERY, description='ASC o DESC', enum=['ASC','DESC'], default='ASC', required=False),
+        ],
+    )
+    def get(self, request):
+        """ Lista paginada de colores con búsqueda, filtro por status y ordenamiento """
+        page         = max(1, int(request.query_params.get('page', 1)))
+        limit        = max(1, int(request.query_params.get('limit', 10)))
+        search       = request.query_params.get('search', '').strip()
+        status_param = request.query_params.get('status', None)
+        sort_by      = request.query_params.get('sortBy', 'id')
+        order        = request.query_params.get('order', 'ASC').upper()
+        offset       = (page - 1) * limit
+
+        if sort_by not in self.SORT_FIELDS:
+            sort_by = 'id'
+        order_field = sort_by if order == 'ASC' else f'-{sort_by}'
+
+        queryset = Colors.objects.filter(is_deleted=0)
+
+        if status_param is not None:
+            queryset = queryset.filter(status=1 if status_param.lower() == 'true' else 0)
+
+        if search:
+            queryset = queryset.filter(Q(name__icontains=search) | Q(hex__icontains=search))
+
+        queryset = queryset.order_by(order_field)
+        total = queryset.count()
+
+        return ApiResponse.paginated(
+            data=ColorListSerializer(queryset[offset:offset + limit], many=True).data,
+            page=page, limit=limit, total=total,
+        )
+
+
+@extend_schema(tags=['Colors'])
+class ColorDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk):
+        """ Busca un color no eliminado por su ID, retorna None si no existe o fue eliminado """
+        try:
+            return Colors.objects.get(pk=pk, is_deleted=0)
+        except Colors.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        """ Obtiene un color por ID """
+        color = self.get_object(pk)
+        if color is None:
+            return ApiResponse.not_found()
+        return ApiResponse.success(ColorDetailSerializer(color).data)
+
+    @require_permissions(IsAdmin)
+    @extend_schema(request=ColorWriteSerializer)
+    def put(self, request, pk):
+        """ Actualiza uno o varios campos """
+        color = self.get_object(pk)
+        if color is None:
+            return ApiResponse.not_found()
+        serializer = ColorWriteSerializer(color, data=request.data, partial=True)
+        if serializer.is_valid():
+            color = serializer.save()
+            return ApiResponse.success(ColorDetailSerializer(color).data, message='Color actualizado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
+
+    @require_permissions(IsAdmin)
+    def delete(self, request, pk):
+        """ Eliminación lógica: marca is_deleted = True """
+        color = self.get_object(pk)
+        if color is None:
+            return ApiResponse.not_found()
+        color.is_deleted = 1
+        color.save()
+        return ApiResponse.deleted('Color eliminado exitosamente')
+
+
+@extend_schema(tags=['Colors'])
+class ColorToggleStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @require_permissions(IsAdmin)
+    def put(self, request, pk):
+        """ Alterna el status entre 1 y 0 (activo/inactivo para generación de horarios) """
+        try:
+            color = Colors.objects.get(pk=pk, is_deleted=0)
+        except Colors.DoesNotExist:
+            return ApiResponse.not_found()
+        color.status = 0 if color.status == 1 else 1
+        color.save()
+        estado = 'activado' if color.status == 1 else 'desactivado'
+        return ApiResponse.success(
+            data=ColorDetailSerializer(color).data,
+            message=f'Color {estado} exitosamente',
+        )
+```
+
+### `urls/colors.py`
+```python
+from django.urls import path
+from subjects.views import ColorListView, ColorPaginatedView, ColorDetailView, ColorToggleStatusView
+
+urlpatterns = [
+    path('colors/',                       ColorListView.as_view()),
+    path('colors/paginated/',             ColorPaginatedView.as_view()),
+    path('colors/<int:pk>/',              ColorDetailView.as_view()),
+    path('colors/<int:pk>/toggle-status/', ColorToggleStatusView.as_view()),
+]
+```
+
+### `urls/__init__.py`
+```python
+from django.urls import path, include
+
+urlpatterns = [
+    path('', include('subjects.urls.colors')),
+    # path('', include('subjects.urls.subjects')),  # cuando se implemente
+]
+```
+
+---
+
+## 12. Checklist al implementar un nuevo módulo
+
+- [ ] Crear `models/{modelo}.py` y exportar en `models/__init__.py`
+- [ ] Crear migraciones: `python manage.py makemigrations {app}` y `python manage.py migrate`
+- [ ] Crear `serializers/{modelo}/` con los cuatro serializers (Write, Detail, List, Select) y su `__init__.py`
+- [ ] Exportar serializers en `serializers/__init__.py`
+- [ ] Crear `views/{modelo}.py` con las 4 clases de vista
+- [ ] Exportar vistas en `views/__init__.py`
+- [ ] Crear `urls/{modelo}.py` con las 4 rutas
+- [ ] Agregar `include` en `urls/__init__.py`
+- [ ] Verificar con `python manage.py check`
+- [ ] Confirmar que aparecen en Swagger: `http://localhost:8000/api/docs/`

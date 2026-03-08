@@ -36,7 +36,7 @@ class ColorPaginatedView(APIView):
 
     @extend_schema(
         summary='Lista paginada de colores',
-        description='Retorna los colores activos de forma paginada con soporte de búsqueda y ordenamiento.',
+        description='Retorna los colores de forma paginada con soporte de búsqueda, filtro por status y ordenamiento.',
         parameters=[
             OpenApiParameter(
                 name='page',
@@ -60,6 +60,14 @@ class ColorPaginatedView(APIView):
                 required=False,
             ),
             OpenApiParameter(
+                name='status',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filtro por estado: true (activos) / false (inactivos). Sin valor: retorna todos los no eliminados.',
+                enum=['true', 'false'],
+                required=False,
+            ),
+            OpenApiParameter(
                 name='sortBy',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
@@ -79,13 +87,14 @@ class ColorPaginatedView(APIView):
         ],
     )
     def get(self, request):
-        """ Lista paginada de colores activos con búsqueda y ordenamiento """
-        page    = max(1, int(request.query_params.get('page', 1)))
-        limit   = max(1, int(request.query_params.get('limit', 10)))
-        search  = request.query_params.get('search', '').strip()
-        sort_by = request.query_params.get('sortBy', 'id')
-        order   = request.query_params.get('order', 'ASC').upper()
-        offset  = (page - 1) * limit
+        """ Lista paginada de colores con búsqueda, filtro por status y ordenamiento """
+        page         = max(1, int(request.query_params.get('page', 1)))
+        limit        = max(1, int(request.query_params.get('limit', 10)))
+        search       = request.query_params.get('search', '').strip()
+        status_param = request.query_params.get('status', None)
+        sort_by      = request.query_params.get('sortBy', 'id')
+        order        = request.query_params.get('order', 'ASC').upper()
+        offset       = (page - 1) * limit
 
         # Validar campo de ordenamiento para evitar inyección de parámetros
         if sort_by not in self.SORT_FIELDS:
@@ -93,7 +102,10 @@ class ColorPaginatedView(APIView):
 
         order_field = sort_by if order == 'ASC' else f'-{sort_by}'
 
-        queryset = Colors.objects.filter(status=1)
+        queryset = Colors.objects.filter(is_deleted=False)
+
+        if status_param is not None:
+            queryset = queryset.filter(status=1 if status_param.lower() == 'true' else 0)
 
         if search:
             from django.db.models import Q
@@ -144,16 +156,6 @@ class ColorDetailView(APIView):
             color = serializer.save()
             return ApiResponse.success(ColorDetailSerializer(color).data, message='Color actualizado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
-
-    @require_permissions(IsAdmin)
-    def delete(self, request, pk):
-        """ Desactiva un color (soft delete) """
-        color = self.get_object(pk)
-        if color is None:
-            return ApiResponse.not_found()
-        color.status = 0
-        color.save()
-        return ApiResponse.deleted('Color desactivado exitosamente')
 
 
 @extend_schema(tags=['Colors'])
