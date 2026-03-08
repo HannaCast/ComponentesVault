@@ -3,8 +3,8 @@ from subjects.models import Colors
 
 
 
-class ColorReadSerializer(serializers.ModelSerializer):
-    """ Serializador de lectura para Colors (GET) """
+class ColorDetailSerializer(serializers.ModelSerializer):
+    """ Serializador de detalle para Colors (GET por ID) """
 
     class Meta:
         model = Colors

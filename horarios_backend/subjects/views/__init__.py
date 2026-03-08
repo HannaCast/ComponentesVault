@@ -1,1 +1,1 @@
-from .colors import ColorListView, ColorDetailView, ColorToggleStatusView
+from .colors import ColorListView, ColorPaginatedView, ColorDetailView, ColorToggleStatusView

@@ -3,7 +3,7 @@ from subjects.models import Colors
 
 
 
-class ColorSerializer(serializers.ModelSerializer):
+class ColorWriteSerializer(serializers.ModelSerializer):
     """ Serializador de escritura para Colors (POST, PUT) """
 
     class Meta:
@@ -14,3 +14,4 @@ class ColorSerializer(serializers.ModelSerializer):
         """ Crea un color con status activo por defecto """
         validated_data['status'] = 1
         return Colors.objects.create(**validated_data)
+

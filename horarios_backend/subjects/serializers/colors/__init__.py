@@ -1,2 +1,3 @@
-from .color_serializer import ColorSerializer
-from .color_read_serializer import ColorReadSerializer
+from .color_write_serializer import ColorWriteSerializer
+from .color_detail_serializer import ColorDetailSerializer
+from .color_list_serializer import ColorListSerializer
