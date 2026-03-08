@@ -16,6 +16,7 @@ class LoginView(TokenObtainPairView):
 class RegisterView(APIView):
     permission_classes = []
     def post(self, request):
+        """ Registra un nuevo usuario en el sistema """
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -27,6 +28,7 @@ class RegisterView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
+        """ Cierra la sesión e invalida el refresh token """
         token = RefreshToken(request.data["refresh"])
         token.blacklist()
         return ApiResponse.success(message='Sesión cerrada exitosamente')
@@ -36,6 +38,7 @@ class LogoutView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
+        """ Retorna los datos del usuario autenticado """
         user = request.user
         return ApiResponse.success(data={
             'name': user.name,

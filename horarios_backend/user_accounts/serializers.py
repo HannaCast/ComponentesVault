@@ -5,6 +5,7 @@ from .models import User
 class LoginSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
+        """ Agrega campos personalizados al payload del JWT """
         token = super().get_token(user)
         # Datos útiles que irán dentro del JWT
         token['id'] = user.id
@@ -19,4 +20,5 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['name', 'surname', 'last_name', 'email', 'password', 'role']
 
     def create(self, validated_data):
+        """ Crea un nuevo usuario usando el manager personalizado """
         return User.objects.create_user(**validated_data)

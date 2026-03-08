@@ -23,17 +23,17 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# ADVERTENCIA DE SEGURIDAD: mantén la clave secreta fuera del control de versiones en producción.
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# ADVERTENCIA DE SEGURIDAD: no actives DEBUG en producción.
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 _allowed = os.getenv('ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = [s.strip() for s in _allowed.split(',') if s.strip()]
 
 
-# Application definition
+# Definición de aplicaciones
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -88,7 +88,7 @@ _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [s.strip() for s in _cors_origins.split(',') if s.strip()]
 
 
-# Database
+# Base de datos
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
@@ -103,7 +103,7 @@ DATABASES = {
 }
 
 
-# Password validation
+# Validación de contraseñas
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -154,7 +154,7 @@ SIMPLE_JWT = {
 }
 
 
-# Internationalization
+# Internacionalización
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
@@ -166,7 +166,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# Archivos estáticos (CSS, JavaScript, Imágenes)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'

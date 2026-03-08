@@ -15,7 +15,7 @@ def seed_users(apps, schema_editor):
 
     users = [
         {
-            'email': 'admin@horarios.com',
+            'email': 'admin@gmail.com',
             'password': 'Admin123',
             'name': 'Admin',
             'surname': 'Sistema',
@@ -24,7 +24,7 @@ def seed_users(apps, schema_editor):
             'status': 1,
         },
         {
-            'email': 'usuario@horarios.com',
+            'email': 'usuario@gmail.com',
             'password': 'Usuario123',
             'name': 'Usuario',
             'surname': 'Sistema',
@@ -43,8 +43,8 @@ def seed_users(apps, schema_editor):
 def reverse_seed_users(apps, schema_editor):
     User = apps.get_model('user_accounts', 'User')
     User.objects.filter(email__in=[
-        'admin@horarios.com',
-        'usuario@horarios.com',
+        'admin@gmail.com',
+        'usuario@gmail.com',
     ]).delete()
 
 

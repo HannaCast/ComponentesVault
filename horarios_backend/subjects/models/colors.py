@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Modelo de colores para las materias
 class Colors(models.Model):
     name = models.CharField(max_length=45)
