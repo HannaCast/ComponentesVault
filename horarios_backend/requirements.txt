@@ -1,0 +1,21 @@
+# Django core
+Django==6.0.1
+djangorestframework==3.16.1
+
+# Autenticación JWT
+djangorestframework-simplejwt==5.5.1
+
+# Documentación Swagger / OpenAPI
+drf-spectacular==0.29.0
+
+# CORS
+django-cors-headers==4.9.0
+
+# MySQL
+mysqlclient==2.2.8
+
+# Variables de entorno
+python-dotenv==1.1.1
+
+# Hashing de contraseñas
+bcrypt==5.0.0

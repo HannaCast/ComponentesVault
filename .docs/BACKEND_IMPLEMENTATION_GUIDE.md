@@ -129,7 +129,14 @@ Cada modelo con gestión de estado tiene **dos campos diferenciados**:
 - **`DELETE`**: no elimina físicamente. Cambia `is_deleted = 1`. El registro queda oculto en todas las consultas posteriores.
 - **`toggle-status`**: alterna `status` entre 1 y 0. Permite activar o desactivar un recurso para la generación de horarios sin eliminarlo. **Este endpoint existe en todos los módulos**, independientemente del nivel de permiso requerido.
 - **Consultas (`GET` lista, `GET` paginado, `GET` por ID)**: siempre filtran por `is_deleted = 0`. Un registro con `is_deleted = 1` nunca es retornado ni accesible por ID.
+### Campos de auditoría (managed por triggers de BD)
 
+Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionados **automáticamente por triggers en MySQL**. Django **no debe tocarlos nunca**:
+
+- No deben aparecer en ningún serializer (ni Write, ni Detail, ni List, ni Select).
+- No se setean en `create()` ni en `update()` del serializer.
+- No se pasan desde la vista ni desde el cliente.
+- Deben declararse en el modelo Django únicamente para poder leerlos si se necesitara, pero sin `default` ni lógica Python asociada.
 ### Otras reglas
 
 - El campo `is_deleted` **nunca se expone en ningún serializer** (ni Write, ni Detail, ni List). Es un campo de infraestructura interno.
@@ -242,7 +249,7 @@ def get(self, request):
 |-------|-------|
 | `is_deleted` | Campo de infraestructura interna. El front nunca lo necesita. |
 | `status` | Nunca se envía en el cuerpo de escritura; se gestiona solo via `toggle-status`. Solo se puede incluir en Detail/List si el diseño lo requiere para visualización, pero **nunca en WriteSerializer**. |
-| `create_at`, `create_by`, `update_at`, `update_by` | Campos de auditoría internos. |
+| `created_at`, `created_by`, `updated_at`, `updated_by` | Gestionados por **triggers de MySQL**. Django no los toca nunca. |
 
 El `WriteSerializer` siempre inyecta `status = 1` e `is_deleted = 0` en `create()`:
 
@@ -473,13 +480,14 @@ class Colors(models.Model):
     contrast_hex = models.CharField(max_length=6)
     status       = models.IntegerField()
     is_deleted   = models.IntegerField(default=0)
-    create_at    = models.DateTimeField(blank=True, null=True)
-    create_by    = models.DateTimeField(blank=True, null=True)
-    update_at    = models.DateTimeField(blank=True, null=True)
-    update_by    = models.DateTimeField(blank=True, null=True)
+    # Campos de auditoría: gestionados por triggers de MySQL, Django no los toca
+    created_at   = models.DateTimeField(blank=True, null=True)
+    created_by   = models.CharField(max_length=100, blank=True, null=True)
+    updated_at   = models.DateTimeField(blank=True, null=True)
+    updated_by   = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed  = True
+        managed  = False
         db_table = 'colors'
 ```
 
@@ -702,5 +710,6 @@ urlpatterns = [
 - [ ] Exportar vistas en `views/__init__.py`
 - [ ] Crear `urls/{modelo}.py` con las 4 rutas
 - [ ] Agregar `include` en `urls/__init__.py`
+- [ ] Si se usó alguna librería nueva que requiera instalación, agregarla a `horarios_backend/requirements.txt` con su versión exacta (`pip show <libreria>` para consultarla)
 - [ ] Verificar con `python manage.py check`
 - [ ] Confirmar que aparecen en Swagger: `http://localhost:8000/api/docs/`
