@@ -1,4 +1,4 @@
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,6 +10,19 @@ from .serializers import LoginSerializer, RegisterSerializer
 @extend_schema(tags=['Auth'])
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        """ Autentica al usuario y devuelve los tokens JWT """
+        response = super().post(request, *args, **kwargs)
+        return ApiResponse.success(data=response.data, message='Inicio de sesión exitoso')
+
+
+@extend_schema(tags=['Auth'])
+class RefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        """ Renueva el access token usando el refresh token """
+        response = super().post(request, *args, **kwargs)
+        return ApiResponse.success(data=response.data, message='Token renovado exitosamente')
 
 
 @extend_schema(tags=['Auth'])
