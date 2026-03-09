@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from core.api_response import ApiResponse
 from core.permissions import IsAdmin, require_permissions
 from subjects.models import Colors
-from subjects.serializers import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer
+from subjects.serializers import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer, ColorSelectSerializer
 
 
 @extend_schema(tags=['Colors'])
@@ -15,7 +15,7 @@ class ColorListView(APIView):
     def get(self, request):
         """ Lista los colores activos y no eliminados (para selects/dropdowns) """
         colors = Colors.objects.filter(status=1, is_deleted=0)
-        return ApiResponse.success(ColorListSerializer(colors, many=True).data)
+        return ApiResponse.success(ColorSelectSerializer(colors, many=True).data)
 
     @require_permissions(IsAdmin)
     @extend_schema(request=ColorWriteSerializer)

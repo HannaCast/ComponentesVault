@@ -1,1 +1,1 @@
-from .colors import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer
+from .colors import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer, ColorSelectSerializer
