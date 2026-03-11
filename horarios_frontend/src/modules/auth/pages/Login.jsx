@@ -16,12 +16,11 @@ export const Login = () => {
     setError('');
     setLoading(true);
 
-    const success = await login(email, password);
+    const userData = await login(email, password);
     setLoading(false);
 
-    if (success) {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const redirectTo = storedUser.role === 'admin' ? '/admin' : '/user';
+    if (userData) {
+      const redirectTo = userData.role === 'admin' ? '/admin' : '/user';
       navigate(redirectTo);
     } else {
       setError('Correo o contraseña incorrectos');

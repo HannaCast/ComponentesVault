@@ -86,6 +86,7 @@ WSGI_APPLICATION = 'horarios_backend.wsgi.application'
 
 _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [s.strip() for s in _cors_origins.split(',') if s.strip()]
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Base de datos
@@ -148,9 +149,9 @@ SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación
 from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1), # minutes=30
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
 }
 
 
