@@ -1,0 +1,1 @@
+from .university_write_serializer import UniversityWriteSerializer
