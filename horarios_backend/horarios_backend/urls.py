@@ -11,6 +11,8 @@ urlpatterns = [
     # Rutas de la aplicación
     path('admin/', admin.site.urls),
     path('api/v1/auth/', include('user_accounts.urls')),
+
+    # RUTAS DE ASIGNATURAS
     path('api/v1/subjects/', include('subjects.urls')),
     
     #RUTAS DE UNIVERSIDADES

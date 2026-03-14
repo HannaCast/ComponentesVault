@@ -132,7 +132,7 @@ PASSWORD_HASHERS = [ # Usar bcrypt para encriptar contraseñas
 
 REST_FRAMEWORK = { # Configuración de Django REST Framework
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'core.authentication.CookieJWTAuthentication',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exception_handler.custom_exception_handler', # Manejo global de excepciones personalizado

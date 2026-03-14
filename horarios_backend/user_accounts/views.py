@@ -7,11 +7,28 @@ from drf_spectacular.utils import extend_schema
 from core.api_response import ApiResponse
 from .serializers import LoginSerializer, RegisterSerializer
 
-# Duración de la cookie en segundos (igual que REFRESH_TOKEN_LIFETIME)
+# Duración de las cookies en segundos
+_ACCESS_COOKIE_MAX_AGE = int(
+    settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()
+)
 _REFRESH_COOKIE_MAX_AGE = int(
     settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()
 )
+_ACCESS_COOKIE_PATH = '/'
 _REFRESH_COOKIE_PATH = '/api/v1/auth/'
+
+
+def _set_access_cookie(response, access_token: str) -> None:
+    """ Establece el access token como cookie HttpOnly segura """
+    response.set_cookie(
+        'access_token',
+        access_token,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite='Lax',
+        max_age=_ACCESS_COOKIE_MAX_AGE,
+        path=_ACCESS_COOKIE_PATH,
+    )
 
 
 def _set_refresh_cookie(response, refresh_token: str) -> None:
@@ -32,14 +49,24 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
     def post(self, request, *args, **kwargs):
-        """ Autentica al usuario: devuelve el access token en body y el refresh en HttpOnly cookie """
+        """ Autentica al usuario y establece access/refresh en cookies HttpOnly """
         response = super().post(request, *args, **kwargs)
         tokens = response.data
+        access_token = tokens['access']
+        refresh_token = tokens['refresh']
+
+        access_claims = RefreshToken(refresh_token).access_token
         resp = ApiResponse.success(
-            data={'access': tokens['access']},
+            data={
+                'user': {
+                    'id': access_claims.get('id'),
+                    'role': access_claims.get('role'),
+                }
+            },
             message='Inicio de sesión exitoso',
         )
-        _set_refresh_cookie(resp, tokens['refresh'])
+        _set_access_cookie(resp, access_token)
+        _set_refresh_cookie(resp, refresh_token)
         return resp
 
 
@@ -56,10 +83,12 @@ class RefreshView(APIView):
         try:
             token = RefreshToken(refresh_token)
             new_access = str(token.access_token)
-            return ApiResponse.success(
-                data={'access': new_access},
+            resp = ApiResponse.success(
+                data={'ok': True},
                 message='Token renovado exitosamente',
             )
+            _set_access_cookie(resp, new_access)
+            return resp
         except Exception:
             return ApiResponse.error(message='Sesión expirada, inicia sesión nuevamente')
 
@@ -90,6 +119,7 @@ class LogoutView(APIView):
                 pass  # token ya expirado o inválido, continuar de todos modos
 
         resp = ApiResponse.success(message='Sesión cerrada exitosamente')
+        resp.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH)
         resp.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH)
         return resp
 
@@ -101,6 +131,7 @@ class MeView(APIView):
         """ Retorna los datos del usuario autenticado """
         user = request.user
         return ApiResponse.success(data={
+            'id': user.id,
             'name': user.name,
             'email': user.email,
             'role': user.role.name if user.role else None,
