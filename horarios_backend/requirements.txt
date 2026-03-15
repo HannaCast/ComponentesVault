@@ -17,5 +17,8 @@ mysqlclient==2.2.8
 # Variables de entorno
 python-dotenv==1.1.1
 
+# Logging
+loguru==0.7.3
+
 # Hashing de contraseñas
 bcrypt==5.0.0
