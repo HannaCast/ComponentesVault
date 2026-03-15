@@ -12,7 +12,7 @@ export const AppProvider = ({ children }) => {
     const bootstrap = async () => {
       try {
         // Si access cookie sigue viva, my-info funcionará directo.
-        const me = await api.get('/api/v1/auth/my-info/');
+        const me = await api.get('/api/v1/user/my-info/');
         setUser({
           id: me.data.data.id,
           role: me.data.data.role,
@@ -21,7 +21,7 @@ export const AppProvider = ({ children }) => {
         try {
           // Si access expiró pero refresh sigue viva, renueva y vuelve a consultar my-info.
           await api.post('/api/v1/auth/refresh/');
-          const me = await api.get('/api/v1/auth/my-info/');
+          const me = await api.get('/api/v1/user/my-info/');
           setUser({
             id: me.data.data.id,
             role: me.data.data.role,
