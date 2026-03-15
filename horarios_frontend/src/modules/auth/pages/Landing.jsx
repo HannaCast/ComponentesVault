@@ -11,9 +11,31 @@ import {
   BarChart,
   Shield
 } from 'lucide-react';
+import { useApp } from '@context/AppContext';
+
+const getHomePathByRole = (role) => {
+  const normalizedRole = String(role || '').toLowerCase();
+  return normalizedRole.includes('admin') ? '/admin' : '/user';
+};
 
 export const Landing = () => {
   const navigate = useNavigate();
+  const { user, restoreSession } = useApp();
+
+  const handleLoginNavigation = async () => {
+    if (user) {
+      navigate(getHomePathByRole(user.role));
+      return;
+    }
+
+    const restoredUser = await restoreSession();
+    if (restoredUser) {
+      navigate(getHomePathByRole(restoredUser.role));
+      return;
+    }
+
+    navigate('/login');
+  };
 
   const features = [
     {
@@ -71,7 +93,7 @@ export const Landing = () => {
             </div>
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/login')}
+                onClick={handleLoginNavigation}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
               >
                 Iniciar Sesión
@@ -112,7 +134,7 @@ export const Landing = () => {
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button
-                onClick={() => navigate('/login')}
+                onClick={handleLoginNavigation}
                 className="w-full sm:w-auto px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-gray-400 transition-colors text-lg font-medium"
               >
                 Iniciar Sesión

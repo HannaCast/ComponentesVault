@@ -12,6 +12,36 @@ export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  const restoreSession = async () => {
+    try {
+      // Si access cookie sigue viva, my-info funcionará directo.
+      const initialData = await getUserConfiguration();
+      const userData = {
+        id: initialData.data.data.id,
+        role: initialData.data.data.role_name,
+        selected_university: initialData.data.data.selected_university,
+      };
+      setUser(userData);
+      return userData;
+    } catch {
+      try {
+        // Si access expiró pero refresh sigue viva, renueva y vuelve a consultar configuración.
+        await refreshSession();
+        const initialData = await getUserConfiguration();
+        const userData = {
+          id: initialData.data.data.id,
+          role: initialData.data.data.role_name,
+          selected_university: initialData.data.data.selected_university,
+        };
+        setUser(userData);
+        return userData;
+      } catch {
+        setUser(null);
+        return null;
+      }
+    }
+  };
+
   // Bootstrap de sesión usando cookies HttpOnly.
   useEffect(() => {
     const pathname = window.location.pathname;
@@ -24,26 +54,7 @@ export const AppProvider = ({ children }) => {
 
     const bootstrap = async () => {
       try {
-        // Si access cookie sigue viva, my-info funcionará directo.
-        const initialData = await getUserConfiguration();
-        setUser({
-          id: initialData.data.data.id,
-          role: initialData.data.data.role_name,
-          selected_university: initialData.data.data.selected_university,
-        });
-      } catch {
-        try {
-          // Si access expiró pero refresh sigue viva, renueva y vuelve a consultar my-info.
-          await refreshSession();
-          const initialData = await getUserConfiguration();
-          setUser({
-            id: initialData.data.data.id,
-            role: initialData.data.data.role_name,
-            selected_university: initialData.data.data.selected_university,
-          });
-        } catch {
-          setUser(null);
-        }
+        await restoreSession();
       } finally {
         setAuthLoading(false);
       }
@@ -78,7 +89,7 @@ export const AppProvider = ({ children }) => {
   };
 
   return (
-    <AppContext.Provider value={{ user, login, logout, authLoading }}>
+    <AppContext.Provider value={{ user, login, logout, authLoading, restoreSession }}>
       {children}
     </AppContext.Provider>
   );

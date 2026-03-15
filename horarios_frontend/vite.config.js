@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@requests': path.resolve(__dirname, './src/core/requests'),
+      '@context': path.resolve(__dirname, './src/core/context'),
     },
   },
 })
