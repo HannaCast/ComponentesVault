@@ -1,6 +1,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import User
+from universities.models.universities import Universities
 
 class LoginSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -22,3 +23,26 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """ Crea un nuevo usuario usando el manager personalizado """
         return User.objects.create_user(**validated_data)
+
+
+class SelectedUniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Universities
+        fields = ['id', 'name', 'short_name', 'institution_code']
+
+
+class MeInfoSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='role.name', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'email', 'role']
+
+
+class ConfigurationSerializer(serializers.ModelSerializer):
+    selected_university = SelectedUniversitySerializer(read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'role_name', 'selected_university']

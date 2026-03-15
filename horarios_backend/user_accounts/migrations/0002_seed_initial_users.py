@@ -49,7 +49,7 @@ def reverse_seed_users(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
+    
     dependencies = [
         ('user_accounts', '0001_initial'),
     ]
@@ -57,3 +57,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(seed_users, reverse_seed_users),
     ]
+    

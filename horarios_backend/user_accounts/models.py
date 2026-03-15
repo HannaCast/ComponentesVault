@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
+from universities.models.universities import Universities
 
 
 class Role(models.Model):
@@ -33,6 +34,14 @@ class User(AbstractBaseUser):
     email      = models.EmailField(max_length=100, unique=True)
     status     = models.IntegerField(default=1)
     role       = models.ForeignKey(Role, on_delete=models.DO_NOTHING, null=True, blank=True)
+    selected_university = models.ForeignKey(
+        Universities,
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name='selected_users',
+        related_query_name='selected_user',
+    )
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
