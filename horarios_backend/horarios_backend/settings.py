@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import logging.config
 from pathlib import Path
 from dotenv import load_dotenv
+from loguru import logger
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -175,3 +177,94 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR/'media'
+
+
+## Configuración de logging con Loguru
+LOGGING_CONFIG = None
+
+fmt = "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
+
+
+def _is_swagger_noise(record):
+    """Ignora trazas de depuracion relacionadas con Swagger/OpenAPI."""
+    logger_name = (record.get('name') or '').lower()
+    message = str(record.get('message') or '').lower()
+    swagger_markers = ('drf_spectacular', '/api/schema', '/swagger', 'openapi')
+    return any(marker in logger_name or marker in message for marker in swagger_markers)
+
+LOGURU_LOGGING = {
+    'handlers': [
+        {
+            'sink': str(BASE_DIR / 'logs/debug/debug_{time:YYYY-MM-DD}.log'),
+            'level': 'DEBUG',
+            'filter': lambda record: record['level'].name == 'DEBUG' and not _is_swagger_noise(record),
+            'format': fmt,
+            'rotation': '00:00',
+            'retention': '7 days',
+            'compression': 'zip',
+        },
+        {
+            'sink': str(BASE_DIR / 'logs/info/info_{time:YYYY-MM-DD}.log'),
+            'level': 'INFO',
+            'filter': lambda record: record['level'].name == 'INFO',
+            'format': fmt,
+            'rotation': '00:00',
+            'retention': '30 days',
+            'compression': 'zip',
+        },
+        {
+            'sink': str(BASE_DIR / 'logs/warning/warning_{time:YYYY-MM-DD}.log'),
+            'level': 'WARNING',
+            'filter': lambda record: record['level'].name == 'WARNING',
+            'format': fmt,
+            'rotation': '00:00',
+            'retention': '30 days',
+            'compression': 'zip',
+        },
+        {
+            'sink': str(BASE_DIR / 'logs/error/error_{time:YYYY-MM-DD}.log'),
+            'level': 'ERROR',
+            'filter': lambda record: record['level'].name == 'ERROR',
+            'format': fmt,
+            'rotation': '00:00',
+            'retention': '90 days',
+            'compression': 'zip',
+            'backtrace': True,
+            'diagnose': True,
+        },
+        {
+            'sink': str(BASE_DIR / 'logs/error/error_{time:YYYY-MM-DD}.log'),
+            'level': 'CRITICAL',
+            'filter': lambda record: record['level'].name == 'CRITICAL',
+            'format': fmt,
+            'rotation': '00:00',
+            'retention': '90 days',
+            'compression': 'zip',
+            'backtrace': True,
+            'diagnose': True,
+        },
+    ]
+}
+
+# Crear directorios de logs si no existen
+for log_subdir in ('debug', 'info', 'warning', 'error'):
+    (BASE_DIR / 'logs' / log_subdir).mkdir(parents=True, exist_ok=True)
+
+logger.configure(**LOGURU_LOGGING)
+
+# Interceptar logs de Django y redirigirlos a Loguru
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'loguru': {
+            'class': 'horarios_backend.interceptor.InterceptorHandler'
+        }
+    },
+    'root': {
+        'handlers': ['loguru'],
+        'level': 'DEBUG'
+    }
+}
+
+logging.config.dictConfig(LOGGING)
