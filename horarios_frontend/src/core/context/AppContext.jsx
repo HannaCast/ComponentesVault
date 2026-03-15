@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../request/api';
+import {
+  login as loginApi,
+  logout as logoutApi,
+  refreshSession,
+  getUserConfiguration,
+} from '../../modules/auth/api/authApi';
 
 const AppContext = createContext(null);
 
@@ -12,19 +17,21 @@ export const AppProvider = ({ children }) => {
     const bootstrap = async () => {
       try {
         // Si access cookie sigue viva, my-info funcionará directo.
-        const me = await api.get('/api/v1/user/my-info/');
+        const initialData = await getUserConfiguration();
         setUser({
-          id: me.data.data.id,
-          role: me.data.data.role,
+          id: initialData.data.data.id,
+          role: initialData.data.data.role_name,
+          selected_university: initialData.data.data.selected_university,
         });
       } catch {
         try {
           // Si access expiró pero refresh sigue viva, renueva y vuelve a consultar my-info.
-          await api.post('/api/v1/auth/refresh/');
-          const me = await api.get('/api/v1/user/my-info/');
+          await refreshSession();
+          const initialData = await getUserConfiguration();
           setUser({
-            id: me.data.data.id,
-            role: me.data.data.role,
+            id: initialData.data.data.id,
+            role: initialData.data.data.role_name,
+            selected_university: initialData.data.data.selected_university,
           });
         } catch {
           setUser(null);
@@ -40,9 +47,14 @@ export const AppProvider = ({ children }) => {
   // Devuelve { id, role } en éxito, null en fallo
   const login = async (email, password) => {
     try {
-      const { data } = await api.post('/api/v1/auth/login/', { email, password });
+      const { data } = await loginApi(email, password);
       if (data.data?.user) {
-        const userData = data.data.user;
+        const initialData = await getUserConfiguration();
+        const userData = {
+          id: initialData.data.data.id,
+          role: initialData.data.data.role_name,
+          selected_university: initialData.data.data.selected_university,
+        };
         setUser(userData);
         return userData;
       }
@@ -53,7 +65,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try { await api.post('/api/v1/auth/logout/'); } catch {}
+    try { await logoutApi(); } catch {}
     setUser(null);
   };
 

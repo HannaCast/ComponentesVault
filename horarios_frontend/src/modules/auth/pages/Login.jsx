@@ -1,30 +1,16 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { GraduationCap, Mail, Lock } from 'lucide-react';
-import { useApp } from '../../../core/context/AppContext';
+import { useLogin } from '../hooks/useLogin';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useApp();
-  const navigate = useNavigate();
+  const { loading, error, loginUser } = useLogin();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const userData = await login(email, password);
-    setLoading(false);
-
-    if (userData) {
-      const redirectTo = userData.role === 'admin' ? '/admin' : '/user';
-      navigate(redirectTo);
-    } else {
-      setError('Correo o contraseña incorrectos');
-    }
+    await loginUser(email, password);
   };
 
   return (

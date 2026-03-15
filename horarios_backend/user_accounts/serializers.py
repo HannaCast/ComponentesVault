@@ -41,7 +41,8 @@ class MeInfoSerializer(serializers.ModelSerializer):
 
 class ConfigurationSerializer(serializers.ModelSerializer):
     selected_university = SelectedUniversitySerializer(read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
 
     class Meta:
         model = User
-        fields = ['selected_university']
+        fields = ['id', 'role_name', 'selected_university']
