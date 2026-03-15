@@ -14,6 +14,14 @@ export const AppProvider = ({ children }) => {
 
   // Bootstrap de sesión usando cookies HttpOnly.
   useEffect(() => {
+    const pathname = window.location.pathname;
+    const isPrivateRoute = pathname.startsWith('/admin') || pathname.startsWith('/user');
+
+    if (!isPrivateRoute) {
+      setAuthLoading(false);
+      return;
+    }
+
     const bootstrap = async () => {
       try {
         // Si access cookie sigue viva, my-info funcionará directo.
