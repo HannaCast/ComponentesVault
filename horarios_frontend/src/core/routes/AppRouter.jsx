@@ -3,15 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { Landing } from '../../modules/auth/pages/Landing';
 import { Login } from '../../modules/auth/pages/Login';
 import { useAuth } from '../context/AuthContext';
-import { AdminLayout } from '../../modules/admin/layout/AdminLayout';
-import { UserLayout } from '../../modules/user/layout/UserLayout';
+import { adminRoutes } from './AdminRouter';
+import { userRoutes } from './UserRouter';
 
 // Placeholders — reemplazar con los componentes reales cuando estén listos
 const RegistroPage = () => <div>Registro — próximamente</div>;
-const AdminHomePage = () => <div>Panel Admin — próximamente</div>;
-const AdminBitacoraPage = () => <div>Bitácora — próximamente</div>;
-const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
-const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
 const NotFound = () => <div>404 — Página no encontrada</div>;
 
 const getHomePathByRole = (role) => {
@@ -96,24 +92,11 @@ export const AppRouter = () => {
         {/* Privadas */}
         <Route element={<RequireAuth />}>
           <Route element={<RequireRole role="admin" />}>
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminHomePage />} />
-              <Route path="bitacora" element={<AdminBitacoraPage />} />
-            </Route>
+            {adminRoutes}
           </Route>
 
           <Route element={<RequireRole role="user" />}>
-            <Route path="/usuario" element={<UserLayout />}>
-              <Route index element={<UserHomePage />} />
-              <Route path="generar-horario" element={<UserPlaceholderPage />} />
-              <Route path="universidades" element={<UserPlaceholderPage />} />
-              <Route path="carreras" element={<UserPlaceholderPage />} />
-              <Route path="materias" element={<UserPlaceholderPage />} />
-              <Route path="grupos" element={<UserPlaceholderPage />} />
-              <Route path="profesores" element={<UserPlaceholderPage />} />
-              <Route path="aulas" element={<UserPlaceholderPage />} />
-              <Route path="ajustes" element={<UserPlaceholderPage />} />
-            </Route>
+            {userRoutes}
           </Route>
         </Route>
 
