@@ -65,6 +65,7 @@ export const Header = ({ className = '' }) => {
             onClick={handleLogout}
             variant="secondary"
             size="small"
+            fullWidth={false}
             loading={isLoggingOut}
             disabled={isLoggingOut}
             customStyle={{

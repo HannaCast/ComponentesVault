@@ -10,6 +10,7 @@
  * - iconPosition: 'left' | 'right'.
  * - iconSize: Tamano del icono (opcional).
  * - className: Clases adicionales.
+ * - fullWidth: Si true, ocupa todo el ancho disponible.
  * - disabled: Deshabilita el boton.
  * - loading: Muestra estado de carga.
  * - loadingLabel: Texto a mostrar cuando loading=true.
@@ -29,6 +30,7 @@ export function ActionButton({
   iconPosition = 'left',
   iconSize,
   className = '',
+  fullWidth = true,
   disabled = false,
   loading = false,
   loadingLabel = 'Cargando...',
@@ -67,6 +69,7 @@ export function ActionButton({
 
   const baseStyles = {
     display: 'flex',
+    width: fullWidth ? '100%' : 'auto',
     alignItems: 'center',
     justifyContent: align === 'center' ? 'center' : 'flex-start',
     gap: currentSize.gap,
