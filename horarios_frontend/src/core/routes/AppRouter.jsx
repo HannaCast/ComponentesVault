@@ -16,7 +16,7 @@ const NotFound = () => <div>404 — Página no encontrada</div>;
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
-  return normalizedRole.includes('admin') ? '/admin' : '/user';
+  return normalizedRole.includes('admin') ? '/admin' : '/usuario';
 };
 
 const RequireAuth = () => {

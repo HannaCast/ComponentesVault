@@ -13,6 +13,8 @@
  * - disabled: Deshabilita el boton.
  * - loading: Muestra estado de carga.
  * - loadingLabel: Texto a mostrar cuando loading=true.
+ * - customStyle: Estilos CSS inline personalizados para estado normal.
+ * - customHoverStyle: Estilos CSS inline personalizados para hover.
  * - customBackgroundColor: Color de fondo personalizado para variante primary.
  * - customTextColor: Color de texto personalizado para variante primary.
  * - type: Tipo HTML del boton (button | submit | reset).
@@ -30,6 +32,8 @@ export function ActionButton({
   disabled = false,
   loading = false,
   loadingLabel = 'Cargando...',
+  customStyle,
+  customHoverStyle,
   customBackgroundColor,
   customTextColor,
   type = 'button',
@@ -88,7 +92,16 @@ export function ActionButton({
         border: '1px solid var(--border-default, #d1d5db)',
       };
 
-  const styles = { ...baseStyles, ...variantStyles };
+  const styles = { ...baseStyles, ...variantStyles, ...(customStyle || {}) };
+
+  const applyStyleObject = (target, styleObject) => {
+    if (!styleObject) return;
+    Object.entries(styleObject).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        target.style[key] = value;
+      }
+    });
+  };
 
   const handleHover = (e) => {
     if (isBlocked) return;
@@ -103,6 +116,8 @@ export function ActionButton({
       e.currentTarget.style.backgroundColor = 'var(--accent-subtle, #eff6ff)';
       e.currentTarget.style.borderColor = 'var(--border-strong, #9ca3af)';
     }
+
+    applyStyleObject(e.currentTarget, customHoverStyle);
   };
 
   const handleHoverOut = (e) => {
@@ -116,6 +131,16 @@ export function ActionButton({
     } else if (isSecondary) {
       e.currentTarget.style.backgroundColor = 'transparent';
       e.currentTarget.style.borderColor = 'var(--border-default, #d1d5db)';
+    }
+
+    if (customHoverStyle) {
+      applyStyleObject(e.currentTarget, {
+        backgroundColor: styles.backgroundColor,
+        color: styles.color,
+        border: styles.border,
+        borderColor: styles.borderColor,
+        opacity: String(styles.opacity ?? 1),
+      });
     }
   };
 

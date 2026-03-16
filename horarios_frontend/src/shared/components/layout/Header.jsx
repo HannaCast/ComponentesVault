@@ -67,6 +67,15 @@ export const Header = ({ className = '' }) => {
             size="small"
             loading={isLoggingOut}
             disabled={isLoggingOut}
+            customStyle={{
+              color: 'var(--danger-600, #dc2626)',
+              border: '1px solid var(--danger-500, #ef4444)',
+            }}
+            customHoverStyle={{
+              backgroundColor: 'var(--danger-subtle, #fef2f2)',
+              color: 'var(--danger-700, #b91c1c)',
+              borderColor: 'var(--danger-600, #dc2626)',
+            }}
           />
         </div>
       </div>
