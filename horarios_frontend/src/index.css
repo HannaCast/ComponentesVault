@@ -6,3 +6,90 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+
+[data-theme="light"] {
+
+  /* Fondos */
+  --bg-base:        #ffffff;   /* página principal */
+  --bg-surface:     #f3f4f6;   /* cards, sidebar */
+  --bg-elevated:    #ffffff;   /* modals, dropdowns */
+
+  /* Texto */
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-disabled:  #d1d5db;
+  --text-on-accent: #ffffff;   /* texto sobre botón filled */
+
+  /* Bordes */
+  --border-subtle:  #e5e7eb;
+  --border-default: #d1d5db;
+  --border-strong:  #9ca3af;
+}
+
+/* ─── TEMA OSCURO ─────────────────────────────── */
+[data-theme="dark"] {
+
+  --bg-base:        #0f172a;
+  --bg-surface:     #1e293b;
+  --bg-elevated:    #334155;
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-disabled:  #475569;
+  --text-on-accent: #ffffff;
+
+  --border-subtle:  #1e293b;
+  --border-default: #334155;
+  --border-strong:  #475569;
+}
+
+
+
+/* ─── AZUL (default) ─────────────────────────── */
+[data-accent="blue"][data-theme="light"] {
+  --accent:          #2563eb; /* color principal de botones, links, highlights */
+  --accent-hover:    #1d4ed8; /* hover de botones, links */
+  --accent-subtle:   #eff6ff;  /* hover de outline, badges */
+}
+[data-accent="blue"][data-theme="dark"] {
+  --accent:          #60a5fa;   /* más claro para contraste */
+  --accent-hover:    #93c5fd;
+  --accent-subtle:   #1e3a5f;
+}
+
+/* ─── ROJO ───────────────────────────────────── */
+[data-accent="red"][data-theme="light"] {
+  --accent:          #dc2626;
+  --accent-hover:    #b91c1c;
+  --accent-subtle:   #fef2f2;
+}
+[data-accent="red"][data-theme="dark"] {
+  --accent:          #f87171;
+  --accent-hover:    #fca5a5;
+  --accent-subtle:   #450a0a;
+}
+
+/* ─── VERDE ──────────────────────────────────── */
+[data-accent="green"][data-theme="light"] {
+  --accent:          #16a34a;
+  --accent-hover:    #15803d;
+  --accent-subtle:   #f0fdf4;
+}
+[data-accent="green"][data-theme="dark"] {
+  --accent:          #4ade80;
+  --accent-hover:    #86efac;
+  --accent-subtle:   #052e16;
+}
+
+/* ─── MORADO ─────────────────────────────────── */
+[data-accent="purple"][data-theme="light"] {
+  --accent:          #7c3aed;
+  --accent-hover:    #6d28d9;
+  --accent-subtle:   #f5f3ff;
+}
+[data-accent="purple"][data-theme="dark"] {
+  --accent:          #c084fc;
+  --accent-hover:    #d8b4fe;
+  --accent-subtle:   #3b0764;
+}

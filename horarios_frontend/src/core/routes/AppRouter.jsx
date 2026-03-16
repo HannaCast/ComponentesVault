@@ -51,7 +51,7 @@ const RequireGuest = ({ children }) => {
     };
   }, [authLoading, user, checkingSession, restoreSession]);
 
-  if (authLoading || checkingSession) return null;
+  if (authLoading) return children;
   if (user) return <Navigate to={getHomePathByRole(user.role)} replace />;
   return children;
 };
