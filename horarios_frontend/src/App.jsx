@@ -1,11 +1,11 @@
 import { AppRouter } from './core/routes/AppRouter';
-import { AppProvider } from './core/context/AppContext';
+import { AuthProvider } from './core/context/AuthContext';
 
 function App() {
   return (
-    <AppProvider>
+    <AuthProvider>
       <AppRouter />
-    </AppProvider>
+    </AuthProvider>
   );
 }
 

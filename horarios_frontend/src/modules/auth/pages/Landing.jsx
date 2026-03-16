@@ -11,16 +11,16 @@ import {
   BarChart,
   Shield
 } from 'lucide-react';
-import { useApp } from '@context/AppContext';
+import { useAuth } from '../../../core/context/AuthContext';
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
-  return normalizedRole.includes('admin') ? '/admin' : '/user';
+  return normalizedRole.includes('admin') ? '/admin' : '/usuario';
 };
 
 export const Landing = () => {
   const navigate = useNavigate();
-  const { user, restoreSession } = useApp();
+  const { user, restoreSession } = useAuth();
 
   const handleLoginNavigation = async () => {
     if (user) {

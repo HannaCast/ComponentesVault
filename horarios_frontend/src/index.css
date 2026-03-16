@@ -5,6 +5,21 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Fallbacks por defecto (light + blue) si no se define data-theme/data-accent */
+  --bg-base: #ffffff;
+  --bg-surface: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-disabled: #d1d5db;
+  --text-on-accent: #ffffff;
+  --border-subtle: #e5e7eb;
+  --border-default: #d1d5db;
+  --border-strong: #9ca3af;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
 }
 
 
@@ -12,7 +27,7 @@
 
   /* Fondos */
   --bg-base:        #ffffff;   /* página principal */
-  --bg-surface:     #f3f4f6;   /* cards, sidebar */
+  --bg-surface:     #f3f4f6;   /* cards y superficies secundarias */
   --bg-elevated:    #ffffff;   /* modals, dropdowns */
 
   /* Texto */

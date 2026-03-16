@@ -12,6 +12,7 @@
  * - className: Clases adicionales.
  * - disabled: Deshabilita el boton.
  * - loading: Muestra estado de carga.
+ * - loadingLabel: Texto a mostrar cuando loading=true.
  * - customBackgroundColor: Color de fondo personalizado para variante primary.
  * - customTextColor: Color de texto personalizado para variante primary.
  * - type: Tipo HTML del boton (button | submit | reset).
@@ -28,10 +29,12 @@ export function ActionButton({
   className = '',
   disabled = false,
   loading = false,
+  loadingLabel = 'Cargando...',
   customBackgroundColor,
   customTextColor,
   type = 'button',
 }) {
+  const isBlocked = disabled || loading;
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary' || variant === 'outline';
 
@@ -68,10 +71,10 @@ export function ActionButton({
     fontWeight: '500',
     borderRadius: '0.5rem',
     border: 'none',
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
+    cursor: isBlocked ? 'not-allowed' : 'pointer',
     transition: 'all 150ms ease',
     boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    opacity: disabled || loading ? 0.6 : 1,
+    opacity: isBlocked ? 0.6 : 1,
   };
 
   const variantStyles = isPrimary
@@ -88,7 +91,7 @@ export function ActionButton({
   const styles = { ...baseStyles, ...variantStyles };
 
   const handleHover = (e) => {
-    if (disabled || loading) return;
+    if (isBlocked) return;
 
     if (isPrimary) {
       if (customBackgroundColor) {
@@ -103,7 +106,7 @@ export function ActionButton({
   };
 
   const handleHoverOut = (e) => {
-    if (disabled || loading) return;
+    if (isBlocked) return;
 
     if (isPrimary) {
       e.currentTarget.style.opacity = '1';
@@ -132,15 +135,16 @@ export function ActionButton({
   return (
     <button
       type={type}
-      onClick={disabled || loading ? undefined : onClick}
+      onClick={isBlocked ? undefined : onClick}
       className={className}
       style={styles}
       onMouseEnter={handleHover}
       onMouseLeave={handleHoverOut}
-      disabled={disabled || loading}
+      disabled={isBlocked}
+      aria-busy={loading}
     >
       {iconPosition === 'left' && renderIcon()}
-      {loading ? 'Cargando...' : label}
+      {loading ? loadingLabel : label}
       {iconPosition === 'right' && renderIcon()}
     </button>
   );
