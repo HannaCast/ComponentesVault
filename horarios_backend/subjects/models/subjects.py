@@ -9,7 +9,7 @@ class Subjects(models.Model):
     description = models.CharField(max_length=45, blank=True, null=True)
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
-    is_mandatory = models.IntegerField()
+    is_mandatory = models.IntegerField( default=0 )
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
