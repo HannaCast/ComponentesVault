@@ -1,5 +1,5 @@
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import Q
@@ -10,7 +10,7 @@ from subjects.serializers.subjects import SubjectWriteSerializer, SubjectDetailS
 
 @extend_schema(tags=['Subjects'])
 class SubjectListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """ Lista de materias activas (para selects) """
@@ -19,7 +19,7 @@ class SubjectListView(APIView):
             SubjectSelectSerializer(subjects, many=True).data
         )
 
-    @require_permissions(AllowAny)
+    @require_permissions(IsAuthenticated)
     @extend_schema(request=SubjectWriteSerializer)
     def post(self, request):
         """ Crear materia """
@@ -34,7 +34,7 @@ class SubjectListView(APIView):
 
 @extend_schema(tags=['Subjects'])
 class SubjectPaginatedView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     SORT_FIELDS = {'id', 'name', 'code', 'hours_per_week'}
 
@@ -129,7 +129,7 @@ class SubjectPaginatedView(APIView):
 
 @extend_schema(tags=['Subjects'])
 class SubjectDetailView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
         try:
@@ -145,7 +145,7 @@ class SubjectDetailView(APIView):
             SubjectDetailSerializer(subject).data
         )
 
-    @require_permissions(AllowAny)
+    @require_permissions(IsAuthenticated)
     @extend_schema(request=SubjectWriteSerializer)
     def put(self, request, pk):
         subject = self.get_object(pk)
@@ -165,7 +165,7 @@ class SubjectDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
-    @require_permissions(AllowAny)
+    @require_permissions(IsAuthenticated)
     def delete(self, request, pk):
         subject = self.get_object(pk)
         if subject is None:
@@ -181,7 +181,7 @@ class SubjectDetailView(APIView):
 class SubjectToggleStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @require_permissions(AllowAny)
+    @require_permissions(IsAuthenticated)
     def put(self, request, pk):
         try:
             subject = Subjects.objects.get(pk=pk, is_deleted=0)
