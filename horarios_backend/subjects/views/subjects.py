@@ -4,7 +4,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import Q
 from core.api_response import ApiResponse
-from core.permissions import IsAdmin, require_permissions
+from core.permissions import  require_permissions
 from subjects.models import Subjects
 from subjects.serializers.subjects import SubjectWriteSerializer, SubjectDetailSerializer, SubjectListSerializer, SubjectSelectSerializer
 
@@ -40,6 +40,7 @@ class SubjectPaginatedView(APIView):
 
     @extend_schema(
         summary='Lista paginada de materias',
+        description='Retorna las materias de forma paginada con soporte de búsqueda, filtro por status y ordenamiento.',
         parameters=[
             OpenApiParameter(
                 name='page',
