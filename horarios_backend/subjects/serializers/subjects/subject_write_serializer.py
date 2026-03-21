@@ -22,7 +22,7 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """ Crea una materia con status activo por defecto """
-        validated_data['is_mandatory'] = validated_data.get('is_mandatory', 0)
+        validated_data['is_mandatory'] = validated_data.get('is_mandatory', 1)
         validated_data['status'] = 1
         validated_data['is_deleted'] = 0
         return Subjects.objects.create(**validated_data)
