@@ -4,7 +4,12 @@ from rest_framework.views import APIView
 
 from core.api_response import ApiResponse
 from user_accounts.models import UserConfiguration
-from user_accounts.serializers import ConfigurationSerializer, MeInfoSerializer
+from user_accounts.serializers import (
+    ConfigurationSerializer,
+    MeInfoSerializer,
+    SelectedUniversityUpdateSerializer,
+)
+from universities.models.universities import Universities
 
 
 @extend_schema(tags=['Users'])
@@ -35,3 +40,43 @@ class ConfigurationView(APIView):
 
         serializer = ConfigurationSerializer(user_config)
         return ApiResponse.success(data=serializer.data)
+
+
+@extend_schema(tags=['Users'])
+class SelectedUniversityConfigurationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=SelectedUniversityUpdateSerializer)
+    def put(self, request):
+        """Asigna o limpia la universidad seleccionada del usuario autenticado."""
+        serializer = SelectedUniversityUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return ApiResponse.error(errors=serializer.errors)
+
+        selected_university_id = serializer.validated_data.get('selected_university_id', None)
+        selected_university = None
+        if selected_university_id is not None:
+            selected_university = Universities.objects.filter(
+                id=selected_university_id,
+                is_deleted=0,
+            ).first()
+
+        user_config, _ = UserConfiguration.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'theme': 'light',
+                'accent': 'blue',
+                'status': 1,
+            },
+        )
+
+        user_config.selected_university = selected_university
+        if user_config.status is None:
+            user_config.status = 1
+        user_config.save(update_fields=['selected_university', 'status'])
+
+        response_serializer = ConfigurationSerializer(user_config)
+        return ApiResponse.success(
+            data=response_serializer.data,
+            message='Universidad seleccionada actualizada exitosamente',
+        )
