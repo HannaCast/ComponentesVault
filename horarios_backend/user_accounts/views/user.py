@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from core.api_response import ApiResponse
+from user_accounts.models import UserConfiguration
 from user_accounts.serializers import ConfigurationSerializer, MeInfoSerializer
 
 
@@ -21,6 +22,16 @@ class ConfigurationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Retorna la configuracion del usuario autenticado."""
-        serializer = ConfigurationSerializer(request.user)
+        """Retorna la configuracion del usuario autenticado desde user_configurations."""
+        user_config = (
+            UserConfiguration.objects
+            .filter(user=request.user)
+            .order_by('-id')
+            .first()
+        )
+
+        if not user_config:
+            return ApiResponse.not_found(message='Configuracion de usuario no encontrada')
+
+        serializer = ConfigurationSerializer(user_config)
         return ApiResponse.success(data=serializer.data)

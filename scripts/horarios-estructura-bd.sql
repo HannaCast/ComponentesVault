@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`academic_periods` (
   `end_month` INT NOT NULL,
   `year` INT NULL,
   `order` INT NULL,
-  `is_active` TINYINT NULL,
+  `is_active` TINYINT NULL DEFAULT 0,
   `is_deleted` TINYINT NOT NULL DEFAULT 0,
   `created_at` DATETIME NULL,
   `created_by` VARCHAR(100) NULL,
@@ -220,8 +220,8 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `cdi_horarios`.`modalities` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(20) NOT NULL,
-  `require_classroom` TINYINT NOT NULL,
-  `status` TINYINT NOT NULL,
+  `require_classroom` TINYINT NOT NULL DEFAULT 1,
+  `status` TINYINT NOT NULL DEFAULT 1,
   `configurations` JSON NOT NULL,
   `universitiy_id` INT NOT NULL,
   `created_at` DATETIME NULL,
@@ -596,29 +596,30 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `cdi_horarios`.`user_preferences`
+-- Table `cdi_horarios`.`user_configurations`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `cdi_horarios`.`user_preferences` (
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`user_configurations` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `user_id` INT NOT NULL,
   `selected_university_id` INT NULL,
-  `theme` VARCHAR(10) NOT NULL COMMENT 'El tema de la aplicación, ya sea oscuro (dark) o blanco (light)',
-  `accent` VARCHAR(10) NOT NULL COMMENT 'el color de la interfaz, ejemplo, rojo, verde, azul',
+  `theme` VARCHAR(10) NOT NULL DEFAULT 'light' COMMENT 'El tema de la aplicación, ya sea oscuro (dark) o blanco (light)',
+  `accent` VARCHAR(10) NOT NULL DEFAULT 'blue' COMMENT 'el color de la interfaz, ejemplo, rojo, verde, azul',
+  `status` TINYINT NOT NULL DEFAULT 1,
   `created_at` DATETIME NULL,
   `created_by` VARCHAR(100) NULL,
   `updated_at` DATETIME NULL,
   `updated_by` VARCHAR(100) NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_user_preferences_universities1_idx` (`selected_university_id` ASC) VISIBLE,
-  INDEX `fk_user_preferences_users1_idx` (`user_id` ASC) VISIBLE,
-  CONSTRAINT `fk_user_preferences_universities1`
-    FOREIGN KEY (`selected_university_id`)
-    REFERENCES `cdi_horarios`.`universities` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_user_preferences_users1`
+  INDEX `fk_user_configurations_users1_idx` (`user_id` ASC) VISIBLE,
+  INDEX `fk_user_configurations_universities1_idx` (`selected_university_id` ASC) VISIBLE,
+  CONSTRAINT `fk_user_configurations_users1`
     FOREIGN KEY (`user_id`)
     REFERENCES `cdi_horarios`.`users` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_user_configurations_universities1`
+    FOREIGN KEY (`selected_university_id`)
+    REFERENCES `cdi_horarios`.`universities` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

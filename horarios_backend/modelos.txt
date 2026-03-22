@@ -367,11 +367,12 @@ class Universities(models.Model):
         db_table = 'universities'
 
 
-class UserPreferences(models.Model):
+class UserConfigurations(models.Model):
     user = models.ForeignKey('Users', models.DO_NOTHING)
     selected_university = models.ForeignKey(Universities, models.DO_NOTHING, blank=True, null=True)
     theme = models.CharField(max_length=10, db_comment='El tema de la aplicación, ya sea oscuro (dark) o blanco (light)')
     accent = models.CharField(max_length=10, db_comment='el color de la interfaz, ejemplo, rojo, verde, azul')
+    status = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
@@ -379,7 +380,7 @@ class UserPreferences(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'user_preferences'
+        db_table = 'user_configurations'
 
 
 class Users(models.Model):

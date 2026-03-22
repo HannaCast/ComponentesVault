@@ -1,10 +1,12 @@
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core.api_response import ApiResponse
+from core.permissions import IsAdmin
 from user_accounts.serializers import LoginSerializer, RegisterSerializer
 
 # Duracion de las cookies en segundos
@@ -94,11 +96,30 @@ class RegisterView(APIView):
     permission_classes = []
 
     def post(self, request):
-        """Registra un nuevo usuario en el sistema."""
-        serializer = RegisterSerializer(data=request.data)
+        """Registra un nuevo usuario con rol usuario."""
+        serializer = RegisterSerializer(
+            data=request.data,
+            context={'target_role_name': 'usuario'},
+        )
         if serializer.is_valid():
             serializer.save()
             return ApiResponse.created(message='Usuario creado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
+
+
+@extend_schema(tags=['Auth'])
+class RegisterAdminView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        """Registra un nuevo administrador. Solo admins autenticados."""
+        serializer = RegisterSerializer(
+            data=request.data,
+            context={'target_role_name': 'admin'},
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return ApiResponse.created(message='Administrador creado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
 
 
