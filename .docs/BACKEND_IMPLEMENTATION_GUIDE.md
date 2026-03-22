@@ -15,7 +15,8 @@ horarios_backend/              ← raíz del proyecto Django
   core/                        ← utilidades globales (NO en INSTALLED_APPS)
     api_response.py            ← clase ApiResponse
     exception_handler.py       ← manejo global de excepciones
-    permissions.py             ← IsAdmin, require_permissions
+        user_configuration.py      ← helpers para universidad seleccionada
+        permissions.py             ← IsAdmin, RequireSelectedUniversity, decoradores
   horarios_backend/            ← configuración Django
     settings.py
     urls.py                    ← URL raíz del proyecto
@@ -142,6 +143,11 @@ Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionad
 - El campo `is_deleted` **nunca se expone en ningún serializer** (ni Write, ni Detail, ni List). Es un campo de infraestructura interno.
 - El endpoint paginado soporta `page`, `limit`, `search`, `sortBy` y `order`.
 - Todos los endpoints requieren autenticación JWT (`IsAuthenticated`).
+- Para módulos de **datos operativos por universidad** (materias, carreras, grupos, etc.) se debe exigir universidad seleccionada con `RequireSelectedUniversity` o `@require_selected_university(...)`.
+- El permiso de universidad seleccionada **NO aplica** a:
+    - `user_accounts` (auth/configuración de usuario)
+    - `audit` (solo lectura de auditoría)
+    - CRUDs/catálogos de sistema globales (ejemplo: `period_types`)
 
 ---
 
@@ -166,6 +172,46 @@ from core.permissions import IsAdmin, require_permissions
 def post(self, request):
     ...
 ```
+
+### Permiso de universidad seleccionada (contexto)
+
+Para módulos de datos asociados a una universidad, se puede aplicar de 2 formas:
+
+1. **A nivel de clase (recomendado):**
+
+```python
+from rest_framework.permissions import IsAuthenticated
+from core.permissions import RequireSelectedUniversity
+
+class SubjectListView(APIView):
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
+```
+
+2. **A nivel de método (casos puntuales):**
+
+```python
+from core.permissions import require_selected_university
+
+@require_selected_university()
+def get(self, request):
+    ...
+```
+
+El decorador acepta opciones:
+
+```python
+@require_selected_university(
+    message='Para realizar esta acción debe tener una universidad seleccionada',
+    raise_error=True,
+)
+def get(self, request):
+    ...
+```
+
+Notas de comportamiento:
+- Cuando existe universidad seleccionada, se adjunta en `request.selected_university_id`.
+- Si `raise_error=True` y no existe universidad seleccionada, retorna `400`.
+- Si `raise_error=False`, no retorna error automático y el método decide qué hacer.
 
 ---
 
@@ -272,7 +318,7 @@ from drf_spectacular.types import OpenApiTypes
 
 @extend_schema(tags=['{NombreModulo}'])
 class {Modelo}PaginatedView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # o [IsAuthenticated, RequireSelectedUniversity] segun el modulo
 
     SORT_FIELDS = {'id', 'name', ...}  # campos permitidos de ordenamiento
 
@@ -310,9 +356,11 @@ Modelos: `roles`, `users`
 Endpoints activos:
 - `POST /api/v1/auth/login/`
 - `POST /api/v1/auth/register/`
+- `POST /api/v1/auth/register-admin/`
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/refresh/`
-- `GET  /api/v1/auth/my-info/`
+- `GET  /api/v1/user/my-info/`
+- `GET  /api/v1/user/configurations/`
 
 ---
 
@@ -331,7 +379,7 @@ Endpoints activos (`colors`):
 Modelo `subjects` (campos):
 ```
 name, short_name, code, description, hours_per_week,
-color (FK → colors), is_mandatory, status,
+color (FK → colors), university (FK → universities), is_mandatory, status,
 create_at, create_by, update_at, update_by
 ```
 
@@ -707,6 +755,9 @@ urlpatterns = [
 - [ ] Crear `serializers/{modelo}/` con los cuatro serializers (Write, Detail, List, Select) y su `__init__.py`
 - [ ] Exportar serializers en `serializers/__init__.py`
 - [ ] Crear `views/{modelo}.py` con las 4 clases de vista
+- [ ] Definir si el módulo requiere contexto de universidad seleccionada:
+    - Si **sí**, usar `RequireSelectedUniversity` en `permission_classes` (recomendado) o `@require_selected_university(...)` por método
+    - Si **no** (ej. `user_accounts`, `audit`, catálogos de sistema como `period_types`), dejar solo los permisos que correspondan
 - [ ] Exportar vistas en `views/__init__.py`
 - [ ] Crear `urls/{modelo}.py` con las 4 rutas
 - [ ] Agregar `include` en `urls/__init__.py`

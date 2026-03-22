@@ -1,6 +1,7 @@
 from functools import wraps
 from rest_framework.permissions import BasePermission
 from core.api_response import ApiResponse
+from core.user_configuration import get_selected_university_id_from_request
 
 
 class IsAdmin(BasePermission):
@@ -13,6 +14,21 @@ class IsAdmin(BasePermission):
             and request.user.role is not None
             and request.user.role.name == 'admin'
         )
+
+
+class RequireSelectedUniversity(BasePermission):
+    """Permite acceso solo si el usuario autenticado tiene universidad seleccionada."""
+
+    message = 'Para realizar esta acción debe tener una universidad seleccionada'
+
+    def has_permission(self, request, view):
+        selected_university_id = get_selected_university_id_from_request(request)
+        if not selected_university_id:
+            return False
+
+        # Adjunta el id para reutilizarlo en la vista.
+        setattr(request, 'selected_university_id', selected_university_id)
+        return True
 
 
 def require_permissions(*permission_classes):
@@ -32,4 +48,27 @@ def require_permissions(*permission_classes):
                     )
             return func(self, request, *args, **kwargs)
         return wrapper
+    return decorator
+
+
+def require_selected_university(
+    message='Para realizar esta acción debe tener una universidad seleccionada',
+    raise_error=True,
+):
+    """
+    Decorador para exigir universidad seleccionada en métodos específicos.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, request, *args, **kwargs):
+            selected_university_id = get_selected_university_id_from_request(request)
+            if raise_error and not selected_university_id:
+                return ApiResponse.error(message=message, status_code=400)
+
+            setattr(request, 'selected_university_id', selected_university_id)
+            return func(self, request, *args, **kwargs)
+
+        return wrapper
+
     return decorator

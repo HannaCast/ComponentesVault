@@ -1,5 +1,6 @@
 from django.db import models
 from .colors import Colors
+from universities.models.universities import Universities
 
 
 class Subjects(models.Model):
@@ -9,6 +10,7 @@ class Subjects(models.Model):
     description = models.CharField(max_length=45, blank=True, null=True)
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
+    university = models.ForeignKey(Universities, models.DO_NOTHING)
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
