@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -19,6 +20,7 @@ class ColorListView(APIView):
 
     @require_permissions(IsAdmin)
     @extend_schema(request=ColorWriteSerializer)
+    @transaction.atomic
     def post(self, request):
         """ Crea un nuevo color """
         serializer = ColorWriteSerializer(data=request.data)
@@ -146,6 +148,7 @@ class ColorDetailView(APIView):
 
     @require_permissions(IsAdmin)
     @extend_schema(request=ColorWriteSerializer)
+    @transaction.atomic
     def put(self, request, pk):
         """ Actualiza uno o varios campos de un color (todos los campos son opcionales) """
         color = self.get_object(pk)
@@ -158,6 +161,7 @@ class ColorDetailView(APIView):
         return ApiResponse.error(errors=serializer.errors)
 
     @require_permissions(IsAdmin)
+    @transaction.atomic
     def delete(self, request, pk):
         """ Eliminación lógica: marca is_deleted = 1 """
         color = self.get_object(pk)
@@ -173,6 +177,7 @@ class ColorToggleStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     @require_permissions(IsAdmin)
+    @transaction.atomic
     def put(self, request, pk):
         """ Alterna el status de un color entre activo (1) e inactivo (0) """
         try:

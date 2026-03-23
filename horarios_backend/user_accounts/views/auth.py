@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -48,6 +49,7 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
     """@decrypt_request()"""
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """Autentica al usuario y establece access/refresh en cookies HttpOnly."""
         response = super().post(request, *args, **kwargs)
@@ -98,6 +100,7 @@ class RegisterView(APIView):
     permission_classes = []
 
     """@decrypt_request()"""
+    @transaction.atomic
     def post(self, request):
         """Registra un nuevo usuario con rol usuario."""
         serializer = RegisterSerializer(
@@ -114,6 +117,7 @@ class RegisterView(APIView):
 class RegisterAdminView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @transaction.atomic
     def post(self, request):
         """Registra un nuevo administrador. Solo admins autenticados."""
         serializer = RegisterSerializer(
