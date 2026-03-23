@@ -150,6 +150,57 @@ Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionad
     - `audit` (solo lectura de auditoría)
     - CRUDs/catálogos de sistema globales (ejemplo: `period_types`)
 
+### Transacciones en operaciones de escritura
+
+**Todas las operaciones de escritura (POST, PUT, DELETE, toggle-status) están protegidas por transacciones ACID** para garantizar consistencia de datos:
+
+1. **Nivel global (`ATOMIC_REQUESTS = True`)**: Cada request HTTP se envuelve automáticamente en una transacción. Si ocurre un error en cualquier punto, se hace `ROLLBACK` completo.
+
+2. **Nivel de método (`@transaction.atomic`)**: Los métodos `post()`, `put()`, `delete()` de cada vista están decorados explícitamente con `@transaction.atomic`. Esto asegura que:
+   - Si el serializer valida OK pero la BD falla durante `save()`, se revierte todo.
+   - Si hay múltiples operaciones relacionadas, todas se comiten o se revierten juntas.
+   - No quedan registros en estado inconsistente.
+
+**Ejemplo de decorador en vistas:**
+
+```python
+from django.db import transaction
+
+class SubjectDetailView(APIView):
+    @transaction.atomic
+    def post(self, request):
+        # Si algo falla aquí, TODO se revierte (transacción)
+        serializer = SubjectWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            subject = serializer.save()  # Base de datos
+            return ApiResponse.created(SubjectDetailSerializer(subject).data)
+        return ApiResponse.error(errors=serializer.errors)
+
+    @transaction.atomic
+    def put(self, request, pk):
+        # Lectura, validación y escritura en transacción única
+        subject = self.get_object(pk)
+        if subject is None:
+            return ApiResponse.not_found()
+        serializer = SubjectWriteSerializer(subject, data=request.data, partial=True)
+        if serializer.is_valid():
+            subject = serializer.save()
+            return ApiResponse.success(SubjectDetailSerializer(subject).data)
+        return ApiResponse.error(errors=serializer.errors)
+
+    @transaction.atomic
+    def delete(self, request, pk):
+        # Marcado lógico (soft delete) con transacción
+        subject = self.get_object(pk)
+        if subject is None:
+            return ApiResponse.not_found()
+        subject.is_deleted = 1
+        subject.save()  # Dentro de transacción
+        return ApiResponse.deleted('Materia eliminada correctamente')
+```
+
+**Nota:** Los `GET` (lecturas) NO tienen `@transaction.atomic` porque Django optimiza automáticamente las transacciones de solo lectura. Usar `@transaction.atomic` en lecturas impacta Performance innecesariamente.
+
 ---
 
 ## 6. Permisos por módulo
@@ -766,6 +817,10 @@ urlpatterns = [
 - [ ] Crear `serializers/{modelo}/` con los cuatro serializers (Write, Detail, List, Select) y su `__init__.py`
 - [ ] Exportar serializers en `serializers/__init__.py`
 - [ ] Crear `views/{modelo}.py` con las 4 clases de vista
+- [ ] **Agregar transacciones en vistas de escritura:**
+    - [ ] Importar: `from django.db import transaction`
+    - [ ] Decorar métodos `post()`, `put()`, `delete()`, `toggle-status put()` con `@transaction.atomic`
+    - [ ] NO decorar métodos `get()` (son optimizados automáticamente)
 - [ ] Definir si el módulo requiere contexto de universidad seleccionada:
     - Si **sí**, usar `RequireSelectedUniversity` en `permission_classes` (recomendado) o `@require_selected_university(...)` por método
     - Si **no** (ej. `user_accounts`, `audit`, catálogos de sistema como `period_types`), dejar solo los permisos que correspondan

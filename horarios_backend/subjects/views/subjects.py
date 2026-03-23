@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import Q
+from django.db import transaction
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 from subjects.models import Subjects
@@ -26,6 +27,7 @@ class SubjectListView(APIView):
         )
 
     @extend_schema(request=SubjectWriteSerializer)
+    @transaction.atomic
     def post(self, request):
         """ Crear materia """
         selected_university_id = request.selected_university_id
@@ -162,6 +164,7 @@ class SubjectDetailView(APIView):
         )
 
     @extend_schema(request=SubjectWriteSerializer)
+    @transaction.atomic
     def put(self, request, pk):
         subject = self.get_object(pk)
         if subject is None:
@@ -180,6 +183,7 @@ class SubjectDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
+    @transaction.atomic
     def delete(self, request, pk):
         subject = self.get_object(pk)
         if subject is None:
@@ -195,6 +199,7 @@ class SubjectDetailView(APIView):
 class SubjectToggleStatusView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @transaction.atomic
     def put(self, request, pk):
         try:
             subject = Subjects.objects.get(pk=pk, is_deleted=0)
