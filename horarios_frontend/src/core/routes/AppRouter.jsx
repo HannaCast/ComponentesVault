@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { Landing } from '../../modules/auth/pages/Landing';
 import { Login } from '../../modules/auth/pages/Login';
 import { useAuth } from '../context/AuthContext';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { adminRoutes } from './AdminRouter';
 import { userRoutes } from './UserRouter';
 
@@ -38,6 +39,23 @@ const RequireRole = ({ role }) => {
 
   return <Outlet />;
 };
+
+const UserThemeGate = () => {
+  const { user } = useAuth();
+  const { applyTheme } = useTheme();
+
+  useEffect(() => {
+    applyTheme(user?.theme, user?.accent);
+  }, [user?.theme, user?.accent, applyTheme]);
+
+  return <Outlet />;
+};
+
+const UserThemeScope = () => (
+  <ThemeProvider>
+    <UserThemeGate />
+  </ThemeProvider>
+);
 
 const RequireGuest = ({ children }) => {
   const { user, authLoading, restoreSession } = useAuth();
@@ -96,7 +114,9 @@ export const AppRouter = () => {
           </Route>
 
           <Route element={<RequireRole role="user" />}>
-            {userRoutes}
+            <Route element={<UserThemeScope />}>
+              {userRoutes}
+            </Route>
           </Route>
         </Route>
 

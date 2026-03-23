@@ -12,15 +12,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Extrae solo los datos necesarios del response para el estado de usuario
+  const extractDataFromResponse = (response) => {
+    return {
+      id: response.data.data.id,
+      role: response.data.data.role_name,
+      selected_university: response.data.data.selected_university,
+      theme: response.data.data.theme || 'light',
+      accent: response.data.data.accent || 'blue',
+    };
+  };
+
   const restoreSession = async () => {
     try {
       // Si access cookie sigue viva, my-info funcionara directo.
       const initialData = await getUserConfiguration();
-      const userData = {
-        id: initialData.data.data.id,
-        role: initialData.data.data.role_name,
-        selected_university: initialData.data.data.selected_university,
-      };
+      const userData = extractDataFromResponse(initialData);
       setUser(userData);
       return userData;
     } catch {
@@ -28,11 +35,7 @@ export const AuthProvider = ({ children }) => {
         // Si access expiro pero refresh sigue viva, renueva y vuelve a consultar configuracion.
         await refreshSession();
         const initialData = await getUserConfiguration();
-        const userData = {
-          id: initialData.data.data.id,
-          role: initialData.data.data.role_name,
-          selected_university: initialData.data.data.selected_university,
-        };
+        const userData = extractDataFromResponse(initialData);
         setUser(userData);
         return userData;
       } catch {
@@ -67,11 +70,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await loginApi(email, password);
       if (data.data?.user) {
         const initialData = await getUserConfiguration();
-        const userData = {
-          id: initialData.data.data.id,
-          role: initialData.data.data.role_name,
-          selected_university: initialData.data.data.selected_university,
-        };
+        const userData = extractDataFromResponse(initialData);
         setUser(userData);
         return userData;
       }
