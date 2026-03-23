@@ -22,3 +22,6 @@ loguru==0.7.3
 
 # Hashing de contraseñas
 bcrypt==5.0.0
+
+# Criptografia para desencriptar requests (RSA + AES)
+cryptography==45.0.6

@@ -17,6 +17,7 @@ horarios_backend/              ← raíz del proyecto Django
     exception_handler.py       ← manejo global de excepciones
         user_configuration.py      ← helpers para universidad seleccionada
         permissions.py             ← IsAdmin, RequireSelectedUniversity, decoradores
+        request_decryption.py      ← decrypt_request (RSA + AES-GCM)
   horarios_backend/            ← configuración Django
     settings.py
     urls.py                    ← URL raíz del proyecto
@@ -361,6 +362,16 @@ Endpoints activos:
 - `POST /api/v1/auth/refresh/`
 - `GET  /api/v1/user/my-info/`
 - `GET  /api/v1/user/configurations/`
+
+> **Nota de seguridad (auth):** `login` y `register` usan `@decrypt_request()`.
+> El cliente debe enviar `{ key, iv, data }`, donde:
+> - `key`: llave AES cifrada con RSA-OAEP (base64)
+> - `iv`: IV NO cifrado de 12 bytes para AES-GCM (serializado en base64)
+> - `data`: payload cifrado con AES-GCM (base64, incluyendo tag)
+
+Variables de entorno requeridas para descifrado en backend:
+- `RSA_PRIVATE_KEY` (contenido PEM)
+- `RSA_PRIVATE_KEY_PATH` (ruta al archivo PEM)
 
 ---
 
