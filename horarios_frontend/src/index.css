@@ -20,6 +20,27 @@
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-subtle: #eff6ff;
+
+  /* Feedback */
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fee2e2;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  /* Outline button defaults */
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-strong);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
 }
 
 
@@ -40,6 +61,25 @@
   --border-subtle:  #e5e7eb;
   --border-default: #d1d5db;
   --border-strong:  #9ca3af;
+
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fecaca;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
 }
 
 /* ─── TEMA OSCURO ─────────────────────────────── */
@@ -57,6 +97,25 @@
   --border-subtle:  #1e293b;
   --border-default: #334155;
   --border-strong:  #475569;
+
+  --error: #f87171;
+  --error-subtle: #3f1d1d;
+  --error-border: #7f1d1d;
+  --warning: #fbbf24;
+  --warning-subtle: #3f2a0f;
+  --warning-border: #92400e;
+  --warning-text: #fde68a;
+  --danger-500: #f87171;
+  --danger-600: #ef4444;
+  --danger-700: #dc2626;
+  --danger-subtle: #3f1d1d;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: #f8fafc;
+  --button-outline-border: #94a3b8;
+  --button-outline-hover-bg: #334155;
+  --button-outline-hover-border: #cbd5e1;
+  --button-outline-hover-text: #ffffff;
 }
 
 

@@ -1,0 +1,142 @@
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, Info, X } from 'lucide-react';
+
+export const Select = ({
+  id,
+  label,
+  error,
+  helperText,
+  options,
+  value,
+  onChange,
+  placeholder = 'Seleccionar...',
+  required = false,
+  disabled = false,
+  className = '',
+  infoMessage,
+  clearable = false,
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const selectedLabel = useMemo(() => {
+    const match = options.find((opt) => String(opt.value) === String(value));
+    if (match) return match.label;
+    if (disabled && !value) return '—';
+    return placeholder;
+  }, [options, value, placeholder, disabled]);
+
+  const handleChange = (event) => {
+    onChange?.(event);
+  };
+
+  const handleClear = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onChange?.({ target: { value: '' } });
+  };
+
+  return (
+    <div className={`w-full ${className}`}>
+      {label && (
+        <label className="flex items-center justify-between text-sm font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
+          <span>
+            {label}
+            {required && <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>*</span>}
+          </span>
+          {infoMessage && (
+            <div className="relative flex items-center">
+              <button
+                type="button"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={() => setShowTooltip(!showTooltip)}
+                className="focus:outline-none transition-colors"
+                style={{ color: 'var(--text-secondary, #6b7280)' }}
+              >
+                <Info className="w-4 h-4" />
+              </button>
+              {showTooltip && (
+                <div
+                  className="absolute top-6 z-50 w-64 p-3 text-xs rounded-lg shadow-lg right-0"
+                  style={{
+                    backgroundColor: 'var(--bg-base, #111827)',
+                    color: 'var(--text-primary, #f1f5f9)',
+                    border: '1px solid var(--border-default, #334155)',
+                  }}
+                >
+                  {infoMessage}
+                </div>
+              )}
+            </div>
+          )}
+        </label>
+      )}
+
+      <div className="relative">
+        <select
+          id={id}
+          value={value ?? ''}
+          onChange={handleChange}
+          disabled={disabled}
+          className="w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200"
+          style={{
+            backgroundColor: error
+              ? 'var(--error-subtle, #fef2f2)'
+              : disabled
+              ? 'var(--bg-surface, #f3f4f6)'
+              : 'var(--bg-surface, #f3f4f6)',
+            borderColor: error ? 'var(--error, #dc2626)' : 'var(--border-default, #d1d5db)',
+            color: disabled ? 'var(--text-disabled, #94a3b8)' : 'var(--text-primary, #111827)',
+          }}
+          onFocus={(e) => {
+            if (!error && !disabled) {
+              e.currentTarget.style.backgroundColor = 'var(--bg-surface, #f3f4f6)';
+              e.currentTarget.style.borderColor = 'var(--accent, #2563eb)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-subtle, rgba(37, 99, 235, 0.1))';
+            }
+          }}
+          onBlur={(e) => {
+            if (!disabled) {
+              e.currentTarget.style.backgroundColor = error
+                ? 'var(--error-subtle, #fef2f2)'
+                : 'var(--bg-surface, #f3f4f6)';
+              e.currentTarget.style.borderColor = error ? 'var(--error, #dc2626)' : 'var(--border-default, #d1d5db)';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={String(option.value)} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        {clearable && !disabled && value ? (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--text-secondary, #6b7280)' }}
+            aria-label="Limpiar seleccion"
+            title="Limpiar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        ) : null}
+
+        <ChevronDown
+          className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          style={{ color: 'var(--text-secondary, #6b7280)' }}
+        />
+      </div>
+
+      {error && <p className="mt-1.5 text-xs" style={{ color: 'var(--error, #dc2626)' }}>{error}</p>}
+      {helperText && !error && <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary, #6b7280)' }}>{helperText}</p>}
+      {!error && !helperText && (
+        <p className="mt-1.5 text-xs opacity-0" aria-hidden="true">{selectedLabel}</p>
+      )}
+    </div>
+  );
+};

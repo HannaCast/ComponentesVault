@@ -42,7 +42,8 @@ export function ActionButton({
 }) {
   const isBlocked = disabled || loading;
   const isPrimary = variant === 'primary';
-  const isSecondary = variant === 'secondary' || variant === 'outline';
+  const isSecondary = variant === 'secondary';
+  const isOutline = variant === 'outline';
 
   const sizeConfig = {
     small: {
@@ -89,6 +90,12 @@ export function ActionButton({
         backgroundColor: customBackgroundColor || 'var(--accent, #2563eb)',
         color: customTextColor || 'var(--text-on-accent, #ffffff)',
       }
+    : isOutline
+    ? {
+        backgroundColor: 'var(--button-outline-bg, transparent)',
+        color: 'var(--button-outline-text, var(--text-primary, #111827))',
+        border: '1px solid var(--button-outline-border, var(--border-strong, #9ca3af))',
+      }
     : {
         backgroundColor: 'transparent',
         color: 'var(--text-primary, #111827)',
@@ -115,6 +122,10 @@ export function ActionButton({
       } else {
         e.currentTarget.style.backgroundColor = 'var(--accent-hover, #1d4ed8)';
       }
+    } else if (isOutline) {
+      e.currentTarget.style.backgroundColor = 'var(--button-outline-hover-bg, var(--accent-subtle, #eff6ff))';
+      e.currentTarget.style.borderColor = 'var(--button-outline-hover-border, var(--accent, #2563eb))';
+      e.currentTarget.style.color = 'var(--button-outline-hover-text, var(--text-primary, #111827))';
     } else if (isSecondary) {
       e.currentTarget.style.backgroundColor = 'var(--accent-subtle, #eff6ff)';
       e.currentTarget.style.borderColor = 'var(--border-strong, #9ca3af)';
@@ -131,6 +142,10 @@ export function ActionButton({
       if (!customBackgroundColor) {
         e.currentTarget.style.backgroundColor = 'var(--accent, #2563eb)';
       }
+    } else if (isOutline) {
+      e.currentTarget.style.backgroundColor = 'var(--button-outline-bg, transparent)';
+      e.currentTarget.style.borderColor = 'var(--button-outline-border, var(--border-strong, #9ca3af))';
+      e.currentTarget.style.color = 'var(--button-outline-text, var(--text-primary, #111827))';
     } else if (isSecondary) {
       e.currentTarget.style.backgroundColor = 'transparent';
       e.currentTarget.style.borderColor = 'var(--border-default, #d1d5db)';
