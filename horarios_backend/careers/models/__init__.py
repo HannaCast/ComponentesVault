@@ -1,1 +1,1 @@
-from .modalities import 
+from .modalities import Modalities
