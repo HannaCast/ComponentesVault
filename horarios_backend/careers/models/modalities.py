@@ -6,7 +6,7 @@ class Modalities(models.Model):
     require_classroom = models.IntegerField()
     status = models.IntegerField()
     configurations = models.JSONField()
-    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    university = models.ForeignKey(Universities, models.DO_NOTHING)
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
