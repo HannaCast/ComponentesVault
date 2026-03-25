@@ -9,7 +9,7 @@ class TeacherListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teachers
-        fields = ('id', 'name', 'first_name', 'last_name', 'full_name', 'status')
+        fields = ('id', 'full_name', 'required_classroom_display', 'status')
 
     def get_full_name(self, obj):
         return f'{obj.name} {obj.first_name} {obj.last_name}'
