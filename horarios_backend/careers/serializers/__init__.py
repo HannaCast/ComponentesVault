@@ -1,1 +1,6 @@
-from modalities import ModalitiesDetailSerializer, ModalitiesListSerializer, ModalitiesWriteSerializer, ModalitiesSelectSerializer
+from .modalities import (
+    ModalitiesDetailSerializer,
+    ModalitiesListSerializer,
+    ModalitiesWriteSerializer,
+    ModalitiesSelectSerializer,
+)
