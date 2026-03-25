@@ -143,11 +143,19 @@ REST_FRAMEWORK = { # Configuración de Django REST Framework
 
 SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación OpenAPI
     'TITLE': 'Sistema de Generación de Horarios Académicos',
-    'DESCRIPTION': 'API para la gestión y generación de horarios académicos',
+    'DESCRIPTION': (
+        'API para la gestión y generación de horarios académicos.\n\n'
+        '**Swagger:** tras hacer login en `POST /api/v1/auth/login/`, copia el valor de `data.access` '
+        'y en "Authorize" pega el token (sin la palabra Bearer; Swagger lo añade). '
+        'El navegador no envía automáticamente las cookies HttpOnly en "Try it out".'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SECURITY': [{'jwtAuth': []}],
     'COMPONENT_SPLIT_REQUEST': True,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
 }
 
 from datetime import timedelta

@@ -3,7 +3,6 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from core.api_response import ApiResponse
-from core.permissions import IsAdmin, require_permissions
 from teachers.models import Teachers
 from teachers.serializers import TeacherWriteSerializer, TeacherDetailSerializer, TeacherListSerializer, TeacherSelectSerializer
 
@@ -17,7 +16,6 @@ class TeacherListView(APIView):
         teachers = Teachers.objects.filter(status=1, is_deleted=0)
         return ApiResponse.success(TeacherSelectSerializer(teachers, many=True).data)
 
-    @require_permissions(IsAdmin)
     @extend_schema(request=TeacherWriteSerializer)
     def post(self, request):
         """Crea un nuevo profesor"""
@@ -144,7 +142,6 @@ class TeacherDetailView(APIView):
             return ApiResponse.not_found()
         return ApiResponse.success(TeacherDetailSerializer(teacher).data)
 
-    @require_permissions(IsAdmin)
     @extend_schema(request=TeacherWriteSerializer)
     def put(self, request, pk):
         """Actualiza uno o varios campos de un profesor (todos los campos son opcionales)"""
@@ -157,7 +154,6 @@ class TeacherDetailView(APIView):
             return ApiResponse.success(TeacherDetailSerializer(teacher).data, message='Profesor actualizado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
 
-    @require_permissions(IsAdmin)
     def delete(self, request, pk):
         """Eliminación lógica: marca is_deleted = 1"""
         teacher = self.get_object(pk)
@@ -172,7 +168,6 @@ class TeacherDetailView(APIView):
 class TeacherToggleStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @require_permissions(IsAdmin)
     def put(self, request, pk):
         """Alterna el status de un profesor entre activo (1) e inactivo (0)"""
         try:
