@@ -179,7 +179,6 @@ class ModalitiesDetailView(APIView):
             )
 
         return ApiResponse.error(errors=serializer.errors)
-    
     @transaction.atomic
     def delete(self, request, pk):
         modality = self.get_object(pk)
