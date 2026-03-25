@@ -6,9 +6,8 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
         model = Modalities
         fields = [
             'name',
-            'require_classroom', 
-            'status', 
-            'configurations'
+            'require_classroom',
+            'configurations',
         ]
 
     def create(self, validated_data):
