@@ -1,7 +1,8 @@
 # BACKEND — Guía de Implementación de Módulos
 
 > **Stack:** Django 6.0.1 · Django REST Framework · SimpleJWT · drf-spectacular · MySQL · BCrypt  
-> **Base URL:** `http://localhost:8000/api/v1/`  
+> **Base URL del sistema:** `http://localhost:8000/api/`  
+> **Versionado por endpoint:** `v1` se define en cada ruta (por ejemplo: `/api/v1/universities/`, `/api/v1/university/subjects/`).  
 > **Documentación interactiva:** `http://localhost:8000/api/docs/`
 
 ---
@@ -85,31 +86,39 @@ Y su prefijo de URL en `horarios_backend/urls.py`:
 
 ```python
 urlpatterns = [
-    path('api/v1/auth/',          include('user_accounts.urls')),
-    path('api/v1/',               include('subjects.urls')),
-    path('api/v1/',               include('universities.urls')),
-    path('api/v1/',               include('careers.urls')),
-    path('api/v1/',               include('teachers.urls')),
-    path('api/v1/',               include('classrooms.urls')),
-    path('api/v1/',               include('audit.urls')),
+    path('api/', include('user_accounts.urls')),
+    path('api/', include('subjects.urls')),
+    path('api/', include('universities.urls')),
+    path('api/', include('careers.urls')),
+    path('api/', include('teachers.urls')),
+    path('api/', include('classrooms.urls')),
+    path('api/', include('audit.urls')),
 ]
 ```
 
 ---
 
-## 4. Patrón de endpoints por módulo
+## 4. Patron de endpoints por modulo
 
-Cada módulo implementa los siguientes endpoints (usando `colors` como referencia):
+Cada modulo implementa los siguientes endpoints (usando `colors` como referencia):
+
+Convencion de rutas:
+- `universities`: `/api/v1/universities/...`
+- resto de modulos en contexto de universidad seleccionada: `/api/v1/university/{recurso}/...`
 
 | Método | URL | Vista | Descripción |
 |--------|-----|-------|-------------|
-| `GET` | `/api/v1/{recurso}/` | `{Modelo}ListView` | Lista los registros con `status = 1` e `is_deleted = 0`. Usa el serializer select — ideal para dropdowns. |
-| `POST` | `/api/v1/{recurso}/` | `{Modelo}ListView` | Crea un nuevo registro |
-| `GET` | `/api/v1/{recurso}/paginated/` | `{Modelo}PaginatedView` | Lista paginada con búsqueda y ordenamiento |
-| `GET` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Obtiene un registro por ID (solo si `is_deleted = 0`) |
-| `PUT` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Actualiza uno o varios campos |
-| `DELETE` | `/api/v1/{recurso}/{pk}/` | `{Modelo}DetailView` | Marca el registro como eliminado (`is_deleted = 1`) |
-| `PUT` | `/api/v1/{recurso}/{pk}/toggle-status/` | `{Modelo}ToggleStatusView` | Alterna `status` entre 1 y 0 |
+| `GET` | `/api/v1/{prefijo}/{recurso}/` | `{Modelo}ListView` | Lista registros no eliminados logicamente (`is_deleted = 0`). Usa serializer select para dropdowns. |
+| `POST` | `/api/v1/{prefijo}/{recurso}/` | `{Modelo}ListView` | Crea un nuevo registro |
+| `GET` | `/api/v1/{prefijo}/{recurso}/paginated/` | `{Modelo}PaginatedView` | Lista paginada con filtros y ordenamiento |
+| `GET` | `/api/v1/{prefijo}/{recurso}/{pk}/` | `{Modelo}DetailView` | Obtiene un registro por ID (solo si `is_deleted = 0`) |
+| `PUT` | `/api/v1/{prefijo}/{recurso}/{pk}/` | `{Modelo}DetailView` | Actualiza uno o varios campos |
+| `DELETE` | `/api/v1/{prefijo}/{recurso}/{pk}/` | `{Modelo}DetailView` | Marca el registro como eliminado (`is_deleted = 1`) |
+| `PUT` | `/api/v1/{prefijo}/{recurso}/{pk}/toggle-status/` | `{Modelo}ToggleStatusView` | Alterna `status` entre 1 y 0 |
+
+Donde `{prefijo}` es:
+- `universities` para el modulo de universidades.
+- `university` para el resto de modulos en contexto.
 
 ---
 
@@ -130,7 +139,9 @@ Cada modelo con gestión de estado tiene **dos campos diferenciados**:
 - **`PUT`**: acepta todos los campos como opcionales (`partial=True`). Nunca modifica `is_deleted`.
 - **`DELETE`**: no elimina físicamente. Cambia `is_deleted = 1`. El registro queda oculto en todas las consultas posteriores.
 - **`toggle-status`**: alterna `status` entre 1 y 0. Permite activar o desactivar un recurso para la generación de horarios sin eliminarlo. **Este endpoint existe en todos los módulos**, independientemente del nivel de permiso requerido.
-- **Consultas (`GET` lista, `GET` paginado, `GET` por ID)**: siempre filtran por `is_deleted = 0`. Un registro con `is_deleted = 1` nunca es retornado ni accesible por ID.
+- **Consultas (`GET` lista/select, `GET` paginado, `GET` por ID)**: siempre filtran por `is_deleted = 0`. Un registro con `is_deleted = 1` nunca es retornado ni accesible por ID.
+
+- **Escalabilidad en PUT con listas completas** (por ejemplo subjects-carreras-profesores, teachers-subjects, classrooms-careers): el backend debe comparar estado actual vs payload y evitar escrituras innecesarias cuando no haya cambios efectivos (no-op).
 ### Campos de auditoría (managed por triggers de BD)
 
 Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionados **automáticamente por triggers en MySQL**. Django **no debe tocarlos nunca**:
@@ -313,14 +324,14 @@ Cada modelo tiene **cuatro serializers**:
 
 | Archivo | Clase | Uso | Campos |
 |---------|-------|-----|--------|
-| `{modelo}_write_serializer.py` | `{Modelo}WriteSerializer` | POST / PUT | Campos editables (sin `status`, `is_deleted`, `create_at`, etc.) |
+| `{modelo}_write_serializer.py` | `{Modelo}WriteSerializer` | POST / PUT | Campos editables (sin `status`, `is_deleted`, `created_at`, etc.) |
 | `{modelo}_detail_serializer.py` | `{Modelo}DetailSerializer` | GET por ID, respuesta de PUT | Campos visibles del detalle |
 | `{modelo}_list_serializer.py` | `{Modelo}ListSerializer` | GET paginado | Campos mínimos para tabla (`id` + campos clave) |
 | `{modelo}_select_serializer.py` | `{Modelo}SelectSerializer` | GET lista (sin paginación) | Solo `id`, `name` y `short_name` (si existe). Para dropdowns/selects. |
 
 ### Serializer Select
 
-El `SelectSerializer` es el que usa el endpoint `GET /api/v1/{recurso}/` (sin paginación). Su propósito es alimentar `<select>` y dropdowns en el frontend, por lo que solo expone los campos mínimos necesarios para identificar un registro.
+El `SelectSerializer` es el que usa el endpoint `GET /api/v1/{prefijo}/{recurso}/` (sin paginacion). Su proposito es alimentar `<select>` y dropdowns en el frontend, por lo que solo expone los campos minimos necesarios para identificar un registro.
 
 ```python
 from rest_framework import serializers
@@ -333,11 +344,11 @@ class {Modelo}SelectSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'short_name')  # omitir short_name si el modelo no lo tiene
 ```
 
-El endpoint lista siempre filtra `status = 1` (activo para generación de horarios) **y** `is_deleted = 0` (no eliminado):
+El endpoint lista siempre filtra por `is_deleted = 0` (no eliminado logicamente):
 
 ```python
 def get(self, request):
-    registros = {Modelo}.objects.filter(status=1, is_deleted=0)
+    registros = {Modelo}.objects.filter(is_deleted=0)
     return ApiResponse.success({Modelo}SelectSerializer(registros, many=True).data)
 ```
 
@@ -412,7 +423,7 @@ Endpoints activos:
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/refresh/`
 - `GET  /api/v1/user/my-info/`
-- `GET  /api/v1/user/configurations/`
+- `PUT  /api/v1/user/configurations/`
 
 > **Nota de seguridad (auth):** `login` y `register` usan `@decrypt_request()`.
 > El cliente debe enviar `{ key, iv, data }`, donde:
@@ -442,7 +453,7 @@ Modelo `subjects` (campos):
 ```
 name, short_name, code, description, hours_per_week,
 color (FK → colors), university (FK → universities), is_mandatory, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 ---
@@ -453,34 +464,34 @@ Modelos en orden de implementación: `images`, `period_types`, `universities`, `
 **`images`**
 ```
 image_name, mime_type, extension, sha256, file_size, data,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`period_types`** 🔒 POST/PUT/DELETE requieren Admin
 ```
 name, code, months_duration, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`universities`**
 ```
 name, short_name, image (FK → images), user (FK → users),
 start_time, end_time, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`shifts`**
 ```
 name, university (FK → universities), order,
 start_time, end_time, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`academic_periods`**
 ```
 name, university (FK → universities), period_type (FK → period_types),
 start_month, end_month, order,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 ---
@@ -492,14 +503,14 @@ Modelos en orden: `careers`, `groups`, `career_subjects`, `career_period_excepti
 ```
 name, short_name, code, university (FK → universities),
 total_periods, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`groups`**
 ```
 name, career (FK → careers), period_number, letter,
 shift (FK → shifts), status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`career_subjects`** (tabla relacional, sin status)
@@ -510,7 +521,7 @@ subjects (FK → subjects), careers (FK → careers), period_number
 **`career_period_exceptions`**
 ```
 career (FK → careers), period_number, reason, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 ---
@@ -521,13 +532,13 @@ Modelos en orden: `teachers`, `teacher_availabilities`, `teachers_subjects`, `te
 **`teachers`**
 ```
 name, surname, last_name, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`teacher_availabilities`**
 ```
 teacher (FK → teachers), day_of_week, start_time, end_time,
-is_available, create_at, create_by, update_at, update_by
+is_available, created_at, created_by, updated_at, updated_by
 ```
 
 **`teachers_subjects`** (tabla relacional)
@@ -548,7 +559,7 @@ Modelos en orden: `classroom_types`, `classrooms`, `classroom_careers`
 **`classroom_types`**
 ```
 name, description, status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`classrooms`**
@@ -556,7 +567,7 @@ create_at, create_by, update_at, update_by
 name, classroom_type (FK → classroom_types), code, floor,
 building, building_code, is_restricted,
 universities (FK → universities), status,
-create_at, create_by, update_at, update_by
+created_at, created_by, updated_at, updated_by
 ```
 
 **`classroom_careers`** (tabla relacional)
@@ -661,7 +672,7 @@ class ColorListView(APIView):
 
     def get(self, request):
         """ Lista los colores activos y no eliminados (para selects/dropdowns) """
-        colors = Colors.objects.filter(status=1, is_deleted=0)
+        colors = Colors.objects.filter(is_deleted=0)
         return ApiResponse.success(ColorListSerializer(colors, many=True).data)
 
     @require_permissions(IsAdmin)
@@ -830,3 +841,4 @@ urlpatterns = [
 - [ ] Si se usó alguna librería nueva que requiera instalación, agregarla a `horarios_backend/requirements.txt` con su versión exacta (`pip show <libreria>` para consultarla)
 - [ ] Verificar con `python manage.py check`
 - [ ] Confirmar que aparecen en Swagger: `http://localhost:8000/api/docs/`
+
