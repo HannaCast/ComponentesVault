@@ -6,6 +6,7 @@ from django.db.models import Q
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 from careers.models import Modalities
+from django.db import transaction
 from careers.serializers.modalities import ModalitiesWriteSerializer, ModalitiesDetailSerializer, ModalitiesListSerializer, ModalitiesSelectSerializer
 
 @extend_schema(tags=['Modalities'])
@@ -25,6 +26,7 @@ class ModalitiesListView(APIView):
         )
 
     @extend_schema(request=ModalitiesWriteSerializer)
+    @transaction.atomic
     def post(self, request):
         """ Crear modalidad """
         selected_university_id = request.selected_university_id
@@ -159,6 +161,7 @@ class ModalitiesDetailView(APIView):
         )
 
     @extend_schema(request=ModalitiesWriteSerializer)
+    @transaction.atomic
     def put(self, request, pk):
         modality = self.get_object(pk)
         if modality is None:
@@ -176,7 +179,8 @@ class ModalitiesDetailView(APIView):
             )
 
         return ApiResponse.error(errors=serializer.errors)
-
+    
+    @transaction.atomic
     def delete(self, request, pk):
         modality = self.get_object(pk)
         if modality is None:
@@ -190,6 +194,7 @@ class ModalitiesDetailView(APIView):
 class ModalitiesToggleStatusView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @transaction.atomic
     def put(self, request, pk):
         try:
             modality = Modalities.objects.get(pk=pk)
