@@ -1,10 +1,14 @@
 from django.conf import settings
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core.api_response import ApiResponse
+from core.permissions import IsAdmin
+from core.request_decryption import decrypt_request
 from user_accounts.serializers import LoginSerializer, RegisterSerializer
 
 # Duracion de las cookies en segundos
@@ -44,6 +48,8 @@ def _set_refresh_cookie(response, refresh_token: str) -> None:
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
+    """@decrypt_request()"""
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         """Autentica al usuario y establece access/refresh en cookies HttpOnly."""
         response = super().post(request, *args, **kwargs)
@@ -96,12 +102,34 @@ class RefreshView(APIView):
 class RegisterView(APIView):
     permission_classes = []
 
+    """@decrypt_request()"""
+    @transaction.atomic
     def post(self, request):
-        """Registra un nuevo usuario en el sistema."""
-        serializer = RegisterSerializer(data=request.data)
+        """Registra un nuevo usuario con rol usuario."""
+        serializer = RegisterSerializer(
+            data=request.data,
+            context={'target_role_name': 'usuario'},
+        )
         if serializer.is_valid():
             serializer.save()
             return ApiResponse.created(message='Usuario creado exitosamente')
+        return ApiResponse.error(errors=serializer.errors)
+
+
+@extend_schema(tags=['Auth'])
+class RegisterAdminView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @transaction.atomic
+    def post(self, request):
+        """Registra un nuevo administrador. Solo admins autenticados."""
+        serializer = RegisterSerializer(
+            data=request.data,
+            context={'target_role_name': 'admin'},
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return ApiResponse.created(message='Administrador creado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
 
 

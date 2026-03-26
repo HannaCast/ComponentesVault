@@ -6,6 +6,7 @@ from django.db import migrations
 def seed_users(apps, schema_editor):
     Role = apps.get_model('user_accounts', 'Role')
     User = apps.get_model('user_accounts', 'User')
+    UserConfiguration = apps.get_model('user_accounts', 'UserConfiguration')
 
     role_admin, _ = Role.objects.get_or_create(name='admin')
     role_user, _ = Role.objects.get_or_create(name='usuario')
@@ -35,9 +36,21 @@ def seed_users(apps, schema_editor):
     ]
 
     for data in users:
-        if not User.objects.filter(email=data['email']).exists():
+        user = User.objects.filter(email=data['email']).first()
+
+        if not user:
             data['password'] = make_password(data['password'])
-            User.objects.create(**data)
+            user = User.objects.create(**data)
+
+        UserConfiguration.objects.get_or_create(
+            user=user,
+            defaults={
+                'theme': 'light',
+                'accent': 'blue',
+                'status': 1,
+                'selected_university_id': None,
+            },
+        )
 
 
 def reverse_seed_users(apps, schema_editor):

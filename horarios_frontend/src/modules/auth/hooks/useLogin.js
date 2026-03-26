@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../../../core/context/AppContext';
+import { useAuth } from '../../../core/context/AuthContext';
 
 export const useLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useApp();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const loginUser = async (email, password) => {
@@ -19,7 +19,7 @@ export const useLogin = () => {
         return { success: false };
       }
 
-      const redirectTo = userData.role === 'admin' ? '/admin' : '/user';
+      const redirectTo = userData.role === 'admin' ? '/admin' : '/usuario';
       navigate(redirectTo);
       return { success: true, data: userData };
     } catch {

@@ -1,148 +1,144 @@
 # Sistema de Generación de Horarios Académicos
 
-Sistema web para que docentes universitarios gestionen y generen horarios académicos de forma automática, respetando disponibilidad de profesores, aulas y restricciones por carrera.
-
-> Este repositorio contiene el **backend** (Django REST API). El frontend se documentará en una sección aparte cuando esté disponible.
-
----
+Sistema web para gestionar y generar horarios académicos, con backend en Django REST Framework y frontend en React + Vite.
 
 ## Requisitos previos
 
-Asegúrate de tener instalado lo siguiente antes de continuar:
-
-- **Python 3.12+**
-- **MySQL 8.0+** con el schema de la base de datos ya creado (ver sección [Base de datos](#base-de-datos))
-- **pip**
-
----
+- Python 3.12+
+- MySQL 8+
+- Node.js 20.19+ o 22.12+ (Vite 7)
+- npm 10+
 
 ## Estructura del repositorio
 
-```
+```text
 /
-├── horarios_backend/     ← proyecto Django (backend)
+├── horarios_backend/         # API Django
 │   ├── manage.py
 │   ├── requirements.txt
-│   ├── .env.example      ← plantilla de variables de entorno
-│   ├── core/             ← utilidades globales
-│   ├── user_accounts/    ← autenticación y usuarios
-│   └── subjects/         ← materias y colores
-├── .docs/                ← documentación técnica del backend
+│   ├── .env.example
+│   ├── horarios_backend/     # settings, urls, interceptor de logs
+│   ├── user_accounts/
+│   ├── subjects/
+│   └── universities/
+├── horarios_frontend/        # React + Vite
+│   ├── package.json
+│   ├── .env.example
+│   └── src/
 └── ACERCA_DEL_SISTEMA.md
 ```
 
----
+## Configuración de entorno
 
-## Instalación
+### Backend (`horarios_backend/.env`)
 
-### 1. Clonar el repositorio
-
-```bash
-git clone <url-del-repositorio>
-cd <nombre-de-la-carpeta>
-```
-
-### 2. Crear y activar un entorno virtual (recomendado)
-
-```bash
-# Crear
-python -m venv venv
-
-# Activar en Windows
-venv\Scripts\activate
-
-# Activar en Linux / macOS
-source venv/bin/activate
-```
-
-### 3. Instalar dependencias
-
-```bash
-cd horarios_backend
-pip install -r requirements.txt
-```
-
-### 4. Configurar variables de entorno
-
-Copia el archivo de ejemplo y rellena los valores:
-
-```bash
-# Windows
-copy .env.example .env
-
-# Linux / macOS
-cp .env.example .env
-```
-
-Edita `.env` con los datos de tu entorno:
+Basado en `horarios_backend/.env.example`:
 
 ```env
-# Base de datos MySQL
-DB_NAME=cdi_horarios
-DB_USER=tu_usuario
-DB_PASSWORD=tu_contraseña
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
 DB_HOST=localhost
 DB_PORT=3306
 
-# Django
-SECRET_KEY=genera-una-clave-secreta-larga-y-aleatoria
+SECRET_KEY=your-secret-key-here
 DEBUG=True
 ALLOWED_HOSTS=
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-> Para generar un `SECRET_KEY` seguro puedes ejecutar:
-> ```bash
-> python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-> ```
+Si usas otro puerto de Vite (por ejemplo 5174), agrégalo en `CORS_ALLOWED_ORIGINS`.
 
----
+### Frontend (`horarios_frontend/.env`)
 
-## Base de datos
+Basado en `horarios_frontend/.env.example`:
 
-El esquema completo de la base de datos está definido en SQL. **Debe ejecutarse primero en MySQL** antes de correr las migraciones de Django.
-
-El script SQL crea el schema `cdi_horarios` con todas las tablas necesarias. Ejecútalo desde MySQL Workbench o desde la terminal:
-
-```bash
-mysql -u tu_usuario -p < ruta/al/script.sql
+```env
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Una vez creadas las tablas, aplica las migraciones de Django para que registre el estado inicial y cree sus propias tablas internas (sesiones, tokens, etc.):
+## Instalación
+
+### 1. Backend
 
 ```bash
-python manage.py migrate --fake-initial
-```
+cd horarios_backend
+python -m venv venv
 
-> `--fake-initial` le indica a Django que las tablas de tu proyecto ya existen y que no intente crearlas de nuevo. Solo creará las tablas internas de Django que todavía no existan.
+# Windows
+venv\Scripts\activate
 
----
+# Linux/macOS
+source venv/bin/activate
 
-## Ejecutar el servidor
-
-```bash
+python -m pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver
 ```
 
-El servidor quedará disponible en `http://localhost:8000`.
+Backend disponible en `http://localhost:8000`.
 
----
+### 2. Frontend
 
-## URLs disponibles
-
-| URL | Descripción |
-|-----|-------------|
-| `http://localhost:8000/api/v1/auth/` | Endpoints de autenticación (login, registro, logout, etc.) |
-| `http://localhost:8000/api/v1/` | Endpoints del sistema (colores, materias, etc.) |
-| `http://localhost:8000/api/docs/` | Documentación interactiva Swagger UI |
-| `http://localhost:8000/api/redoc/` | Documentación en formato Redoc |
-
----
-
-## Documentación técnica
-
-La guía de implementación del backend (patrones, serializers, vistas, permisos) está en:
-
+```bash
+cd horarios_frontend
+npm install
+npm run dev
 ```
-.docs/BACKEND_IMPLEMENTATION_GUIDE.md
-```
+
+Frontend disponible en `http://localhost:5173` (o el puerto que asigne Vite).
+
+## Autenticación actual (cookies HttpOnly)
+
+- Login y refresh usan cookies HttpOnly (`access_token` y `refresh_token`).
+- El frontend usa `withCredentials: true`.
+- No se guarda JWT en `localStorage`.
+- `ROTATE_REFRESH_TOKENS=False` y `BLACKLIST_AFTER_ROTATION=False` en `SIMPLE_JWT`.
+
+## Endpoints relevantes
+
+### Documentación API
+
+- `GET /api/schema/`
+- `GET /api/docs/`
+- `GET /api/redoc/`
+
+### Auth y usuario
+
+- `POST /api/v1/auth/login/`
+- `POST /api/v1/auth/register/`
+- `POST /api/v1/auth/logout/`
+- `POST /api/v1/auth/refresh/`
+- `GET /api/v1/user/my-info/`
+- `GET /api/v1/user/configurations/`
+
+### Subjects
+
+- `GET /api/v1/subjects/colors/`
+- `GET /api/v1/subjects/colors/paginated/`
+- `GET|PUT|DELETE /api/v1/subjects/colors/<id>/`
+- `PUT /api/v1/subjects/colors/<id>/toggle-status/`
+
+### Universities
+
+- `GET /api/v1/universities/universities/`
+- `POST /api/v1/universities/universities/create/`
+- `GET|PUT|DELETE /api/v1/universities/universities/<university_id>/`
+
+## Logging
+
+Se usa Loguru con interceptor para redirigir logs de Django/Python.
+
+- Configuración en `horarios_backend/horarios_backend/settings.py`.
+- Interceptor en `horarios_backend/horarios_backend/interceptor.py`.
+- Archivos por nivel en:
+	- `horarios_backend/logs/debug/`
+	- `horarios_backend/logs/info/`
+	- `horarios_backend/logs/warning/`
+	- `horarios_backend/logs/error/`
+- El ruido de Swagger/OpenAPI se excluye del log de `DEBUG`.
+
+## Notas
+
+- Si Vite muestra aviso por versión de Node, actualiza a Node 22.12+ o 20.19+.
+- Si cambias origen del frontend, recuerda actualizar `CORS_ALLOWED_ORIGINS`.

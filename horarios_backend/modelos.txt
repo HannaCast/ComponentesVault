@@ -11,10 +11,11 @@ from django.db import models
 class AcademicPeriods(models.Model):
     name = models.CharField(max_length=50)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
-    period_type = models.ForeignKey('PeriodTypes', models.DO_NOTHING)
     start_month = models.IntegerField()
     end_month = models.IntegerField()
-    order = models.IntegerField()
+    year = models.IntegerField(blank=True, null=True)
+    order = models.IntegerField(blank=True, null=True)
+    is_active = models.IntegerField(blank=True, null=True)
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
@@ -27,6 +28,7 @@ class AcademicPeriods(models.Model):
 
 
 class AuditLogs(models.Model):
+    id = models.BigAutoField(primary_key=True)
     user_id = models.IntegerField(blank=True, null=True)
     table_name = models.CharField(max_length=100)
     record_id = models.IntegerField(blank=True, null=True)
@@ -78,6 +80,7 @@ class Careers(models.Model):
     university = models.ForeignKey('Universities', models.DO_NOTHING)
     short_name = models.CharField(max_length=20, blank=True, null=True)
     code = models.CharField(max_length=50, blank=True, null=True)
+    modality = models.ForeignKey('Modalities', models.DO_NOTHING)
     total_periods = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
@@ -158,11 +161,14 @@ class Colors(models.Model):
 
 
 class Groups(models.Model):
+    id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=45)
     career = models.ForeignKey(Careers, models.DO_NOTHING)
     period_number = models.IntegerField()
     letter = models.CharField(max_length=1)
     shift = models.ForeignKey('Shifts', models.DO_NOTHING)
+    academic_period = models.ForeignKey(AcademicPeriods, models.DO_NOTHING, blank=True, null=True)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
@@ -181,7 +187,7 @@ class Images(models.Model):
     extension = models.CharField(max_length=10)
     sha256 = models.CharField(max_length=64)
     file_size = models.IntegerField()
-    data = models.TextField()
+    image_path = models.CharField(max_length=100)
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
@@ -191,6 +197,22 @@ class Images(models.Model):
     class Meta:
         managed = False
         db_table = 'images'
+
+
+class Modalities(models.Model):
+    name = models.CharField(max_length=20)
+    require_classroom = models.IntegerField()
+    status = models.IntegerField()
+    configurations = models.JSONField()
+    universitiy = models.ForeignKey('Universities', models.DO_NOTHING)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'modalities'
 
 
 class PeriodTypes(models.Model):
@@ -245,6 +267,7 @@ class Subjects(models.Model):
     description = models.CharField(max_length=45, blank=True, null=True)
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
@@ -279,6 +302,7 @@ class Teachers(models.Model):
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
+    require_classroom = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
@@ -329,6 +353,8 @@ class Universities(models.Model):
     user = models.ForeignKey('Users', models.DO_NOTHING)
     start_time = models.TimeField()
     end_time = models.TimeField()
+    period_type = models.ForeignKey(PeriodTypes, models.DO_NOTHING)
+    uses_period_groups = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
@@ -341,6 +367,22 @@ class Universities(models.Model):
         db_table = 'universities'
 
 
+class UserConfigurations(models.Model):
+    user = models.ForeignKey('Users', models.DO_NOTHING)
+    selected_university = models.ForeignKey(Universities, models.DO_NOTHING, blank=True, null=True)
+    theme = models.CharField(max_length=10, db_comment='El tema de la aplicación, ya sea oscuro (dark) o blanco (light)')
+    accent = models.CharField(max_length=10, db_comment='el color de la interfaz, ejemplo, rojo, verde, azul')
+    status = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'user_configurations'
+
+
 class Users(models.Model):
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
@@ -349,7 +391,6 @@ class Users(models.Model):
     password = models.CharField(max_length=255)
     status = models.IntegerField()
     role = models.ForeignKey(Roles, models.DO_NOTHING)
-    selected_university = models.ForeignKey(Universities, models.DO_NOTHING)
     last_login = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)

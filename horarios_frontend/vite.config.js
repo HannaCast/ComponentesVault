@@ -10,6 +10,7 @@ export default defineConfig({
     alias: {
       '@requests': path.resolve(__dirname, './src/core/requests'),
       '@context': path.resolve(__dirname, './src/core/context'),
+      '@shared': path.resolve(__dirname, './src/shared'),
     },
   },
 })
