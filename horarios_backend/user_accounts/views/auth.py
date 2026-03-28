@@ -58,15 +58,12 @@ class LoginView(TokenObtainPairView):
         refresh_token = tokens['refresh']
 
         access_claims = RefreshToken(refresh_token).access_token
-        # Incluir access en el cuerpo para clientes que no envían cookies (p. ej. Swagger "Authorize" con Bearer).
-        # Las cookies HttpOnly siguen sirviendo al frontend en el mismo origen.
         resp = ApiResponse.success(
             data={
-                'access': access_token,
                 'user': {
                     'id': access_claims.get('id'),
                     'role': access_claims.get('role'),
-                },
+                }
             },
             message='Inicio de sesion exitoso',
         )
