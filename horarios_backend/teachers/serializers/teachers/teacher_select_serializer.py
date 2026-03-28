@@ -12,4 +12,7 @@ class TeacherSelectSerializer(serializers.ModelSerializer):
         fields = ('id', 'full_name')
 
     def get_full_name(self, obj):
-        return f'{obj.name} {obj.first_name} {obj.last_name}'
+        parts = [obj.name, obj.surname]
+        if obj.last_name:
+            parts.append(obj.last_name)
+        return ' '.join(parts)

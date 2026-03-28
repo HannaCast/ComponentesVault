@@ -6,14 +6,26 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
     """Serializador de detalle para Teachers (GET por ID)"""
 
     full_name = serializers.SerializerMethodField()
-    required_classroom_display = serializers.SerializerMethodField()
+    require_classroom_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Teachers
-        fields = ('id','full_name', 'required_classroom', 'required_classroom_display', 'status')
+        fields = (
+            'id',
+            'name',
+            'surname',
+            'last_name',
+            'full_name',
+            'require_classroom',
+            'require_classroom_display',
+            'status',
+        )
 
     def get_full_name(self, obj):
-        return f'{obj.name} {obj.first_name} {obj.last_name}'
+        parts = [obj.name, obj.surname]
+        if obj.last_name:
+            parts.append(obj.last_name)
+        return ' '.join(parts)
 
-    def get_required_classroom_display(self, obj):
-        return 'Requiere salón' if obj.required_classroom == 1 else 'Tiene oficina'
+    def get_require_classroom_display(self, obj):
+        return 'Requiere salón' if obj.require_classroom == 1 else 'Tiene oficina'
