@@ -19,7 +19,7 @@ class TeacherListView(APIView):
     @extend_schema(request=TeacherWriteSerializer)
     def post(self, request):
         """Crea un nuevo profesor"""
-        serializer = TeacherWriteSerializer(data=request.data)
+        serializer = TeacherWriteSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             teacher = serializer.save()
             return ApiResponse.created(TeacherDetailSerializer(teacher).data)
@@ -30,7 +30,7 @@ class TeacherListView(APIView):
 class TeacherPaginatedView(APIView):
     permission_classes = [IsAuthenticated]
 
-    SORT_FIELDS = {'id', 'name', 'first_name', 'last_name'}
+    SORT_FIELDS = {'id', 'name', 'surname', 'last_name'}
 
     @extend_schema(
         summary='Lista paginada de profesores',
@@ -54,7 +54,7 @@ class TeacherPaginatedView(APIView):
                 name='search',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Término de búsqueda en nombre, apellido paterno o apellido materno',
+                description='Término de búsqueda en nombre, apellido paterno (surname) o apellido materno (last_name)',
                 required=False,
             ),
             OpenApiParameter(
@@ -69,7 +69,7 @@ class TeacherPaginatedView(APIView):
                 name='sortBy',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Campo de ordenamiento: id, name, first_name, last_name (por defecto: id)',
+                description='Campo de ordenamiento: id, name, surname, last_name (por defecto: id)',
                 default='id',
                 required=False,
             ),
@@ -107,9 +107,9 @@ class TeacherPaginatedView(APIView):
         if search:
             from django.db.models import Q
             queryset = queryset.filter(
-                Q(name__icontains=search) | 
-                Q(first_name__icontains=search) | 
-                Q(last_name__icontains=search)
+                Q(name__icontains=search)
+                | Q(surname__icontains=search)
+                | Q(last_name__icontains=search)
             )
 
         queryset = queryset.order_by(order_field)
@@ -148,7 +148,9 @@ class TeacherDetailView(APIView):
         teacher = self.get_object(pk)
         if teacher is None:
             return ApiResponse.not_found()
-        serializer = TeacherWriteSerializer(teacher, data=request.data, partial=True)
+        serializer = TeacherWriteSerializer(
+            teacher, data=request.data, partial=True, context={'request': request}
+        )
         if serializer.is_valid():
             teacher = serializer.save()
             return ApiResponse.success(TeacherDetailSerializer(teacher).data, message='Profesor actualizado exitosamente')
