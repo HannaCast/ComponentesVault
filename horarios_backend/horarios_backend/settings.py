@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 import logging.config
 from pathlib import Path
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -90,6 +91,9 @@ WSGI_APPLICATION = 'horarios_backend.wsgi.application'
 _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [s.strip() for s in _cors_origins.split(',') if s.strip()]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-encrypted',
+]
 
 
 # Base de datos

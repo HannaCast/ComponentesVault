@@ -1,11 +1,30 @@
 // apiToken.js — para endpoints protegidos (requieren autenticación)
 import axios from "axios";
+import { encryptPayload, hasEncryptionKey } from "./encryptionService";
 
 const apiToken = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
   withCredentials: true,
+});
+
+apiToken.interceptors.request.use(async (config) => {
+  if (!config.encrypt) {
+    return config;
+  }
+
+  if (!hasEncryptionKey()) {
+    throw new Error('No se pudo procesar la solicitud en este momento.');
+  }
+
+  config.data = await encryptPayload(config.data || {});
+  config.headers = {
+    ...config.headers,
+    'X-Encrypted': 'true',
+  };
+
+  return config;
 });
 
 // Cola de requests que esperan mientras se renueva el token
@@ -53,7 +72,7 @@ apiToken.interceptors.response.use(
       refreshSubscribers = [];
       isRefreshing = false;
       return apiToken(original);
-    } catch {
+    } catch (error) {
       onRefreshFailed(error);
       refreshSubscribers = [];
       isRefreshing = false;

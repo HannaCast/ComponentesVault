@@ -11,19 +11,22 @@ export const useLogin = () => {
   const loginUser = async (email, password) => {
     setError('');
     setLoading(true);
+    const fallbackMessage = 'No se pudo iniciar sesion. Intenta nuevamente.';
 
     try {
       const userData = await login(email, password);
       if (!userData) {
-        setError('Correo o contraseña incorrectos');
+        setError(fallbackMessage);
         return { success: false };
       }
 
       const redirectTo = userData.role === 'admin' ? '/admin' : '/usuario';
       navigate(redirectTo);
       return { success: true, data: userData };
-    } catch {
-      setError('No se pudo iniciar sesión. Intenta nuevamente.');
+    } catch (error) {
+      const backendMessage = error?.response?.data?.message;
+      setError(backendMessage || fallbackMessage);
+
       return { success: false };
     } finally {
       setLoading(false);
