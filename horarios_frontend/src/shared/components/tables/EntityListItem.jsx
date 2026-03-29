@@ -29,13 +29,17 @@ export const EntityListItem = ({
   onToggleStatus,
   onDelete,
   onContentClick,
+  showBottomBorder = false,
 }) => {
   const visibleMetaItems = metaItems.filter(Boolean);
   
   return (
     <div
       className="p-4 transition-colors hover:opacity-75"
-      style={{ backgroundColor: 'var(--bg-elevated, #ffffff)' }}
+      style={{
+        backgroundColor: 'var(--bg-elevated, #ffffff)',
+        borderBottom: showBottomBorder ? '1px solid var(--border-subtle, #e5e7eb)' : 'none',
+      }}
     >
       <div className="flex items-center justify-between gap-4">
         <div

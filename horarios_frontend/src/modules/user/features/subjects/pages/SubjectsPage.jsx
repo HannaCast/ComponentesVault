@@ -1,18 +1,24 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
-import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
-import { EntityListItem } from '@shared/components/lists/EntityListItem';
+import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
+import { EntityListItem } from '@shared/components/tables/EntityListItem';
+import { Pagination } from '@shared/components/tables/Pagination';
+import { EmptyStatePanel } from '@shared/components/tables/EmptyStatePanel';
 import { useSubjects } from '../hooks/useSubjects';
 
 export const SubjectsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const pageChangeTimeoutRef = useRef(null);
+  const ITEMS_PER_PAGE = 6;
   const {
     subjectsFiltered,
     loading,
@@ -30,6 +36,57 @@ export const SubjectsPage = () => {
     handleDelete,
     subjects,
   } = useSubjects();
+
+  const totalItems = subjectsFiltered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const selectedUniversityName = user?.selected_university?.short_name
+    || user?.selected_university?.name
+    || user?.selected_university
+    || 'Universidad seleccionada';
+
+  const paginatedSubjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return subjectsFiltered.slice(startIndex, endIndex);
+  }, [subjectsFiltered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, estadoFiltro, ordenAscendente]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchTerm(searchInput);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, setSearchTerm]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    return () => {
+      if (pageChangeTimeoutRef.current) {
+        clearTimeout(pageChangeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handlePageChange = (nextPage) => {
+    const safePage = Math.min(Math.max(nextPage, 1), totalPages);
+
+    if (pageChangeTimeoutRef.current) {
+      clearTimeout(pageChangeTimeoutRef.current);
+    }
+
+    pageChangeTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(safePage);
+    }, 500);
+  };
 
   if (!user?.selected_university) {
     return (
@@ -50,24 +107,13 @@ export const SubjectsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
-            Materias
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            Gestiona las materias de tu universidad
-          </p>
-        </div>
-        <ActionButton
-          icon={Plus}
-          label="Nueva Materia"
-          onClick={() => navigate('/usuario/materias/crear')}
-          variant="primary"
-          size="medium"
-          fullWidth={false}
-        />
-      </div>
+      <PageSectionHeader
+        title="Materias"
+        contextLabel={`Materias de: ${selectedUniversityName}`}
+        actionIcon={Plus}
+        actionLabel="Nueva Materia"
+        onAction={() => navigate('/usuario/materias/crear')}
+      />
 
       {error && (
         <div
@@ -86,8 +132,8 @@ export const SubjectsPage = () => {
           <Input
             label="Buscar Materia"
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Nombre o codigo"
             reserveHelperSpace={false}
           />
@@ -132,47 +178,45 @@ export const SubjectsPage = () => {
           </p>
         </SurfacePanel>
       ) : subjectsFiltered.length === 0 ? (
-        <SurfacePanel padding="p-12" centered>
-          <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary, #6b7280)' }} />
-          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
-            {subjects.length === 0 ? 'No hay materias registradas' : 'No se encontraron materias'}
-          </h3>
-          <p className="mb-6" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            {subjects.length === 0 ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda'}
-          </p>
-          {subjects.length === 0 && (
-            <div className="flex justify-center">
-              <ActionButton
-                icon={Plus}
-                label="Agregar Materia"
-                onClick={() => navigate('/usuario/materias/crear')}
-                variant="primary"
-                size="medium"
-                fullWidth={false}
-              />
-            </div>
-          )}
-        </SurfacePanel>
+        <EmptyStatePanel
+          icon={BookOpen}
+          title={subjects.length === 0 ? 'No hay materias registradas' : 'No se encontraron materias'}
+          description={subjects.length === 0 ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda'}
+          actionIcon={subjects.length === 0 ? Plus : undefined}
+          actionLabel={subjects.length === 0 ? 'Agregar Materia' : undefined}
+          onAction={subjects.length === 0 ? () => navigate('/usuario/materias/crear') : undefined}
+        />
       ) : (
-        <SurfacePanel className="divide-y" padding="p-0">
-          {subjectsFiltered.map((subject) => (
-            <EntityListItem
-              key={subject.id}
-              icon={BookOpen}
-              title={subject.name}
-              metaItems={[
-                `Codigo: ${subject.code || '-'}`,
-                subject.credits ? `${subject.credits} creditos` : null,
-              ]}
-              isActive={subject.is_active}
-              activeText="Activa"
-              inactiveText="Inactiva"
-              onToggleStatus={() => handleToggleStatus(subject.id, subject.is_active)}
-              onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
-              onContentClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}
-            />
-          ))}
-        </SurfacePanel>
+        <div className="space-y-4">
+          <SurfacePanel padding="p-0">
+            {paginatedSubjects.map((subject, index) => (
+              <EntityListItem
+                key={subject.id}
+                icon={BookOpen}
+                title={subject.name}
+                metaItems={[
+                  `Codigo: ${subject.code || '-'}`,
+                  subject.credits ? `${subject.credits} creditos` : null,
+                ]}
+                isActive={subject.is_active}
+                activeText="Activa"
+                inactiveText="Inactiva"
+                onToggleStatus={() => handleToggleStatus(subject.id, subject.is_active)}
+                onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
+                onContentClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}
+                showBottomBorder={index < paginatedSubjects.length - 1}
+              />
+            ))}
+          </SurfacePanel>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
 
       <ConfirmModal
