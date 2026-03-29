@@ -18,4 +18,7 @@ urlpatterns = [
     #RUTAS DE UNIVERSIDADES
     path('api/v1/universities/', include('universities.urls')),
 
+    # RUTAS DE MODALIDADES
+    path('api/', include('careers.urls')),
+
 ]
