@@ -13,7 +13,7 @@ urlpatterns = [
     path('api/v1/', include('user_accounts.urls')),
 
     # RUTAS DE ASIGNATURAS
-    path('api/v1/subjects/', include('subjects.urls')),
+    path('api/', include('subjects.urls')),
     
     #RUTAS DE UNIVERSIDADES
     path('api/v1/universities/', include('universities.urls')),
