@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Landing } from '../../modules/auth/pages/Landing';
 import { Login } from '../../modules/auth/pages/Login';
 import { useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { adminRoutes } from './AdminRouter';
 import { userRoutes } from './UserRouter';
-import { AppLoadingScreen } from '@shared/components/layout/AppLoadingScreen';
+import { AppLoadingScreen } from '@shared/pages/AppLoadingScreen';
+import { AppNotFoundScreen } from '@shared/pages/AppNotFoundScreen';
 
 // Placeholders — reemplazar con los componentes reales cuando estén listos
 const RegistroPage = () => <div>Registro — próximamente</div>;
-const NotFound = () => <div>404 — Página no encontrada</div>;
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
@@ -94,6 +94,21 @@ const RequireGuest = ({ children }) => {
   return children;
 };
 
+const NotFoundRoute = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const destination = user ? getHomePathByRole(user?.role) : '/';
+  const buttonLabel = user ? 'Ir a mi inicio' : 'Ir a la landing';
+
+  return (
+    <AppNotFoundScreen
+      buttonLabel={buttonLabel}
+      onButtonClick={() => navigate(destination, { replace: true })}
+    />
+  );
+};
+
 export const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -124,7 +139,7 @@ export const AppRouter = () => {
         </Route>
 
         {/* Catch-all */}
-        <Route path="*" element={<NotFound />} />
+        <Route path="*" element={<NotFoundRoute />} />
       </Routes>
     </BrowserRouter>
   );
