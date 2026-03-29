@@ -4,3 +4,10 @@ from .modalities import (
     ModalitiesDetailView,
     ModalitiesToggleStatusView,
 )
+
+from .careers import (
+    CareerDetailView,
+    CareerListView,
+    CareerPaginatedView,
+    CareerToggleStatusView,
+)
