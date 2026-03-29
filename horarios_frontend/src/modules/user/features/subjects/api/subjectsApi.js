@@ -4,6 +4,26 @@ import apiToken from "@requests/apiToken";
 export const getSubjects = () => 
   apiToken.get("/api/v1/university/subjects/");
 
+// Obtener materias paginadas con filtros/orden desde backend
+export const getSubjectsPaginated = ({ page = 1, limit = 10, search = '', status, sortBy = 'name', order = 'ASC' } = {}) => {
+  const params = {
+    page,
+    limit,
+    sortBy,
+    order,
+  };
+
+  if (search) {
+    params.search = search;
+  }
+
+  if (status !== undefined && status !== null) {
+    params.status = status;
+  }
+
+  return apiToken.get('/api/v1/university/subjects/paginated/', { params });
+};
+
 // Obtener una materia específica
 export const getSubject = (id) => 
   apiToken.get(`/api/v1/university/subjects/${id}/`);

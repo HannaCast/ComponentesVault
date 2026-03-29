@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
 
+// Componente de barra lateral para navegación principal, adaptada según el rol del usuario (admin o usuario regular).
 /**
  * Sidebar principal de navegacion.
  * Props:

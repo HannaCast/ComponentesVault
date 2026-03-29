@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
+// Componente de encabezado para secciones o pantallas, con soporte para título, contexto adicional y acción principal.
 /**
  * PageSectionHeader
  *
