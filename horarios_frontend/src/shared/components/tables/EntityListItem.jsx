@@ -15,6 +15,8 @@ import { Switch } from '@shared/components/inputs/Switch';
  * - activeText: Etiqueta cuando isActive=true.
  * - inactiveText: Etiqueta cuando isActive=false.
  * - onToggleStatus: Callback opcional para cambiar estado (habilita el switch).
+ * - onView: Callback opcional para accion visualizar.
+ * - onEdit: Callback opcional para accion editar.
  * - onDelete: Callback opcional para accion eliminar.
  * - onContentClick: Callback opcional al hacer click en la seccion izquierda.
  */
@@ -27,6 +29,8 @@ export const EntityListItem = ({
   activeText = 'Activo',
   inactiveText = 'Inactivo',
   onToggleStatus,
+  onView,
+  onEdit,
   onDelete,
   onContentClick,
   showBottomBorder = false,
@@ -79,25 +83,51 @@ export const EntityListItem = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             <div className="flex items-center gap-2">
-                <span className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                     {isActive ? activeText : inactiveText}
                 </span>
                 <Switch checked={isActive} onCheckedChange={onToggleStatus} />
             </div>
 
-          {onDelete ? (
-            <ActionButton
-              icon={Trash2}
-              label=""
-              onClick={onDelete}
-              variant="secondary"
-              size="medium"
-              fullWidth={false}
-              customStyle={{ padding: '0.375rem' }}
-            />
-          ) : null}
+            {(onView || onEdit || onDelete) && (
+              <div className="flex items-center gap-1">
+                {onView ? (
+                  <ActionButton
+                    icon={Eye}
+                    label=""
+                    onClick={onView}
+                    variant="secondary"
+                    size="large"
+                    fullWidth={false}
+                    customStyle={{ padding: '0.25rem' }}
+                  />
+                ) : null}
+                {onEdit ? (
+                  <ActionButton
+                    icon={Pencil}
+                    label=""
+                    onClick={onEdit}
+                    variant="secondary"
+                    size="large"
+                    fullWidth={false}
+                    customStyle={{ padding: '0.25rem' }}
+                  />
+                ) : null}
+                {onDelete ? (
+                  <ActionButton
+                    icon={Trash2}
+                    label=""
+                    onClick={onDelete}
+                    variant="secondary"
+                    size="large"
+                    fullWidth={false}
+                    customStyle={{ padding: '0.25rem' }}
+                  />
+                ) : null}
+              </div>
+            )}
         </div>
       </div>
     </div>

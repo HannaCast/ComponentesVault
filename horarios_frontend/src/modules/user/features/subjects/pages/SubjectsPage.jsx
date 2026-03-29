@@ -195,8 +195,9 @@ export const SubjectsPage = () => {
             activeText="Activa"
             inactiveText="Inactiva"
             onToggleStatus={() => handleToggleStatus(subject.id, Boolean(subject.is_active))}
+            onView={() => navigate(`/usuario/materias/editar/${subject.id}`)}
+            onEdit={() => navigate(`/usuario/materias/editar/${subject.id}`)}
             onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
-            onContentClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}
             showBottomBorder={index < subjectsPage.length - 1}
           />
         )}
