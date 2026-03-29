@@ -1,6 +1,26 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, Info, X } from 'lucide-react';
 
+/**
+ * Select
+ *
+ * Props:
+ * - id: Identificador HTML del select.
+ * - label: Etiqueta mostrada arriba del campo.
+ * - error: Mensaje de error para mostrar debajo del campo.
+ * - helperText: Texto de ayuda debajo del campo cuando no hay error.
+ * - options: Arreglo de opciones [{ value, label, disabled? }].
+ * - value: Valor seleccionado actual.
+ * - onChange: Callback al cambiar seleccion.
+ * - placeholder: Texto base del placeholder.
+ * - required: Marca el campo como requerido visualmente.
+ * - disabled: Deshabilita el campo.
+ * - className: Clases CSS adicionales del contenedor.
+ * - infoMessage: Mensaje informativo opcional en tooltip.
+ * - clearable: Permite limpiar el valor con boton.
+ * - showPlaceholderOption: Si true, agrega opcion placeholder dentro del dropdown.
+ * - reserveHelperSpace: Si true, reserva espacio inferior cuando no hay error/helper.
+ */
 export const Select = ({
   id,
   label,
@@ -15,6 +35,8 @@ export const Select = ({
   className = '',
   infoMessage,
   clearable = false,
+  showPlaceholderOption = true,
+  reserveHelperSpace = true,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -105,7 +127,7 @@ export const Select = ({
             }
           }}
         >
-          <option value="">{placeholder}</option>
+          {showPlaceholderOption ? <option value="">{placeholder}</option> : null}
           {options.map((option) => (
             <option key={String(option.value)} value={option.value} disabled={option.disabled}>
               {option.label}
@@ -134,7 +156,7 @@ export const Select = ({
 
       {error && <p className="mt-1.5 text-xs" style={{ color: 'var(--error, #dc2626)' }}>{error}</p>}
       {helperText && !error && <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary, #6b7280)' }}>{helperText}</p>}
-      {!error && !helperText && (
+      {reserveHelperSpace && !error && !helperText && (
         <p className="mt-1.5 text-xs opacity-0" aria-hidden="true">{selectedLabel}</p>
       )}
     </div>

@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Trash2, ArrowUpDown, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
-import { Switch } from '@shared/components/inputs/Switch';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
+import { EntityListItem } from '@shared/components/lists/EntityListItem';
 import { useSubjects } from '../hooks/useSubjects';
 
 export const SubjectsPage = () => {
@@ -89,6 +89,7 @@ export const SubjectsPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Nombre o codigo"
+            reserveHelperSpace={false}
           />
 
           <Select
@@ -97,20 +98,21 @@ export const SubjectsPage = () => {
             onChange={(e) => setEstadoFiltro(e.target.value)}
             options={statusOptions}
             placeholder="Todas"
+            reserveHelperSpace={false}
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
-              Orden
-            </label>
-            <ActionButton
-              icon={ArrowUpDown}
-              label={ordenAscendente ? 'A-Z' : 'Z-A'}
-              onClick={() => setOrdenAscendente((prev) => !prev)}
-              variant="outline"
-              size="medium"
-            />
-          </div>
+          <Select
+            label="Orden"
+            value={ordenAscendente ? 'asc' : 'desc'}
+            onChange={(e) => setOrdenAscendente(e.target.value === 'asc')}
+            options={[
+              { value: 'asc', label: 'Ascendente' },
+              { value: 'desc', label: 'Descendente' },
+            ]}
+            placeholder="Ascendente"
+            showPlaceholderOption={false}
+            reserveHelperSpace={false}
+          />
         </div>
       </SurfacePanel>
 
@@ -154,59 +156,21 @@ export const SubjectsPage = () => {
       ) : (
         <SurfacePanel className="divide-y" padding="p-0">
           {subjectsFiltered.map((subject) => (
-            <div
+            <EntityListItem
               key={subject.id}
-              className="p-4 transition-colors hover:opacity-75"
-              style={{ backgroundColor: 'var(--bg-elevated, #ffffff)' }}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 cursor-pointer" onClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: 'var(--primary-100, rgba(37, 99, 235, 0.1))' }}
-                    >
-                      <BookOpen className="w-5 h-5" style={{ color: 'var(--primary-color, #2563eb)' }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-medium truncate" style={{ color: 'var(--text-primary, #111827)' }}>
-                        {subject.name}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                        <span className="truncate">Codigo: {subject.code || '-'}</span>
-                        {subject.credits ? (
-                          <>
-                            <span>•</span>
-                            <span>{subject.credits} creditos</span>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                      {subject.is_active ? 'Activa' : 'Inactiva'}
-                    </span>
-                    <Switch
-                      checked={subject.is_active}
-                      onCheckedChange={() => handleToggleStatus(subject.id, subject.is_active)}
-                    />
-                  </div>
-                  <ActionButton
-                    icon={Trash2}
-                    label=""
-                    onClick={() => setDeleteModal({ isOpen: true, id: subject.id })}
-                    variant="secondary"
-                    size="small"
-                    fullWidth={false}
-                    customStyle={{ padding: '0.375rem' }}
-                  />
-                </div>
-              </div>
-            </div>
+              icon={BookOpen}
+              title={subject.name}
+              metaItems={[
+                `Codigo: ${subject.code || '-'}`,
+                subject.credits ? `${subject.credits} creditos` : null,
+              ]}
+              isActive={subject.is_active}
+              activeText="Activa"
+              inactiveText="Inactiva"
+              onToggleStatus={() => handleToggleStatus(subject.id, subject.is_active)}
+              onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
+              onContentClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}
+            />
           ))}
         </SurfacePanel>
       )}

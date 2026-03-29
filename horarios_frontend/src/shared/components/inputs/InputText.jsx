@@ -1,6 +1,19 @@
 import React, { forwardRef, useState } from 'react';
 import { Info } from 'lucide-react';
 
+/**
+ * InputText
+ *
+ * Props:
+ * - label: Etiqueta mostrada arriba del campo.
+ * - error: Mensaje de error mostrado debajo del campo.
+ * - helperText: Texto de ayuda cuando no hay error.
+ * - infoMessage: Mensaje opcional para tooltip informativo.
+ * - className: Clases CSS adicionales para el input.
+ * - type: Tipo de input HTML (text, email, password, etc).
+ * - reserveHelperSpace: Si true, reserva espacio inferior cuando no hay error/helper.
+ * - ...props: Props nativas del input (value, onChange, placeholder, required, disabled, etc).
+ */
 const InputText = forwardRef(
   (
     {
@@ -10,6 +23,7 @@ const InputText = forwardRef(
       infoMessage,
       className = '',
       type = 'text',
+      reserveHelperSpace = false,
       ...props
     },
     ref
@@ -133,6 +147,9 @@ const InputText = forwardRef(
           >
             {helperText}
           </p>
+        )}
+        {reserveHelperSpace && !error && !helperText && (
+          <p className="mt-1.5 text-xs opacity-0" aria-hidden="true">&nbsp;</p>
         )}
       </div>
     );
