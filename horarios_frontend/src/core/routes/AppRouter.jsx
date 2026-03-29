@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { adminRoutes } from './AdminRouter';
 import { userRoutes } from './UserRouter';
+import { AppLoadingScreen } from '@shared/components/layout/AppLoadingScreen';
 
 // Placeholders — reemplazar con los componentes reales cuando estén listos
 const RegistroPage = () => <div>Registro — próximamente</div>;
@@ -19,7 +20,7 @@ const getHomePathByRole = (role) => {
 const RequireAuth = () => {
   const { user, authLoading } = useAuth();
 
-  if (authLoading) return null;
+  if (authLoading) return <AppLoadingScreen message="Cargando..." />;
   if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 };
@@ -86,7 +87,9 @@ const RequireGuest = ({ children }) => {
     };
   }, [authLoading, user, checkingSession, restoreSession]);
 
-  if (authLoading) return children;
+  if (authLoading) {
+    return <AppLoadingScreen message="Verificando sesion..." />;
+  }
   if (user) return <Navigate to={getHomePathByRole(user.role)} replace />;
   return children;
 };
