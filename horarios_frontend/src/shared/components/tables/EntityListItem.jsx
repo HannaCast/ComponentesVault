@@ -34,8 +34,14 @@ export const EntityListItem = ({
   onDelete,
   onContentClick,
   showBottomBorder = false,
+  loadingAction = null,
+  actionsDisabled = false,
 }) => {
   const visibleMetaItems = metaItems.filter(Boolean);
+  const isLoadingView = loadingAction === 'view';
+  const isLoadingEdit = loadingAction === 'edit';
+  const isLoadingDelete = loadingAction === 'delete';
+  const isLoadingToggle = loadingAction === 'toggle';
   
   return (
     <div
@@ -88,43 +94,94 @@ export const EntityListItem = ({
                 <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                     {isActive ? activeText : inactiveText}
                 </span>
-                <Switch checked={isActive} onCheckedChange={onToggleStatus} />
+                {isLoadingToggle ? (
+                  <div
+                    className="h-6 w-11 rounded-full border flex items-center justify-center"
+                    style={{ borderColor: 'var(--border-default, #d1d5db)' }}
+                  >
+                    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" style={{ color: 'var(--accent, #2563eb)' }}>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </div>
+                ) : (
+                  <Switch checked={isActive} onCheckedChange={onToggleStatus} disabled={actionsDisabled} />
+                )}
             </div>
 
             {(onView || onEdit || onDelete) && (
               <div className="flex items-center gap-1">
                 {onView ? (
-                  <ActionButton
-                    icon={Eye}
-                    label=""
-                    onClick={onView}
-                    variant="secondary"
-                    size="large"
-                    fullWidth={false}
-                    customStyle={{ padding: '0.25rem' }}
-                  />
+                  isLoadingView ? (
+                    <ActionButton
+                      label=""
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      loading
+                      loadingLabel=""
+                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
+                    />
+                  ) : (
+                    <ActionButton
+                      icon={Eye}
+                      label=""
+                      onClick={onView}
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      customStyle={{ padding: '0.25rem' }}
+                      disabled={actionsDisabled || isLoadingEdit || isLoadingDelete || isLoadingToggle}
+                    />
+                  )
                 ) : null}
                 {onEdit ? (
-                  <ActionButton
-                    icon={Pencil}
-                    label=""
-                    onClick={onEdit}
-                    variant="secondary"
-                    size="large"
-                    fullWidth={false}
-                    customStyle={{ padding: '0.25rem' }}
-                  />
+                  isLoadingEdit ? (
+                    <ActionButton
+                      label=""
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      loading
+                      loadingLabel=""
+                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
+                    />
+                  ) : (
+                    <ActionButton
+                      icon={Pencil}
+                      label=""
+                      onClick={onEdit}
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      customStyle={{ padding: '0.25rem' }}
+                      disabled={actionsDisabled || isLoadingView || isLoadingDelete || isLoadingToggle}
+                    />
+                  )
                 ) : null}
                 {onDelete ? (
-                  <ActionButton
-                    icon={Trash2}
-                    label=""
-                    onClick={onDelete}
-                    variant="secondary"
-                    size="large"
-                    fullWidth={false}
-                    customStyle={{ padding: '0.25rem' }}
-                  />
+                  isLoadingDelete ? (
+                    <ActionButton
+                      label=""
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      loading
+                      loadingLabel=""
+                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
+                    />
+                  ) : (
+                    <ActionButton
+                      icon={Trash2}
+                      label=""
+                      onClick={onDelete}
+                      variant="secondary"
+                      size="large"
+                      fullWidth={false}
+                      customStyle={{ padding: '0.25rem' }}
+                      disabled={actionsDisabled || isLoadingView || isLoadingEdit || isLoadingToggle}
+                    />
+                  )
                 ) : null}
               </div>
             )}

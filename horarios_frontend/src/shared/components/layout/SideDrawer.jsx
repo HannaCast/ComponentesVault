@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, TransitionChild } from '@headlessui/react';
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X } from 'lucide-react';
 
 /**
@@ -22,6 +22,8 @@ export const SideDrawer = ({
   children,
   size = 'md',
   showCloseButton = true,
+  headerIcon: HeaderIcon,
+  headerBadge,
 }) => {
   const sizeConfig = {
     sm: 'max-w-xs',  // ~35%
@@ -51,43 +53,68 @@ export const SideDrawer = ({
                 backgroundColor: 'var(--bg-elevated, #ffffff)',
               }}
             >
-              <TransitionChild>
-                <div
-                  className="absolute top-0 left-0 -ml-8 flex pt-4 pr-2 duration-300 ease-in-out data-closed:opacity-0 sm:-ml-10 sm:pr-4"
-                >
-                  {showCloseButton && (
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="relative rounded-md transition-opacity hover:opacity-75"
-                      style={{ color: 'var(--text-secondary, #6b7280)' }}
-                      aria-label="Cerrar panel"
-                    >
-                      <span className="sr-only">Cerrar panel</span>
-                      <X size={24} />
-                    </button>
-                  )}
-                </div>
-              </TransitionChild>
-
               <div className="relative flex h-full flex-col overflow-y-auto">
                 {title && (
                   <div
-                    className="border-b px-4 py-6 sm:px-6"
+                    className="border-b px-4 py-3 sm:px-5"
                     style={{
                       borderColor: 'var(--border-default, #d1d5db)',
                     }}
                   >
-                    <DialogTitle
-                      className="text-lg font-semibold"
-                      style={{ color: 'var(--text-primary, #111827)' }}
-                    >
-                      {title}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {HeaderIcon ? (
+                          <div
+                            className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: 'var(--primary-100, rgba(37, 99, 235, 0.12))' }}
+                          >
+                            <HeaderIcon size={16} style={{ color: 'var(--accent, #2563eb)' }} />
+                          </div>
+                        ) : null}
+
+                        <div className="min-w-0">
+                          <DialogTitle
+                            className="text-base font-semibold truncate"
+                            style={{ color: 'var(--text-primary, #111827)' }}
+                          >
+                            {title}
+                          </DialogTitle>
+                        </div>
+
+                        {headerBadge ? (
+                          <span
+                            className="px-2 py-0.5 text-xs font-semibold rounded-full"
+                            style={{
+                              color: 'var(--text-primary, #111827)',
+                              backgroundColor: 'var(--accent-subtle, #dbeafe)',
+                            }}
+                          >
+                            {headerBadge}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {showCloseButton && (
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          className="h-8 w-10 rounded-xl border transition-colors flex items-center justify-center"
+                          style={{
+                            borderColor: 'var(--border-default, #d1d5db)',
+                            color: 'var(--text-secondary, #6b7280)',
+                            backgroundColor: 'var(--bg-elevated, #ffffff)',
+                          }}
+                          aria-label="Cerrar panel"
+                        >
+                          <span className="sr-only">Cerrar panel</span>
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                <div className="relative flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+                <div className="relative flex-1 overflow-y-auto px-4 py-4 sm:px-5">
                   {children}
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen } from 'lucide-react';
+import { Plus, BookOpen, Eye, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
@@ -9,10 +9,13 @@ import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
 import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
+import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { EntityListItem } from '@shared/components/tables/EntityListItem';
 import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { useSubjects } from '../hooks/useSubjects';
+import { SubjectForm } from '../components/SubjectForm';
+import { SubjectDetail } from '../components/SubjectDetail';
 
 export const SubjectsPage = () => {
   const navigate = useNavigate();
@@ -22,6 +25,13 @@ export const SubjectsPage = () => {
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState('create'); // 'create', 'edit', 'view'
+  const [drawerSubject, setDrawerSubject] = useState(null);
+  const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
+
   const {
     subjectsPage,
     totalItems,
@@ -39,6 +49,12 @@ export const SubjectsPage = () => {
     handleToggleStatus,
     handleDelete,
     fetchSubjects,
+    selectedSubject,
+    setSelectedSubject,
+    subjectLoading,
+    fetchSubjectById,
+    handleCreateSubject,
+    handleUpdateSubject,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -46,6 +62,81 @@ export const SubjectsPage = () => {
     || user?.selected_university?.name
     || user?.selected_university
     || 'Universidad seleccionada';
+
+  const isAnyRowActionRunning = rowActionState.subjectId !== null;
+
+  const runRowAction = async (subjectId, action, task) => {
+    if (isAnyRowActionRunning) {
+      return;
+    }
+
+    setRowActionState({ subjectId, action });
+
+    try {
+      await task();
+    } finally {
+      setRowActionState({ subjectId: null, action: null });
+    }
+  };
+
+  const handleOpenDrawerCreate = () => {
+    setDrawerMode('create');
+    setDrawerSubject(null);
+    setSelectedSubject(null);
+    setDrawerOpen(true);
+  };
+
+  const handleOpenDrawerView = async (id) => {
+    await runRowAction(id, 'view', async () => {
+      setDrawerMode('view');
+      const subjectData = await fetchSubjectById(id);
+      if (subjectData) {
+        setDrawerOpen(true);
+      }
+    });
+  };
+
+  const handleOpenDrawerEdit = async (id) => {
+    await runRowAction(id, 'edit', async () => {
+      setDrawerMode('edit');
+      const subjectData = await fetchSubjectById(id);
+      if (subjectData) {
+        setDrawerOpen(true);
+      }
+    });
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setDrawerMode('create');
+    setDrawerSubject(null);
+    setSelectedSubject(null);
+  };
+
+  const handleDrawerEditClick = () => {
+    if (selectedSubject) {
+      setDrawerMode('edit');
+    }
+  };
+
+  const handleFormSubmit = async (formData) => {
+    try {
+      let result;
+      if (drawerMode === 'create') {
+        result = await handleCreateSubject(formData);
+      } else if (drawerMode === 'edit') {
+        result = await handleUpdateSubject(selectedSubject.id, formData);
+      }
+
+      if (result) {
+        const action = drawerMode === 'create' ? 'creada' : 'actualizada';
+        toast.success(`Materia ${action} exitosamente`);
+        handleCloseDrawer();
+      }
+    } catch (err) {
+      console.error('Error en formulario:', err);
+    }
+  };
 
   useEffect(() => {
     const queryParams = {
@@ -126,7 +217,7 @@ export const SubjectsPage = () => {
         contextLabel={`Materias de: ${selectedUniversityName}`}
         actionIcon={Plus}
         actionLabel="Nueva Materia"
-        onAction={() => navigate('/usuario/materias/crear')}
+        onAction={handleOpenDrawerCreate}
       />
 
       <SurfacePanel>
@@ -181,7 +272,7 @@ export const SubjectsPage = () => {
           description: !searchTerm && estadoFiltro === 'todos' ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda',
           actionIcon: !searchTerm && estadoFiltro === 'todos' ? Plus : undefined,
           actionLabel: !searchTerm && estadoFiltro === 'todos' ? 'Agregar Materia' : undefined,
-          onAction: !searchTerm && estadoFiltro === 'todos' ? () => navigate('/usuario/materias/crear') : undefined,
+          onAction: !searchTerm && estadoFiltro === 'todos' ? handleOpenDrawerCreate : undefined,
         }}
         renderItem={(subject, index) => (
           <EntityListItem
@@ -194,11 +285,17 @@ export const SubjectsPage = () => {
             isActive={subject.is_active}
             activeText="Activa"
             inactiveText="Inactiva"
-            onToggleStatus={() => handleToggleStatus(subject.id, Boolean(subject.is_active))}
-            onView={() => navigate(`/usuario/materias/editar/${subject.id}`)}
-            onEdit={() => navigate(`/usuario/materias/editar/${subject.id}`)}
+            onToggleStatus={() => runRowAction(
+              subject.id,
+              'toggle',
+              async () => handleToggleStatus(subject.id, Boolean(subject.is_active)),
+            )}
+            onView={() => handleOpenDrawerView(subject.id)}
+            onEdit={() => handleOpenDrawerEdit(subject.id)}
             onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
             showBottomBorder={index < subjectsPage.length - 1}
+            loadingAction={rowActionState.subjectId === subject.id ? rowActionState.action : null}
+            actionsDisabled={isAnyRowActionRunning && rowActionState.subjectId !== subject.id}
           />
         )}
         pagination={{
@@ -209,6 +306,37 @@ export const SubjectsPage = () => {
           onPageChange: handlePageChange,
         }}
       />
+
+      <SideDrawer
+        isOpen={drawerOpen}
+        onClose={handleCloseDrawer}
+        title={
+          drawerMode === 'create'
+            ? 'Crear Nueva Materia'
+            : drawerMode === 'edit'
+            ? 'Editar Materia'
+            : `${selectedSubject?.name || 'Detalle'}`
+        }
+        size="md"
+        headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
+        headerBadge={drawerMode === 'create' ? 'Crear' : drawerMode === 'edit' ? 'Editar' : 'Ver'}
+      >
+        {drawerMode === 'view' ? (
+          <SubjectDetail
+            subject={selectedSubject}
+            onClose={handleCloseDrawer}
+            onEdit={handleDrawerEditClick}
+          />
+        ) : (
+          <SubjectForm
+            initialData={selectedSubject}
+            isLoading={subjectLoading}
+            onSubmit={handleFormSubmit}
+            onCancel={handleCloseDrawer}
+            mode={drawerMode}
+          />
+        )}
+      </SideDrawer>
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}

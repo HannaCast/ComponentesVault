@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { getSubjectsPaginated, updateSubject, deleteSubject } from '../api/subjectsApi';
+import { getSubjectsPaginated, getSubject, updateSubject, deleteSubject, createSubject } from '../api/subjectsApi';
 
 export const useSubjects = () => {
   const [subjectsPage, setSubjectsPage] = useState([]);
@@ -10,6 +10,8 @@ export const useSubjects = () => {
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [subjectLoading, setSubjectLoading] = useState(false);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -81,6 +83,54 @@ export const useSubjects = () => {
     }
   };
 
+  const fetchSubjectById = useCallback(async (id) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      const response = await getSubject(id);
+      setSelectedSubject(response.data?.data || response.data);
+      return response.data?.data || response.data;
+    } catch (err) {
+      console.error('Error al cargar materia:', err);
+      setError('No se pudo cargar la materia.');
+      return null;
+    } finally {
+      setSubjectLoading(false);
+    }
+  }, []);
+
+  const handleCreateSubject = async (data) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      await createSubject(data);
+      await fetchSubjects(lastQueryRef.current);
+      return true;
+    } catch (err) {
+      console.error('Error al crear materia:', err);
+      setError('No se pudo crear la materia.');
+      return false;
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
+  const handleUpdateSubject = async (id, data) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      await updateSubject(id, data);
+      await fetchSubjects(lastQueryRef.current);
+      return true;
+    } catch (err) {
+      console.error('Error al actualizar materia:', err);
+      setError('No se pudo actualizar la materia.');
+      return false;
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
   return {
     subjectsPage,
     totalItems,
@@ -99,5 +149,11 @@ export const useSubjects = () => {
     handleToggleStatus,
     handleDelete,
     fetchSubjects,
+    selectedSubject,
+    setSelectedSubject,
+    subjectLoading,
+    fetchSubjectById,
+    handleCreateSubject,
+    handleUpdateSubject,
   };
 };
