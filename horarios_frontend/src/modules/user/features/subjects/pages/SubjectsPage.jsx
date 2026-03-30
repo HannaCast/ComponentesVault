@@ -353,7 +353,7 @@ export const SubjectsPage = () => {
         renderItem={(subject, index) => (
           <EntityListItem
             icon={BookOpen}
-            title={subject.name}
+            title={`${subject.name} ${subject.short_name ? `(${subject.short_name})` : ''}`}
             metaItems={[
               `Codigo: ${subject.code || '-'}`,
               subject.credits ? `${subject.credits} creditos` : null,
