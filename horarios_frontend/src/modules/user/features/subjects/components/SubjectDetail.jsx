@@ -11,13 +11,42 @@ export const SubjectDetail = ({
     return null;
   }
 
+  const isActive = Number(subject.status) === 1;
+  const isMandatory = Number(subject.is_mandatory) === 1 || subject.is_mandatory === true;
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '-';
+    }
+
+    return parsed.toLocaleString();
+  };
+
+  const resolveColorHex = () => {
+    const rawHex = String(subject.color_hex || subject.color || '').trim();
+    if (!rawHex) return 'var(--bg-muted, #e5e7eb)';
+
+    if (rawHex.startsWith('#')) {
+      return rawHex;
+    }
+
+    if (/^[0-9a-fA-F]{6}$/.test(rawHex)) {
+      return `#${rawHex}`;
+    }
+
+    return 'var(--bg-muted, #e5e7eb)';
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header con color y nombre */}
       <div className="flex items-start gap-4 pb-4 border-b border-[var(--border-default)]">
         <div
           className="w-16 h-16 rounded-lg flex-shrink-0 flex items-center justify-center"
-          style={{ backgroundColor: subject.color }}
+          style={{ backgroundColor: resolveColorHex() }}
         >
           <BookOpen size={32} className="text-white" />
         </div>
@@ -40,11 +69,11 @@ export const SubjectDetail = ({
           <div className="flex items-center gap-2">
             <div
               className={`w-3 h-3 rounded-full ${
-                subject.is_active ? 'bg-green-500' : 'bg-red-500'
+                isActive ? 'bg-green-500' : 'bg-red-500'
               }`}
             />
             <span className="text-sm text-[var(--text-primary)]">
-              {subject.is_active ? 'Activa' : 'Inactiva'}
+              {isActive ? 'Activa' : 'Inactiva'}
             </span>
           </div>
         </div>
@@ -54,7 +83,7 @@ export const SubjectDetail = ({
             Obligatoria
           </label>
           <p className="text-sm text-[var(--text-primary)]">
-            {subject.is_mandatory ? '✓ Sí' : '✗ No'}
+            {isMandatory ? '✓ Sí' : '✗ No'}
           </p>
         </div>
       </div>
@@ -71,7 +100,7 @@ export const SubjectDetail = ({
         </div>
       )}
 
-      {/* Horas por Semana */}
+      {/* Datos generales */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
@@ -82,17 +111,14 @@ export const SubjectDetail = ({
           </p>
         </div>
 
-        {/* Créditos (si existe) */}
-        {subject.created_at && (
-          <div>
-            <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-              Fecha de Creación
-            </label>
-            <p className="text-sm text-[var(--text-primary)]">
-              {new Date(subject.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        )}
+        <div>
+          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Color
+          </label>
+          <p className="text-sm text-[var(--text-primary)]">
+            {subject.color || '-'}
+          </p>
+        </div>
       </div>
 
       {/* Carreras */}
@@ -104,10 +130,11 @@ export const SubjectDetail = ({
           <div className="flex flex-wrap gap-2">
             {subject.careers.map((career, index) => (
               <span
-                key={index}
+                key={career.id ?? index}
                 className="px-3 py-1 text-xs font-medium bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-full text-[var(--text-primary)]"
               >
-                {career}
+                {career?.name || '-'}
+                {career?.period_number ? ` (Periodo ${career.period_number})` : ''}
               </span>
             ))}
           </div>
@@ -132,6 +159,22 @@ export const SubjectDetail = ({
           </div>
         </div>
       )}
+
+      {/* Auditoría */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Creado el
+          </label>
+          <p className="text-sm text-[var(--text-primary)]">{formatDateTime(subject.created_at)}</p>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Actualizado el
+          </label>
+          <p className="text-sm text-[var(--text-primary)]">{formatDateTime(subject.updated_at)}</p>
+        </div>
+      </div>
 
       {/* Botones de Acción */}
       <div className="flex gap-3 pt-6 border-t border-[var(--border-default)]">

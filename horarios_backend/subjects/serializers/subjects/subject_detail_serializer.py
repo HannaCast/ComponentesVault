@@ -3,8 +3,9 @@ from careers.models import CareerSubjects
 from subjects.models import Subjects
 
 class SubjectDetailSerializer(serializers.ModelSerializer):
-    color = serializers.StringRelatedField()
-    color_id = serializers.IntegerField(source='color_id', read_only=True)
+    color = serializers.CharField(source='color.name', read_only=True)
+    color_hex = serializers.CharField(source='color.hex', read_only=True)
+    color_id = serializers.IntegerField(read_only=True)
     careers = serializers.SerializerMethodField()
 
     def get_careers(self, obj):
@@ -32,8 +33,11 @@ class SubjectDetailSerializer(serializers.ModelSerializer):
             'description',
             'hours_per_week',
             'color',
+            'color_hex',
             'color_id',
             'is_mandatory',
             'status',
+            'created_at',
+            'updated_at',
             'careers',
         )
