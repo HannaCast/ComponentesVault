@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
 import Input from '@shared/components/inputs/InputText';
 import Textarea from '@shared/components/inputs/Textarea';
-import { Select } from '@shared/components/inputs/Select';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
+import { SelectableListField } from '@shared/components/inputs/SelectableListField';
 import toast from 'react-hot-toast';
 
 const COLOR_PALETTE = [
@@ -25,6 +24,8 @@ export const SubjectForm = ({
   onSubmit,
   onCancel,
   mode = 'create', // 'create' | 'edit' | 'view'
+  careerOptions = [],
+  professorOptions = [],
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -62,11 +63,18 @@ export const SubjectForm = ({
     }));
   };
 
-  const handleAddCareer = () => {
-    if (careersTemp.trim()) {
+  const handleAddCareer = (careerValue = careersTemp) => {
+    const nextCareer = String(careerValue || '').trim();
+
+    if (nextCareer) {
+      if (formData.careers.some((career) => String(career) === nextCareer)) {
+        setCareersTemp('');
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
-        careers: [...prev.careers, careersTemp],
+        careers: [...prev.careers, nextCareer],
       }));
       setCareersTemp('');
     }
@@ -79,11 +87,18 @@ export const SubjectForm = ({
     }));
   };
 
-  const handleAddProfessor = () => {
-    if (professorsTemp.trim()) {
+  const handleAddProfessor = (professorValue = professorsTemp) => {
+    const nextProfessor = String(professorValue || '').trim();
+
+    if (nextProfessor) {
+      if (formData.professors.some((professor) => String(professor) === nextProfessor)) {
+        setProfessorsTemp('');
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
-        professors: [...prev.professors, professorsTemp],
+        professors: [...prev.professors, nextProfessor],
       }));
       setProfessorsTemp('');
     }
@@ -190,94 +205,32 @@ export const SubjectForm = ({
       />
 
       {/* Carreras */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Carreras a las que pertenece esta materia
-        </label>
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={careersTemp}
-            onChange={(e) => setCareersTemp(e.target.value)}
-            placeholder="Seleccionar carrera"
-            disabled={isViewMode || isLoading}
-            className="flex-1 px-3 py-2 border border-[var(--border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <ActionButton
-            icon={Plus}
-            label="Agregar"
-            onClick={handleAddCareer}
-            disabled={isViewMode || isLoading || !careersTemp.trim()}
-            size="small"
-            variant="secondary"
-          />
-        </div>
-        {formData.careers.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {formData.careers.map((career, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg"
-              >
-                <span className="text-sm text-[var(--text-primary)]">{career}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveCareer(index)}
-                  disabled={isViewMode || isLoading}
-                  className="text-[var(--text-secondary)] hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SelectableListField
+        label="Carreras a las que pertenece esta materia"
+        selectedValues={formData.careers}
+        options={careerOptions}
+        selectedOption={careersTemp}
+        onSelectedOptionChange={setCareersTemp}
+        onAdd={handleAddCareer}
+        onRemove={handleRemoveCareer}
+        placeholder="Seleccionar carrera"
+        addLabel="Agregar Carrera"
+        disabled={isViewMode || isLoading}
+      />
 
       {/* Profesores */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Profesores que pueden impartir esta materia
-        </label>
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={professorsTemp}
-            onChange={(e) => setProfessorsTemp(e.target.value)}
-            placeholder="Seleccionar profesor"
-            disabled={isViewMode || isLoading}
-            className="flex-1 px-3 py-2 border border-[var(--border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <ActionButton
-            icon={Plus}
-            label="Agregar"
-            onClick={handleAddProfessor}
-            disabled={isViewMode || isLoading || !professorsTemp.trim()}
-            size="small"
-            variant="secondary"
-          />
-        </div>
-        {formData.professors.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {formData.professors.map((professor, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 px-3 py-1 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg"
-              >
-                <span className="text-sm text-[var(--text-primary)]">{professor}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveProfessor(index)}
-                  disabled={isViewMode || isLoading}
-                  className="text-[var(--text-secondary)] hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SelectableListField
+        label="Profesores que pueden impartir esta materia"
+        selectedValues={formData.professors}
+        options={professorOptions}
+        selectedOption={professorsTemp}
+        onSelectedOptionChange={setProfessorsTemp}
+        onAdd={handleAddProfessor}
+        onRemove={handleRemoveProfessor}
+        placeholder="Seleccionar profesor"
+        addLabel="Agregar Profesor"
+        disabled={isViewMode || isLoading}
+      />
 
       {/* Color */}
       <div>
