@@ -149,14 +149,18 @@ class SubjectPaginatedView(APIView):
 class SubjectDetailView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
-    def get_object(self, pk):
+    def get_object(self, pk, university_id):
         try:
-            return Subjects.objects.get(pk=pk, is_deleted=0)
+            return Subjects.objects.get(
+                pk=pk,
+                is_deleted=0,
+                university_id=university_id,
+            )
         except Subjects.DoesNotExist:
             return None
 
     def get(self, request, pk):
-        subject = self.get_object(pk)
+        subject = self.get_object(pk, request.selected_university_id)
         if subject is None:
             return ApiResponse.not_found()
         return ApiResponse.success(
@@ -166,12 +170,15 @@ class SubjectDetailView(APIView):
     @extend_schema(request=SubjectWriteSerializer)
     @transaction.atomic
     def put(self, request, pk):
-        subject = self.get_object(pk)
+        subject = self.get_object(pk, request.selected_university_id)
         if subject is None:
             return ApiResponse.not_found()
 
         serializer = SubjectWriteSerializer(
-            subject, data=request.data, partial=True
+            subject,
+            data=request.data,
+            partial=True,
+            context={'selected_university_id': request.selected_university_id},
         )
 
         if serializer.is_valid():
@@ -185,7 +192,7 @@ class SubjectDetailView(APIView):
 
     @transaction.atomic
     def delete(self, request, pk):
-        subject = self.get_object(pk)
+        subject = self.get_object(pk, request.selected_university_id)
         if subject is None:
             return ApiResponse.not_found()
 
@@ -202,7 +209,11 @@ class SubjectToggleStatusView(APIView):
     @transaction.atomic
     def put(self, request, pk):
         try:
-            subject = Subjects.objects.get(pk=pk, is_deleted=0)
+            subject = Subjects.objects.get(
+                pk=pk,
+                is_deleted=0,
+                university_id=request.selected_university_id,
+            )
         except Subjects.DoesNotExist:
             return ApiResponse.not_found()
 

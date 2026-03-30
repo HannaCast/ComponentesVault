@@ -21,6 +21,8 @@ const InputText = forwardRef(
       error,
       helperText,
       infoMessage,
+      labelClassName = '',
+      labelStyle,
       className = '',
       type = 'text',
       reserveHelperSpace = false,
@@ -37,8 +39,8 @@ const InputText = forwardRef(
       <div className="w-full">
         {label && (
           <label
-            className="flex items-center justify-between text-sm font-medium mb-2"
-            style={{ color: 'var(--text-primary, #111827)' }}
+            className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
+            style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
           >
             <span>
               {label}

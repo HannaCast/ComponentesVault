@@ -24,6 +24,8 @@ import { ChevronDown, Info, X } from 'lucide-react';
 export const Select = ({
   id,
   label,
+  labelClassName = '',
+  labelStyle,
   error,
   helperText,
   options,
@@ -37,6 +39,7 @@ export const Select = ({
   clearable = false,
   showPlaceholderOption = true,
   reserveHelperSpace = true,
+  selectClassName = '',
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -60,7 +63,10 @@ export const Select = ({
   return (
     <div className={`w-full ${className}`}>
       {label && (
-        <label className="flex items-center justify-between text-sm font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
+        <label
+          className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
+          style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
+        >
           <span>
             {label}
             {required && <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>*</span>}
@@ -100,7 +106,7 @@ export const Select = ({
           value={value ?? ''}
           onChange={handleChange}
           disabled={disabled}
-          className="w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200"
+          className={`w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200 ${selectClassName}`}
           style={{
             backgroundColor: error
               ? 'var(--error-subtle, #fef2f2)'

@@ -169,6 +169,7 @@ export const useSubjects = () => {
         careers.map((career) => ({
           value: String(career.id),
           label: career.name,
+          total_periods: Number(career.total_periods) || 0,
         }))
       );
     } catch (err) {

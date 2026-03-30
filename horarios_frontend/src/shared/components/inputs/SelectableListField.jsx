@@ -1,19 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
+import Input from '@shared/components/inputs/InputText';
 
 export const SelectableListField = ({
   label,
+  error,
   selectedValues = [],
   options = [],
   selectedOption,
+  selectedSecondaryOption = '',
   onSelectedOptionChange,
+  onSelectedSecondaryOptionChange,
   onAdd,
   onUpdate,
   onRemove,
   placeholder = 'Seleccionar...',
   addLabel = 'Agregar',
   disabled = false,
+  enableSecondaryField = false,
+  primaryLabel = 'Elemento',
+  secondaryLabel = 'Detalle',
+  secondaryPlaceholder = 'Ej: 1',
+  secondaryType = 'number',
+  secondaryMin,
+  secondaryMax,
 }) => {
   const [isPendingRowVisible, setIsPendingRowVisible] = useState(true);
 
@@ -22,12 +33,19 @@ export const SelectableListField = ({
       const rawValue = entry.value ?? entry.id ?? '';
       const value = String(rawValue || '').trim();
       const label = entry.label ?? entry.name ?? value;
+      const secondaryValue = entry.period_number ?? entry.secondaryValue ?? '';
 
-      return value ? { value, label: String(label || value) } : null;
+      return value
+        ? {
+            value,
+            label: String(label || value),
+            secondaryValue: String(secondaryValue ?? '').trim(),
+          }
+        : null;
     }
 
     const value = String(entry || '').trim();
-    return value ? { value, label: value } : null;
+    return value ? { value, label: value, secondaryValue: '' } : null;
   };
 
   const normalizedSelectedEntries = useMemo(
@@ -94,7 +112,7 @@ export const SelectableListField = ({
     }
 
     if (!canConfirmAdd) return;
-    onAdd?.(selectedOption, selectedLabel);
+    onAdd?.(selectedOption, selectedLabel, selectedSecondaryOption);
   };
 
   return (
@@ -134,15 +152,24 @@ export const SelectableListField = ({
             return (
               <div
                 key={`${String(entry.value)}-${index}`}
-                className="flex items-center gap-2"
+                className="flex items-start gap-2"
               >
                 <div className="flex-1">
                   <Select
+                    label={enableSecondaryField ? primaryLabel : undefined}
+                    labelClassName={enableSecondaryField ? 'text-xs mb-1' : undefined}
+                    labelStyle={enableSecondaryField ? { color: 'var(--text-secondary, #6b7280)' } : undefined}
+                    selectClassName={enableSecondaryField ? 'h-10 px-3 py-0' : undefined}
                     value={String(entry.value)}
                     onChange={(e) => {
                       const nextValue = String(e.target.value || '');
                       const nextItem = normalizedOptions.find((opt) => String(opt.value) === nextValue);
-                      onUpdate?.(index, nextValue, nextItem?.label || nextValue);
+                      onUpdate?.(
+                        index,
+                        nextValue,
+                        nextItem?.label || nextValue,
+                        entry.secondaryValue,
+                      );
                     }}
                     options={rowOptions}
                     disabled={disabled}
@@ -151,11 +178,37 @@ export const SelectableListField = ({
                   />
                 </div>
 
+                {enableSecondaryField && (
+                  <div className="w-28">
+                    <Input
+                      label={secondaryLabel}
+                      labelClassName="text-xs mb-1"
+                      labelStyle={{ color: 'var(--text-secondary, #6b7280)' }}
+                      type={secondaryType}
+                      min={secondaryMin}
+                      max={secondaryMax}
+                      value={entry.secondaryValue}
+                      onChange={(e) => {
+                        onUpdate?.(
+                          index,
+                          entry.value,
+                          entry.label,
+                          e.target.value,
+                        );
+                      }}
+                      disabled={disabled}
+                      placeholder={secondaryPlaceholder}
+                      className="h-10 px-3"
+                      reserveHelperSpace={false}
+                    />
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => onRemove?.(index)}
                   disabled={disabled}
-                  className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
                   style={{
                     borderColor: 'var(--border-default, #d1d5db)',
                     color: 'var(--error, #dc2626)',
@@ -173,9 +226,13 @@ export const SelectableListField = ({
       )}
 
       {isPendingRowVisible && (
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex items-start gap-2">
           <div className="flex-1">
             <Select
+              label={enableSecondaryField ? primaryLabel : undefined}
+              labelClassName={enableSecondaryField ? 'text-xs mb-1' : undefined}
+              labelStyle={enableSecondaryField ? { color: 'var(--text-secondary, #6b7280)' } : undefined}
+              selectClassName={enableSecondaryField ? 'h-10 px-3 py-0' : undefined}
               value={selectedOption}
               onChange={(e) => onSelectedOptionChange?.(e.target.value)}
               options={availableOptions}
@@ -185,21 +242,41 @@ export const SelectableListField = ({
             />
           </div>
 
+          {enableSecondaryField && (
+            <div className="w-28">
+              <Input
+                label={secondaryLabel}
+                labelClassName="text-xs mb-1"
+                labelStyle={{ color: 'var(--text-secondary, #6b7280)' }}
+                type={secondaryType}
+                min={secondaryMin}
+                max={secondaryMax}
+                value={selectedSecondaryOption}
+                onChange={(e) => onSelectedSecondaryOptionChange?.(e.target.value)}
+                disabled={disabled}
+                placeholder={secondaryPlaceholder}
+                className="h-10 px-3"
+                reserveHelperSpace={false}
+              />
+            </div>
+          )}
+
           {canHidePendingSelector && (
             <button
               type="button"
               onClick={() => {
                 onSelectedOptionChange?.('');
+                onSelectedSecondaryOptionChange?.('');
                 setIsPendingRowVisible(false);
               }}
               disabled={disabled}
-              className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
               style={{
                 borderColor: 'var(--border-default, #d1d5db)',
                 color: 'var(--error, #dc2626)',
                 backgroundColor: 'var(--bg-elevated, #ffffff)',
               }}
-              aria-label="Quitar selector de carrera"
+              aria-label="Quitar selector"
               title="Quitar selector"
             >
               <X size={18} />
@@ -207,6 +284,15 @@ export const SelectableListField = ({
           )}
         </div>
       )}
+
+      {error ? (
+        <p
+          className="mt-1.5 text-xs"
+          style={{ color: 'var(--error, #dc2626)' }}
+        >
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 };

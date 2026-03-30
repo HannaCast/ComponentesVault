@@ -31,7 +31,26 @@ export const SubjectForm = ({
 
   const [professorsTemp, setProfessorsTemp] = useState('');
   const [careersTemp, setCareersTemp] = useState('');
+  const [careersPeriodTemp, setCareersPeriodTemp] = useState('');
   const [formErrors, setFormErrors] = useState({});
+
+  const getCareerById = (careerId) => {
+    const target = String(careerId || '').trim();
+    return careerOptions.find((career) => String(career.value) === target) || null;
+  };
+
+  const clearCareersError = () => {
+    setFormErrors((prev) => {
+      if (!prev.careers) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        careers: '',
+      };
+    });
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -43,11 +62,21 @@ export const SubjectForm = ({
               const rawValue = career.id ?? career.value;
               const value = String(rawValue || '').trim();
               const label = career.name ?? career.label ?? value;
-              return value ? { value, label: String(label || value) } : null;
+              const periodNumber = Number.parseInt(career.period_number, 10);
+
+              return value
+                ? {
+                    value,
+                    label: String(label || value),
+                    period_number: Number.isFinite(periodNumber) && periodNumber > 0
+                      ? periodNumber
+                      : 1,
+                  }
+                : null;
             }
 
             const value = String(career || '').trim();
-            return value ? { value, label: value } : null;
+            return value ? { value, label: value, period_number: 1 } : null;
           })
           .filter(Boolean)
         : [];
@@ -84,9 +113,11 @@ export const SubjectForm = ({
     });
   };
 
-  const handleAddCareer = (careerValue = careersTemp, careerLabel = '') => {
+  const handleAddCareer = (careerValue = careersTemp, careerLabel = '', periodValue = careersPeriodTemp) => {
     const nextCareer = String(careerValue || '').trim();
     const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
+    const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
     if (nextCareer) {
       if (
@@ -103,9 +134,18 @@ export const SubjectForm = ({
 
       setFormData((prev) => ({
         ...prev,
-        careers: [...prev.careers, { value: nextCareer, label: nextCareerLabel }],
+        careers: [
+          ...prev.careers,
+          {
+            value: nextCareer,
+            label: nextCareerLabel,
+            period_number: nextPeriodNumber,
+          },
+        ],
       }));
       setCareersTemp('');
+      setCareersPeriodTemp('');
+      clearCareersError();
     }
   };
 
@@ -114,23 +154,31 @@ export const SubjectForm = ({
       ...prev,
       careers: prev.careers.filter((_, i) => i !== index),
     }));
+    clearCareersError();
   };
 
-  const handleUpdateCareer = (index, careerValue, careerLabel = '') => {
+  const handleUpdateCareer = (index, careerValue, careerLabel = '', periodValue = 1) => {
     const nextCareer = String(careerValue || '').trim();
     const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
+    const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
     if (!nextCareer) return;
 
     setFormData((prev) => {
       const nextCareers = [...prev.careers];
-      nextCareers[index] = { value: nextCareer, label: nextCareerLabel };
+      nextCareers[index] = {
+        value: nextCareer,
+        label: nextCareerLabel,
+        period_number: nextPeriodNumber,
+      };
 
       return {
         ...prev,
         careers: nextCareers,
       };
     });
+    clearCareersError();
   };
 
   const handleAddProfessor = (professorValue = professorsTemp) => {
@@ -180,6 +228,31 @@ export const SubjectForm = ({
         context: { mode },
       });
 
+      for (const career of formData.careers) {
+        if (!career || typeof career !== 'object') {
+          continue;
+        }
+
+        const selectedCareer = getCareerById(career.value);
+        const maxPeriods = Number.parseInt(selectedCareer?.total_periods, 10);
+        const periodNumber = Number.parseInt(career.period_number, 10);
+
+        if (
+          Number.isFinite(maxPeriods)
+          && maxPeriods > 0
+          && Number.isFinite(periodNumber)
+          && periodNumber > maxPeriods
+        ) {
+          setFormErrors({
+            careers: (
+              `El periodo para ${selectedCareer?.label || 'la carrera seleccionada'} `
+              + `no puede ser mayor a ${maxPeriods}.`
+            ),
+          });
+          return false;
+        }
+      }
+
       setFormErrors({});
       return true;
     } catch (error) {
@@ -213,11 +286,31 @@ export const SubjectForm = ({
       careers: formData.careers
         .map((career) => {
           if (career && typeof career === 'object') {
-            return Number.parseInt(career.value, 10);
+            const careerId = Number.parseInt(career.value, 10);
+            const periodNumber = Number.parseInt(career.period_number, 10);
+
+            if (!Number.isFinite(careerId)) {
+              return null;
+            }
+
+            return {
+              career_id: careerId,
+              period_number: Number.isFinite(periodNumber) && periodNumber > 0
+                ? periodNumber
+                : 1,
+            };
           }
-          return Number.parseInt(career, 10);
+          const careerId = Number.parseInt(career, 10);
+          if (!Number.isFinite(careerId)) {
+            return null;
+          }
+
+          return {
+            career_id: careerId,
+            period_number: 1,
+          };
         })
-        .filter(Number.isFinite),
+        .filter(Boolean),
     };
 
     if (formData.color) {
@@ -299,15 +392,24 @@ export const SubjectForm = ({
       {/* Carreras */}
       <SelectableListField
         label="Carreras a las que pertenece esta materia"
+        error={formErrors.careers}
         selectedValues={formData.careers}
         options={careerOptions}
         selectedOption={careersTemp}
+        selectedSecondaryOption={careersPeriodTemp}
         onSelectedOptionChange={setCareersTemp}
+        onSelectedSecondaryOptionChange={setCareersPeriodTemp}
         onAdd={handleAddCareer}
         onUpdate={handleUpdateCareer}
         onRemove={handleRemoveCareer}
         placeholder="Seleccionar carrera"
         addLabel="Agregar Carrera"
+        enableSecondaryField
+        primaryLabel="Carrera"
+        secondaryLabel="Periodo"
+        secondaryPlaceholder="1"
+        secondaryType="number"
+        secondaryMin={1}
         disabled={isViewMode || isLoading}
       />
 

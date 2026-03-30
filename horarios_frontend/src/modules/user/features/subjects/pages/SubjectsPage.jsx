@@ -362,7 +362,7 @@ export const SubjectsPage = () => {
               ? 'Editar Materia'
               : `${selectedSubject?.name || 'Detalle'}`
         }
-        size="md"
+        size="lg"
         headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
         headerBadge={drawerMode === 'create' ? 'Crear' : drawerMode === 'edit' ? 'Editar' : 'Ver'}
       >
