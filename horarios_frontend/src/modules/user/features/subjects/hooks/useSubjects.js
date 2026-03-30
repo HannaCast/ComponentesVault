@@ -7,6 +7,7 @@ import {
   createSubject,
   getColors,
   getCareers,
+  getTeachers,
 } from '../api/subjectsApi';
 
 export const useSubjects = () => {
@@ -22,6 +23,7 @@ export const useSubjects = () => {
   const [subjectLoading, setSubjectLoading] = useState(false);
   const [colorOptions, setColorOptions] = useState([]);
   const [careerOptions, setCareerOptions] = useState([]);
+  const [professorOptions, setProfessorOptions] = useState([]);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -174,6 +176,22 @@ export const useSubjects = () => {
     }
   }, []);
 
+  const fetchProfessorOptions = useCallback(async () => {
+    try {
+      const response = await getTeachers();
+      const teachers = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setProfessorOptions(
+        teachers.map((teacher) => ({
+          value: String(teacher.id),
+          label: teacher.full_name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar profesores:', err);
+    }
+  }, []);
+
   return {
     subjectsPage,
     totalItems,
@@ -202,5 +220,7 @@ export const useSubjects = () => {
     fetchColorOptions,
     careerOptions,
     fetchCareerOptions,
+    professorOptions,
+    fetchProfessorOptions,
   };
 };

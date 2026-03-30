@@ -36,6 +36,10 @@ export const getColors = () =>
 export const getCareers = () =>
   apiToken.get('/api/v1/university/careers/');
 
+// Obtener profesores activos para asociarlos a una materia
+export const getTeachers = () =>
+  apiToken.get('/api/v1/teachers/');
+
 // Crear una nueva materia
 export const createSubject = (data) => 
   apiToken.post("/api/v1/university/subjects/", data);

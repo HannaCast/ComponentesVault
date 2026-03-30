@@ -3,12 +3,7 @@ USE cdi_horarios;
 -----------------------------------------------------
 /*    TABLA DE COLORES PARA MATERIAS               */
 -----------------------------------------------------
-INSERT INTO colors (
-  name,
-  hex,
-  contrast_hex,
-  status,
-  is_deleted
+INSERT INTO colors (name, hex, contrast_hex, status, is_deleted
 ) VALUES
   ('Blanco',      'FFFFFF', '111827', 1, 0),
   ('Rojo',         'EF4444', 'FFFFFF', 1, 0),
@@ -51,3 +46,29 @@ INSERT INTO careers (name, university_id, short_name, code, modality_id, total_p
 ('Ingeniería Mecatrónica',                            1, 'IM',    'IM-001',   1, 9, 1, 0),
 ('Ingeniería en Mantenimiento Industrial',            1, 'IMI',   'IMI-001',  1, 9, 1, 0),
 ('Ingeniería en Nanotecnología',                      1, 'IN',    'IN-001',   1, 9, 1, 0);
+
+
+-----------------------------------------------------
+/*               TABLA DE PROFESORES               */
+-----------------------------------------------------
+INSERT INTO teachers (name, surname, last_name, require_classroom, status, is_deleted) VALUES
+('Carlos',    'García',     'Vega',      1, 1, 0),
+('María',     'Martínez',   'Castillo',  0, 1, 0),
+('José',      'López',      NULL,        1, 1, 0),
+('Ana',       'Sánchez',    'Moreno',    0, 1, 0),
+('Luis',      'Ramírez',    'Romero',    1, 1, 0),
+('Laura',     'Torres',     NULL,        0, 1, 0),
+('Miguel',    'Flores',     'Alvarado',  1, 1, 1),
+('Sofía',     'Rivera',     'Mendoza',   0, 1, 0),
+('Jorge',     'Gómez',      'Ramos',     1, 1, 0),
+('Elena',     'Díaz',       NULL,        0, 1, 0),
+('Fernando',  'Morales',    'Gutiérrez', 1, 1, 0),
+('Patricia',  'Reyes',      'Vargas',    0, 1, 0),
+('Roberto',   'Cruz',       NULL,        1, 1, 1),
+('Isabel',    'Hernández',  'Castro',    0, 1, 0),
+('Alejandro', 'Pérez',      'Ortega',    1, 1, 0),
+('Valentina', 'Jiménez',    NULL,        0, 1, 0),
+('Ricardo',   'García',     'Ruiz',      1, 1, 0),
+('Gabriela',  'Martínez',   'Aguilar',   0, 1, 0),
+('Carlos',    'López',      'Medina',    1, 1, 0),
+('María',     'Sánchez',    NULL,        0, 1, 0);

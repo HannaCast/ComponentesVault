@@ -61,6 +61,8 @@ export const SubjectsPage = () => {
     fetchColorOptions,
     careerOptions,
     fetchCareerOptions,
+    professorOptions,
+    fetchProfessorOptions,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -116,6 +118,7 @@ export const SubjectsPage = () => {
     await Promise.all([
       fetchColorOptions(),
       fetchCareerOptions(),
+      fetchProfessorOptions(),
     ]);
   };
 
@@ -352,8 +355,8 @@ export const SubjectsPage = () => {
           drawerMode === 'create'
             ? 'Crear Nueva Materia'
             : drawerMode === 'edit'
-            ? 'Editar Materia'
-            : `${selectedSubject?.name || 'Detalle'}`
+              ? 'Editar Materia'
+              : `${selectedSubject?.name || 'Detalle'}`
         }
         size="md"
         headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
@@ -374,6 +377,7 @@ export const SubjectsPage = () => {
             mode={drawerMode}
             colorOptions={colorOptions}
             careerOptions={careerOptions}
+            professorOptions={professorOptions}
           />
         )}
       </SideDrawer>
