@@ -1,7 +1,14 @@
 import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
-export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+export const ConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmLabel = 'Aceptar',
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -48,7 +55,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => 
             }}
             className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors font-medium"
           >
-            Eliminar
+            {confirmLabel}
           </button>
         </div>
       </div>

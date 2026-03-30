@@ -3,6 +3,7 @@ import {
   getSubjectsPaginated,
   getSubject,
   updateSubject,
+  toggleSubjectStatus,
   deleteSubject,
   createSubject,
   getColors,
@@ -72,9 +73,9 @@ export const useSubjects = () => {
     }
   }, []);
 
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleToggleStatus = async (id) => {
     try {
-      await updateSubject(id, { is_active: !currentStatus });
+      await toggleSubjectStatus(id);
       await fetchSubjects(lastQueryRef.current);
     } catch (err) {
       console.error('Error al actualizar materia:', err);
