@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Input from '@shared/components/inputs/InputText';
+import Textarea from '@shared/components/inputs/Textarea';
 import { Select } from '@shared/components/inputs/Select';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import toast from 'react-hot-toast';
@@ -165,19 +166,15 @@ export const SubjectForm = ({
       </div>
 
       {/* Descripción */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-          Descripción
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          placeholder="Descripción de la materia"
-          disabled={isViewMode || isLoading}
-          rows="4"
-          className="w-full px-3 py-2 border border-[var(--border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] bg-[var(--bg-primary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-      </div>
+      <Textarea
+        label="Descripción"
+        value={formData.description}
+        onChange={(e) => handleInputChange('description', e.target.value)}
+        placeholder="Descripción de la materia"
+        disabled={isViewMode || isLoading}
+        rows={4}
+        reserveHelperSpace={false}
+      />
 
       {/* Horas por Semana */}
       <Input
@@ -188,7 +185,7 @@ export const SubjectForm = ({
         placeholder="Ej: 4"
         disabled={isViewMode || isLoading}
         min="0"
-        max="10"
+        max="168"
         reserveHelperSpace={false}
       />
 
