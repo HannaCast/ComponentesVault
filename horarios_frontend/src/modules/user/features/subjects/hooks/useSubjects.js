@@ -6,6 +6,7 @@ import {
   deleteSubject,
   createSubject,
   getColors,
+  getCareers,
 } from '../api/subjectsApi';
 
 export const useSubjects = () => {
@@ -20,6 +21,7 @@ export const useSubjects = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
   const [colorOptions, setColorOptions] = useState([]);
+  const [careerOptions, setCareerOptions] = useState([]);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -148,10 +150,27 @@ export const useSubjects = () => {
         colors.map((color) => ({
           value: String(color.id),
           label: color.name,
+          hex: color.hex,
         }))
       );
     } catch (err) {
       console.error('Error al cargar colores:', err);
+    }
+  }, []);
+
+  const fetchCareerOptions = useCallback(async () => {
+    try {
+      const response = await getCareers();
+      const careers = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setCareerOptions(
+        careers.map((career) => ({
+          value: String(career.id),
+          label: career.name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar carreras:', err);
     }
   }, []);
 
@@ -181,5 +200,7 @@ export const useSubjects = () => {
     handleUpdateSubject,
     colorOptions,
     fetchColorOptions,
+    careerOptions,
+    fetchCareerOptions,
   };
 };

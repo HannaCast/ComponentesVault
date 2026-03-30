@@ -30,7 +30,11 @@ export const getSubject = (id) =>
 
 // Obtener colores activos para seleccionar color de materia (envia id al backend)
 export const getColors = () =>
-  apiToken.get('/api/v1/university/colors/');
+  apiToken.get('/api/v1/subjects/colors/');
+
+// Obtener carreras activas para asociarlas a una materia
+export const getCareers = () =>
+  apiToken.get('/api/v1/university/careers/');
 
 // Crear una nueva materia
 export const createSubject = (data) => 
@@ -38,7 +42,7 @@ export const createSubject = (data) =>
 
 // Actualizar una materia
 export const updateSubject = (id, data) => 
-  apiToken.patch(`/api/v1/university/subjects/${id}/`, data);
+  apiToken.put(`/api/v1/university/subjects/${id}/`, data);
 
 // Eliminar una materia
 export const deleteSubject = (id) => 

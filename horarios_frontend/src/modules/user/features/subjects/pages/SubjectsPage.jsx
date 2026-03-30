@@ -24,6 +24,7 @@ export const SubjectsPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunColorRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   // Drawer state
@@ -31,6 +32,7 @@ export const SubjectsPage = () => {
   const [drawerMode, setDrawerMode] = useState('create'); // 'create', 'edit', 'view'
   const [drawerSubject, setDrawerSubject] = useState(null);
   const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
+  const [isOpeningCreate, setIsOpeningCreate] = useState(false);
 
   const {
     subjectsPage,
@@ -57,6 +59,8 @@ export const SubjectsPage = () => {
     handleUpdateSubject,
     colorOptions,
     fetchColorOptions,
+    careerOptions,
+    fetchCareerOptions,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -81,11 +85,38 @@ export const SubjectsPage = () => {
     }
   };
 
-  const handleOpenDrawerCreate = () => {
-    setDrawerMode('create');
-    setDrawerSubject(null);
-    setSelectedSubject(null);
-    setDrawerOpen(true);
+  const handleOpenDrawerCreate = async () => {
+    if (isOpeningCreate) {
+      return;
+    }
+
+    setIsOpeningCreate(true);
+
+    try {
+      await loadCatalogsForModal('create');
+      setDrawerMode('create');
+      setDrawerSubject(null);
+      setSelectedSubject(null);
+      setDrawerOpen(true);
+    } finally {
+      setIsOpeningCreate(false);
+    }
+  };
+
+  const loadCatalogsForModal = async (modalMode) => {
+    const catalogsSignature = buildRequestSignature(
+      { resource: 'subjects-catalogs', mode: modalMode },
+      ['resource', 'mode']
+    );
+
+    if (!shouldRunColorRequest(catalogsSignature)) {
+      return;
+    }
+
+    await Promise.all([
+      fetchColorOptions(),
+      fetchCareerOptions(),
+    ]);
   };
 
   const handleOpenDrawerView = async (id) => {
@@ -101,6 +132,7 @@ export const SubjectsPage = () => {
   const handleOpenDrawerEdit = async (id) => {
     await runRowAction(id, 'edit', async () => {
       setDrawerMode('edit');
+      await loadCatalogsForModal('edit');
       const subjectData = await fetchSubjectById(id);
       if (subjectData) {
         setDrawerOpen(true);
@@ -115,8 +147,9 @@ export const SubjectsPage = () => {
     setSelectedSubject(null);
   };
 
-  const handleDrawerEditClick = () => {
+  const handleDrawerEditClick = async () => {
     if (selectedSubject) {
+      await loadCatalogsForModal('edit');
       setDrawerMode('edit');
     }
   };
@@ -189,10 +222,6 @@ export const SubjectsPage = () => {
   }, [currentPage, totalPages]);
 
   useEffect(() => {
-    fetchColorOptions();
-  }, [fetchColorOptions]);
-
-  useEffect(() => {
     return () => {
       if (pageChangeTimeoutRef.current) {
         clearTimeout(pageChangeTimeoutRef.current);
@@ -223,6 +252,9 @@ export const SubjectsPage = () => {
         contextLabel={`Materias de: ${selectedUniversityName}`}
         actionIcon={Plus}
         actionLabel="Nueva Materia"
+        actionLoading={isOpeningCreate}
+        actionLoadingLabel="Cargando..."
+        actionDisabled={isOpeningCreate}
         onAction={handleOpenDrawerCreate}
       />
 
@@ -341,6 +373,7 @@ export const SubjectsPage = () => {
             onCancel={handleCloseDrawer}
             mode={drawerMode}
             colorOptions={colorOptions}
+            careerOptions={careerOptions}
           />
         )}
       </SideDrawer>

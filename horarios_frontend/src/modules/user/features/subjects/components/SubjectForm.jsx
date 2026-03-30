@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Input from '@shared/components/inputs/InputText';
 import Textarea from '@shared/components/inputs/Textarea';
 import Checkbox from '@shared/components/inputs/Checkbox';
-import { Select } from '@shared/components/inputs/Select';
+import { ColorSwatchPicker } from '@shared/components/inputs/ColorSwatchPicker';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectableListField } from '@shared/components/inputs/SelectableListField';
 import toast from 'react-hot-toast';
@@ -35,6 +35,21 @@ export const SubjectForm = ({
   useEffect(() => {
     if (initialData) {
       const parsedColorId = Number(initialData.color_id ?? initialData.color);
+      const normalizedCareers = Array.isArray(initialData.careers)
+        ? initialData.careers
+          .map((career) => {
+            if (career && typeof career === 'object') {
+              const rawValue = career.id ?? career.value;
+              const value = String(rawValue || '').trim();
+              const label = career.name ?? career.label ?? value;
+              return value ? { value, label: String(label || value) } : null;
+            }
+
+            const value = String(career || '').trim();
+            return value ? { value, label: value } : null;
+          })
+          .filter(Boolean)
+        : [];
 
       setFormData({
         name: initialData.name || '',
@@ -43,7 +58,7 @@ export const SubjectForm = ({
         description: initialData.description || '',
         hours_per_week: initialData.hours_per_week || '',
         color: Number.isFinite(parsedColorId) && parsedColorId > 0 ? String(parsedColorId) : '',
-        careers: initialData.careers || [],
+        careers: normalizedCareers,
         professors: initialData.professors || [],
         is_mandatory: Number(initialData.is_mandatory) === 1,
       });
@@ -57,18 +72,26 @@ export const SubjectForm = ({
     }));
   };
 
-  const handleAddCareer = (careerValue = careersTemp) => {
+  const handleAddCareer = (careerValue = careersTemp, careerLabel = '') => {
     const nextCareer = String(careerValue || '').trim();
+    const nextCareerLabel = String(careerLabel || nextCareer).trim();
 
     if (nextCareer) {
-      if (formData.careers.some((career) => String(career) === nextCareer)) {
+      if (
+        formData.careers.some((career) => {
+          if (career && typeof career === 'object') {
+            return String(career.value) === nextCareer;
+          }
+          return String(career) === nextCareer;
+        })
+      ) {
         setCareersTemp('');
         return;
       }
 
       setFormData((prev) => ({
         ...prev,
-        careers: [...prev.careers, nextCareer],
+        careers: [...prev.careers, { value: nextCareer, label: nextCareerLabel }],
       }));
       setCareersTemp('');
     }
@@ -79,6 +102,23 @@ export const SubjectForm = ({
       ...prev,
       careers: prev.careers.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleUpdateCareer = (index, careerValue, careerLabel = '') => {
+    const nextCareer = String(careerValue || '').trim();
+    const nextCareerLabel = String(careerLabel || nextCareer).trim();
+
+    if (!nextCareer) return;
+
+    setFormData((prev) => {
+      const nextCareers = [...prev.careers];
+      nextCareers[index] = { value: nextCareer, label: nextCareerLabel };
+
+      return {
+        ...prev,
+        careers: nextCareers,
+      };
+    });
   };
 
   const handleAddProfessor = (professorValue = professorsTemp) => {
@@ -103,6 +143,22 @@ export const SubjectForm = ({
       ...prev,
       professors: prev.professors.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleUpdateProfessor = (index, professorValue) => {
+    const nextProfessor = String(professorValue || '').trim();
+
+    if (!nextProfessor) return;
+
+    setFormData((prev) => {
+      const nextProfessors = [...prev.professors];
+      nextProfessors[index] = nextProfessor;
+
+      return {
+        ...prev,
+        professors: nextProfessors,
+      };
+    });
   };
 
   const validateForm = () => {
@@ -139,6 +195,14 @@ export const SubjectForm = ({
       ...formData,
       hours_per_week: Number.parseInt(formData.hours_per_week, 10),
       is_mandatory: formData.is_mandatory ? 1 : 0,
+      careers: formData.careers
+        .map((career) => {
+          if (career && typeof career === 'object') {
+            return Number.parseInt(career.value, 10);
+          }
+          return Number.parseInt(career, 10);
+        })
+        .filter(Number.isFinite),
     };
 
     if (formData.color) {
@@ -221,6 +285,7 @@ export const SubjectForm = ({
         selectedOption={careersTemp}
         onSelectedOptionChange={setCareersTemp}
         onAdd={handleAddCareer}
+        onUpdate={handleUpdateCareer}
         onRemove={handleRemoveCareer}
         placeholder="Seleccionar carrera"
         addLabel="Agregar Carrera"
@@ -235,6 +300,7 @@ export const SubjectForm = ({
         selectedOption={professorsTemp}
         onSelectedOptionChange={setProfessorsTemp}
         onAdd={handleAddProfessor}
+        onUpdate={handleUpdateProfessor}
         onRemove={handleRemoveProfessor}
         placeholder="Seleccionar profesor"
         addLabel="Agregar Profesor"
@@ -242,14 +308,14 @@ export const SubjectForm = ({
       />
 
       {/* Color */}
-      <Select
-        label="Color de la Materia *"
+      <ColorSwatchPicker
+        label="Color de la Materia"
         value={formData.color}
         onChange={(e) => handleInputChange('color', e.target.value)}
         options={colorOptions}
-        placeholder="Selecciona un color"
         disabled={isViewMode || isLoading}
-        reserveHelperSpace={false}
+        required={mode === 'create'}
+        helperText="Selecciona un color visual para identificar la materia"
       />
 
       {/* Es Obligatoria */}

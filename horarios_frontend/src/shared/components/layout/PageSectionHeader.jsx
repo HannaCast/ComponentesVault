@@ -21,6 +21,9 @@ export const PageSectionHeader = ({
   actionIcon,
   actionLabel,
   onAction,
+  actionLoading = false,
+  actionLoadingLabel = 'Cargando...',
+  actionDisabled = false,
   actionVariant = 'primary',
 }) => {
   return (
@@ -54,6 +57,9 @@ export const PageSectionHeader = ({
           icon={actionIcon}
           label={actionLabel}
           onClick={onAction}
+          loading={actionLoading}
+          loadingLabel={actionLoadingLabel}
+          disabled={actionDisabled}
           variant={actionVariant}
           size="medium"
           fullWidth={false}
