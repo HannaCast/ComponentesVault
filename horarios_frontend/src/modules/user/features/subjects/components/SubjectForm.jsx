@@ -81,6 +81,36 @@ export const SubjectForm = ({
           .filter(Boolean)
         : [];
 
+      const normalizedProfessors = Array.isArray(initialData.teachers)
+        ? initialData.teachers
+          .map((teacher) => {
+            if (teacher && typeof teacher === 'object') {
+              const rawValue = teacher.id ?? teacher.value;
+              const value = String(rawValue || '').trim();
+              const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
+              return value ? { value, label: String(label || value) } : null;
+            }
+
+            const value = String(teacher || '').trim();
+            return value ? { value, label: value } : null;
+          })
+          .filter(Boolean)
+        : Array.isArray(initialData.professors)
+          ? initialData.professors
+            .map((teacher) => {
+              if (teacher && typeof teacher === 'object') {
+                const rawValue = teacher.id ?? teacher.value;
+                const value = String(rawValue || '').trim();
+                const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
+                return value ? { value, label: String(label || value) } : null;
+              }
+
+              const value = String(teacher || '').trim();
+              return value ? { value, label: value } : null;
+            })
+            .filter(Boolean)
+          : [];
+
       setFormData({
         name: initialData.name || '',
         short_name: initialData.short_name || '',
@@ -89,7 +119,7 @@ export const SubjectForm = ({
         hours_per_week: initialData.hours_per_week || '',
         color: Number.isFinite(parsedColorId) && parsedColorId > 0 ? String(parsedColorId) : '',
         careers: normalizedCareers,
-        professors: initialData.professors || [],
+        professors: normalizedProfessors,
         is_mandatory: Number(initialData.is_mandatory) === 1,
       });
     }
@@ -115,7 +145,8 @@ export const SubjectForm = ({
 
   const handleAddCareer = (careerValue = careersTemp, careerLabel = '', periodValue = careersPeriodTemp) => {
     const nextCareer = String(careerValue || '').trim();
-    const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const optionLabel = careerOptions.find((item) => String(item.value) === nextCareer)?.label;
+    const nextCareerLabel = String(careerLabel || optionLabel || nextCareer).trim();
     const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
     const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
@@ -159,7 +190,8 @@ export const SubjectForm = ({
 
   const handleUpdateCareer = (index, careerValue, careerLabel = '', periodValue = 1) => {
     const nextCareer = String(careerValue || '').trim();
-    const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const optionLabel = careerOptions.find((item) => String(item.value) === nextCareer)?.label;
+    const nextCareerLabel = String(careerLabel || optionLabel || nextCareer).trim();
     const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
     const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
@@ -183,16 +215,26 @@ export const SubjectForm = ({
 
   const handleAddProfessor = (professorValue = professorsTemp) => {
     const nextProfessor = String(professorValue || '').trim();
+    const nextProfessorLabel = String(
+      professorOptions.find((item) => String(item.value) === nextProfessor)?.label || nextProfessor,
+    ).trim();
 
     if (nextProfessor) {
-      if (formData.professors.some((professor) => String(professor) === nextProfessor)) {
+      if (
+        formData.professors.some((professor) => {
+          if (professor && typeof professor === 'object') {
+            return String(professor.value) === nextProfessor;
+          }
+          return String(professor) === nextProfessor;
+        })
+      ) {
         setProfessorsTemp('');
         return;
       }
 
       setFormData((prev) => ({
         ...prev,
-        professors: [...prev.professors, nextProfessor],
+        professors: [...prev.professors, { value: nextProfessor, label: nextProfessorLabel }],
       }));
       setProfessorsTemp('');
     }
@@ -205,14 +247,16 @@ export const SubjectForm = ({
     }));
   };
 
-  const handleUpdateProfessor = (index, professorValue) => {
+  const handleUpdateProfessor = (index, professorValue, professorLabel = '') => {
     const nextProfessor = String(professorValue || '').trim();
+    const optionLabel = professorOptions.find((item) => String(item.value) === nextProfessor)?.label;
+    const nextProfessorLabel = String(professorLabel || optionLabel || nextProfessor).trim();
 
     if (!nextProfessor) return;
 
     setFormData((prev) => {
       const nextProfessors = [...prev.professors];
-      nextProfessors[index] = nextProfessor;
+      nextProfessors[index] = { value: nextProfessor, label: nextProfessorLabel };
 
       return {
         ...prev,
@@ -221,14 +265,14 @@ export const SubjectForm = ({
     });
   };
 
-  const validateForm = async () => {
+  const validateForm = async (dataToValidate = formData) => {
     try {
-      await subjectValidationSchema.validate(formData, {
+      await subjectValidationSchema.validate(dataToValidate, {
         abortEarly: false,
         context: { mode },
       });
 
-      for (const career of formData.careers) {
+      for (const career of dataToValidate.careers) {
         if (!career || typeof career !== 'object') {
           continue;
         }
@@ -275,15 +319,46 @@ export const SubjectForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!(await validateForm())) {
+
+    // Auto-attach pending selections so users don't lose a selected item if they skip "Agregar".
+    const effectiveCareers = [...formData.careers];
+    const pendingCareer = String(careersTemp || '').trim();
+    if (pendingCareer && !effectiveCareers.some((row) => String(row?.value) === pendingCareer)) {
+      const parsedPeriod = Number.parseInt(String(careersPeriodTemp || '').trim(), 10);
+      const optionLabel = careerOptions.find((item) => String(item.value) === pendingCareer)?.label;
+
+      effectiveCareers.push({
+        value: pendingCareer,
+        label: String(optionLabel || pendingCareer),
+        period_number: Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1,
+      });
+    }
+
+    const effectiveProfessors = [...formData.professors];
+    const pendingProfessor = String(professorsTemp || '').trim();
+    if (pendingProfessor && !effectiveProfessors.some((row) => String(row?.value) === pendingProfessor)) {
+      const optionLabel = professorOptions.find((item) => String(item.value) === pendingProfessor)?.label;
+      effectiveProfessors.push({
+        value: pendingProfessor,
+        label: String(optionLabel || pendingProfessor),
+      });
+    }
+
+    const effectiveFormData = {
+      ...formData,
+      careers: effectiveCareers,
+      professors: effectiveProfessors,
+    };
+
+    if (!(await validateForm(effectiveFormData))) {
       return;
     }
 
     const submitData = {
-      ...formData,
-      hours_per_week: Number.parseInt(formData.hours_per_week, 10),
-      is_mandatory: formData.is_mandatory ? 1 : 0,
-      careers: formData.careers
+      ...effectiveFormData,
+      hours_per_week: Number.parseInt(effectiveFormData.hours_per_week, 10),
+      is_mandatory: effectiveFormData.is_mandatory ? 1 : 0,
+      careers: effectiveFormData.careers
         .map((career) => {
           if (career && typeof career === 'object') {
             const careerId = Number.parseInt(career.value, 10);
@@ -311,10 +386,29 @@ export const SubjectForm = ({
           };
         })
         .filter(Boolean),
+      teachers: effectiveFormData.professors
+        .map((professor) => {
+          if (professor && typeof professor === 'object') {
+            const teacherId = Number.parseInt(professor.value, 10);
+            if (!Number.isFinite(teacherId)) {
+              return null;
+            }
+            return { teacher_id: teacherId };
+          }
+
+          const teacherId = Number.parseInt(professor, 10);
+          if (!Number.isFinite(teacherId)) {
+            return null;
+          }
+          return { teacher_id: teacherId };
+        })
+        .filter(Boolean),
     };
 
-    if (formData.color) {
-      submitData.color = Number.parseInt(formData.color, 10);
+    delete submitData.professors;
+
+    if (effectiveFormData.color) {
+      submitData.color = Number.parseInt(effectiveFormData.color, 10);
     } else {
       delete submitData.color;
     }

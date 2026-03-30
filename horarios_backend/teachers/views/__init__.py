@@ -1,1 +1,2 @@
 from .teachers import TeacherListView, TeacherPaginatedView, TeacherDetailView, TeacherToggleStatusView
+from .teachers_subjects import TeacherSubjectListView, TeacherSubjectDetailView

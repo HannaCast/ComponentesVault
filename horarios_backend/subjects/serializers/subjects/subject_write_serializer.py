@@ -1,9 +1,15 @@
 from rest_framework import serializers
 from careers.models import CareerSubjects, Careers
 from subjects.models import Subjects
+from teachers.models import Teachers, TeachersSubjects
 
 class SubjectWriteSerializer(serializers.ModelSerializer):
     careers = serializers.ListField(
+        child=serializers.JSONField(),
+        required=False,
+        write_only=True,
+    )
+    teachers = serializers.ListField(
         child=serializers.JSONField(),
         required=False,
         write_only=True,
@@ -20,6 +26,7 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
             'color',
             'is_mandatory',
             'careers',
+            'teachers',
         ]
 
     def validate_hours_per_week(self, value):
@@ -121,6 +128,61 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
                 is_deleted=0,
             )
 
+    def _parse_teachers_payload(self, teachers_payload):
+        parsed_ids = []
+
+        for item in teachers_payload:
+            if isinstance(item, dict):
+                raw_teacher_id = (
+                    item.get('teacher_id')
+                    or item.get('id')
+                    or item.get('value')
+                )
+            else:
+                raw_teacher_id = item
+
+            try:
+                teacher_id = int(raw_teacher_id)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {'teachers': 'Cada profesor debe tener un id válido.'}
+                )
+
+            parsed_ids.append(teacher_id)
+
+        return sorted(set(parsed_ids))
+
+    def _sync_subject_teacher_relations(self, subject, parsed_teacher_ids):
+        existing_relations = TeachersSubjects.objects.filter(subjects=subject)
+        active_relations = existing_relations.filter(is_deleted=0)
+
+        incoming_ids = set(parsed_teacher_ids)
+
+        for relation in active_relations:
+            if relation.teachers_id not in incoming_ids:
+                relation.is_deleted = 1
+                relation.save(update_fields=['is_deleted'])
+
+        for teacher_id in incoming_ids:
+            if active_relations.filter(teachers_id=teacher_id).exists():
+                continue
+
+            soft_deleted_relation = existing_relations.filter(
+                teachers_id=teacher_id,
+                is_deleted=1,
+            ).first()
+
+            if soft_deleted_relation:
+                soft_deleted_relation.is_deleted = 0
+                soft_deleted_relation.save(update_fields=['is_deleted'])
+                continue
+
+            TeachersSubjects.objects.create(
+                teachers_id=teacher_id,
+                subjects=subject,
+                is_deleted=0,
+            )
+
     def validate(self, attrs):
         selected_university_id = self.context.get('selected_university_id')
 
@@ -152,6 +214,35 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
 
             attrs['_parsed_careers'] = parsed_careers
 
+        teachers_payload = None
+        if 'teachers' in attrs:
+            teachers_payload = attrs.get('teachers') or []
+        elif 'professors' in self.initial_data:
+            teachers_payload = self.initial_data.get('professors') or []
+
+        if teachers_payload is not None:
+            parsed_teachers = self._parse_teachers_payload(teachers_payload)
+
+            existing_teachers = set(
+                Teachers.objects.filter(
+                    id__in=parsed_teachers,
+                    is_deleted=0,
+                ).values_list('id', flat=True)
+            )
+
+            invalid_teacher_ids = sorted(set(parsed_teachers) - existing_teachers)
+            if invalid_teacher_ids:
+                raise serializers.ValidationError(
+                    {
+                        'teachers': (
+                            'Los profesores no son válidos o no están disponibles: '
+                            f'{invalid_teacher_ids}'
+                        )
+                    }
+                )
+
+            attrs['_parsed_teachers'] = parsed_teachers
+
         return attrs
 
     def create(self, validated_data):
@@ -163,7 +254,9 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
             )
 
         parsed_careers = validated_data.pop('_parsed_careers', [])
+        parsed_teachers = validated_data.pop('_parsed_teachers', [])
         validated_data.pop('careers', None)
+        validated_data.pop('teachers', None)
 
         validated_data['is_mandatory'] = validated_data.get('is_mandatory', 1)
         validated_data['university_id'] = selected_university_id
@@ -172,15 +265,21 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
 
         subject = Subjects.objects.create(**validated_data)
         self._sync_subject_career_relations(subject, parsed_careers)
+        self._sync_subject_teacher_relations(subject, parsed_teachers)
         return subject
 
     def update(self, instance, validated_data):
         parsed_careers = validated_data.pop('_parsed_careers', None)
+        parsed_teachers = validated_data.pop('_parsed_teachers', None)
         validated_data.pop('careers', None)
+        validated_data.pop('teachers', None)
 
         subject = super().update(instance, validated_data)
 
         if parsed_careers is not None:
             self._sync_subject_career_relations(subject, parsed_careers)
+
+        if parsed_teachers is not None:
+            self._sync_subject_teacher_relations(subject, parsed_teachers)
 
         return subject

@@ -142,18 +142,18 @@ export const SubjectDetail = ({
       )}
 
       {/* Profesores */}
-      {subject.professors && subject.professors.length > 0 && (
+      {subject.teachers && subject.teachers.length > 0 && (
         <div>
           <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
             Profesores Asignados
           </label>
           <div className="flex flex-wrap gap-2">
-            {subject.professors.map((professor, index) => (
+            {subject.teachers.map((professor, index) => (
               <span
-                key={index}
+                key={professor?.id ?? index}
                 className="px-3 py-1 text-xs font-medium bg-[var(--accent)]/10 border border-[var(--accent)] rounded-full text-[var(--accent)]"
               >
-                {professor}
+                {professor?.full_name || professor?.name || '-'}
               </span>
             ))}
           </div>
