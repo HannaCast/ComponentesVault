@@ -206,8 +206,12 @@ export const SubjectsPage = () => {
       return;
     }
 
+    if (drawerOpen && drawerMode !== 'view') {
+      return;
+    }
+
     toast.error(error, { id: 'subjects-page-error' });
-  }, [error]);
+  }, [error, drawerOpen, drawerMode]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {

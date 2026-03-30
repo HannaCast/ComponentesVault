@@ -5,7 +5,7 @@ import Checkbox from '@shared/components/inputs/Checkbox';
 import { ColorSwatchPicker } from '@shared/components/inputs/ColorSwatchPicker';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectableListField } from '@shared/components/inputs/SelectableListField';
-import toast from 'react-hot-toast';
+import { subjectValidationSchema } from '../validations/subjectValidationSchema';
 
 export const SubjectForm = ({
   initialData = null,
@@ -31,6 +31,7 @@ export const SubjectForm = ({
 
   const [professorsTemp, setProfessorsTemp] = useState('');
   const [careersTemp, setCareersTemp] = useState('');
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -70,6 +71,17 @@ export const SubjectForm = ({
       ...prev,
       [field]: value,
     }));
+
+    setFormErrors((prev) => {
+      if (!prev[field]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [field]: '',
+      };
+    });
   };
 
   const handleAddCareer = (careerValue = careersTemp, careerLabel = '') => {
@@ -161,33 +173,36 @@ export const SubjectForm = ({
     });
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      toast.error('El nombre de la materia es requerido');
+  const validateForm = async () => {
+    try {
+      await subjectValidationSchema.validate(formData, {
+        abortEarly: false,
+        context: { mode },
+      });
+
+      setFormErrors({});
+      return true;
+    } catch (error) {
+      const nextErrors = {};
+
+      if (Array.isArray(error?.inner) && error.inner.length > 0) {
+        error.inner.forEach((validationError) => {
+          if (!validationError?.path || nextErrors[validationError.path]) {
+            return;
+          }
+
+          nextErrors[validationError.path] = validationError.message;
+        });
+      }
+
+      setFormErrors(nextErrors);
       return false;
     }
-    if (!formData.code.trim()) {
-      toast.error('El código es requerido');
-      return false;
-    }
-    if (!formData.short_name.trim()) {
-      toast.error('El nombre corto es requerido');
-      return false;
-    }
-    if (!formData.hours_per_week || Number(formData.hours_per_week) <= 0) {
-      toast.error('Las horas por semana son requeridas y deben ser mayores a 0');
-      return false;
-    }
-    if (mode === 'create' && !formData.color) {
-      toast.error('Debes seleccionar un color');
-      return false;
-    }
-    return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
+    if (!(await validateForm())) {
       return;
     }
 
@@ -226,6 +241,7 @@ export const SubjectForm = ({
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
           placeholder="Ej: Administración de Base de Datos"
+          error={formErrors.name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -239,6 +255,7 @@ export const SubjectForm = ({
           value={formData.short_name}
           onChange={(e) => handleInputChange('short_name', e.target.value)}
           placeholder="Ej: ABD"
+          error={formErrors.short_name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -248,6 +265,7 @@ export const SubjectForm = ({
           value={formData.code}
           onChange={(e) => handleInputChange('code', e.target.value)}
           placeholder="Ej: ABD-01"
+          error={formErrors.code}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -271,6 +289,7 @@ export const SubjectForm = ({
         value={formData.hours_per_week}
         onChange={(e) => handleInputChange('hours_per_week', e.target.value)}
         placeholder="Ej: 4"
+        error={formErrors.hours_per_week}
         disabled={isViewMode || isLoading}
         min="0"
         max="168"
@@ -315,6 +334,7 @@ export const SubjectForm = ({
         options={colorOptions}
         disabled={isViewMode || isLoading}
         required={mode === 'create'}
+        error={formErrors.color}
         helperText="Selecciona un color visual para identificar la materia"
       />
 

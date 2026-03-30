@@ -22,6 +22,7 @@ export const ColorSwatchPicker = ({
   options = [],
   disabled = false,
   required = false,
+  error,
   helperText,
   className = '',
 }) => {
@@ -61,9 +62,17 @@ export const ColorSwatchPicker = ({
       </div>
 
       {helperText && (
-        <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
-          {helperText}
-          {selectedOption ? ` Seleccionado: ${selectedOption.label}.` : ''}
+        !error && (
+          <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+            {helperText}
+            {selectedOption ? ` Seleccionado: ${selectedOption.label}.` : ''}
+          </p>
+        )
+      )}
+
+      {error && (
+        <p className="mt-1.5 text-xs" style={{ color: 'var(--error, #dc2626)' }}>
+          {error}
         </p>
       )}
     </div>
