@@ -1,6 +1,17 @@
 from django.db import migrations
 
 
+def _table_exists(cursor, table_name: str) -> bool:
+    cursor.execute(
+        """
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = %s
+        """,
+        [table_name],
+    )
+    return cursor.fetchone()[0] > 0
+
+
 def seed_utez_selected_university(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(
@@ -107,6 +118,9 @@ def seed_utez_selected_university(apps, schema_editor):
             )
             university_id = cursor.lastrowid
 
+        if not _table_exists(cursor, 'user_configurations'):
+            return
+
         cursor.execute(
             "SELECT id FROM user_configurations WHERE user_id = %s ORDER BY id DESC LIMIT 1",
             [user_id],
@@ -136,14 +150,15 @@ def reverse_seed_utez_selected_university(apps, schema_editor):
 
         university_id = row[0]
 
-        cursor.execute(
-            """
-            UPDATE user_configurations
-            SET selected_university_id = NULL
-            WHERE selected_university_id = %s
-            """,
-            [university_id],
-        )
+        if _table_exists(cursor, 'user_configurations'):
+            cursor.execute(
+                """
+                UPDATE user_configurations
+                SET selected_university_id = NULL
+                WHERE selected_university_id = %s
+                """,
+                [university_id],
+            )
 
         cursor.execute("DELETE FROM universities WHERE id = %s", [university_id])
 
