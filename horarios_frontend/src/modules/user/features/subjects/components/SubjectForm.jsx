@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Input from '@shared/components/inputs/InputText';
 import Textarea from '@shared/components/inputs/Textarea';
+import Checkbox from '@shared/components/inputs/Checkbox';
+import { Select } from '@shared/components/inputs/Select';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectableListField } from '@shared/components/inputs/SelectableListField';
 import toast from 'react-hot-toast';
-
-const COLOR_PALETTE = [
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#10B981', // Emerald
-  '#3B82F6', // Blue
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#14B8A6', // Teal
-  '#FF8C42', // Deep Orange
-  '#5B6FFF', // Indigo
-  '#84CC16', // Lime
-];
 
 export const SubjectForm = ({
   initialData = null,
@@ -26,16 +15,18 @@ export const SubjectForm = ({
   mode = 'create', // 'create' | 'edit' | 'view'
   careerOptions = [],
   professorOptions = [],
+  colorOptions = [],
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     short_name: '',
     code: '',
     description: '',
-    credits: '',
-    color: COLOR_PALETTE[0],
+    hours_per_week: '',
+    color: '',
     careers: [],
     professors: [],
+    is_mandatory: false,
   });
 
   const [professorsTemp, setProfessorsTemp] = useState('');
@@ -43,15 +34,18 @@ export const SubjectForm = ({
 
   useEffect(() => {
     if (initialData) {
+      const parsedColorId = Number(initialData.color_id ?? initialData.color);
+
       setFormData({
         name: initialData.name || '',
         short_name: initialData.short_name || '',
         code: initialData.code || '',
         description: initialData.description || '',
-        credits: initialData.credits || '',
-        color: initialData.color || COLOR_PALETTE[0],
+        hours_per_week: initialData.hours_per_week || '',
+        color: Number.isFinite(parsedColorId) && parsedColorId > 0 ? String(parsedColorId) : '',
         careers: initialData.careers || [],
         professors: initialData.professors || [],
+        is_mandatory: Number(initialData.is_mandatory) === 1,
       });
     }
   }, [initialData]);
@@ -124,6 +118,14 @@ export const SubjectForm = ({
       toast.error('El nombre corto es requerido');
       return false;
     }
+    if (!formData.hours_per_week || Number(formData.hours_per_week) <= 0) {
+      toast.error('Las horas por semana son requeridas y deben ser mayores a 0');
+      return false;
+    }
+    if (mode === 'create' && !formData.color) {
+      toast.error('Debes seleccionar un color');
+      return false;
+    }
     return true;
   };
 
@@ -135,8 +137,15 @@ export const SubjectForm = ({
 
     const submitData = {
       ...formData,
-      credits: formData.credits ? parseInt(formData.credits, 10) : null,
+      hours_per_week: Number.parseInt(formData.hours_per_week, 10),
+      is_mandatory: formData.is_mandatory ? 1 : 0,
     };
+
+    if (formData.color) {
+      submitData.color = Number.parseInt(formData.color, 10);
+    } else {
+      delete submitData.color;
+    }
 
     onSubmit(submitData);
   };
@@ -195,8 +204,8 @@ export const SubjectForm = ({
       <Input
         label="Horas por Semana *"
         type="number"
-        value={formData.credits}
-        onChange={(e) => handleInputChange('credits', e.target.value)}
+        value={formData.hours_per_week}
+        onChange={(e) => handleInputChange('hours_per_week', e.target.value)}
         placeholder="Ej: 4"
         disabled={isViewMode || isLoading}
         min="0"
@@ -233,28 +242,24 @@ export const SubjectForm = ({
       />
 
       {/* Color */}
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
-          Color de la Materia *
-        </label>
-        <div className="flex flex-wrap gap-3">
-          {COLOR_PALETTE.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => handleInputChange('color', color)}
-              disabled={isViewMode || isLoading}
-              className={`w-10 h-10 rounded-lg border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                formData.color === color
-                  ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]'
-                  : 'border-[var(--border-default)] hover:border-[var(--text-secondary)]'
-              }`}
-              style={{ backgroundColor: color }}
-              title={color}
-            />
-          ))}
-        </div>
-      </div>
+      <Select
+        label="Color de la Materia *"
+        value={formData.color}
+        onChange={(e) => handleInputChange('color', e.target.value)}
+        options={colorOptions}
+        placeholder="Selecciona un color"
+        disabled={isViewMode || isLoading}
+        reserveHelperSpace={false}
+      />
+
+      {/* Es Obligatoria */}
+      <Checkbox
+        label="Esta materia es obligatoria"
+        checked={formData.is_mandatory}
+        onChange={(e) => handleInputChange('is_mandatory', e.target.checked)}
+        disabled={isViewMode || isLoading}
+        helperText="Marca esta opción si la materia es requerida para los estudiantes, de lo contrario se considerará optativa."
+      />
 
       {/* Botones de Acción */}
       {!isViewMode && (

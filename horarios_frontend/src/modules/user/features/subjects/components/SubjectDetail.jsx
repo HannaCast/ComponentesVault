@@ -31,20 +31,31 @@ export const SubjectDetail = ({
         </div>
       </div>
 
-      {/* Estado */}
-      <div>
-        <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-          Estado
-        </label>
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              subject.is_active ? 'bg-green-500' : 'bg-red-500'
-            }`}
-          />
-          <span className="text-sm text-[var(--text-primary)]">
-            {subject.is_active ? 'Activa' : 'Inactiva'}
-          </span>
+      {/* Estado y Obligatoria */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Estado
+          </label>
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-3 h-3 rounded-full ${
+                subject.is_active ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+            <span className="text-sm text-[var(--text-primary)]">
+              {subject.is_active ? 'Activa' : 'Inactiva'}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Obligatoria
+          </label>
+          <p className="text-sm text-[var(--text-primary)]">
+            {subject.is_mandatory ? '✓ Sí' : '✗ No'}
+          </p>
         </div>
       </div>
 
@@ -67,7 +78,7 @@ export const SubjectDetail = ({
             Horas por Semana
           </label>
           <p className="text-lg font-semibold text-[var(--text-primary)]">
-            {subject.credits || '-'}
+            {subject.hours_per_week || '-'}
           </p>
         </div>
 

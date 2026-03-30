@@ -1,5 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { getSubjectsPaginated, getSubject, updateSubject, deleteSubject, createSubject } from '../api/subjectsApi';
+import {
+  getSubjectsPaginated,
+  getSubject,
+  updateSubject,
+  deleteSubject,
+  createSubject,
+  getColors,
+} from '../api/subjectsApi';
 
 export const useSubjects = () => {
   const [subjectsPage, setSubjectsPage] = useState([]);
@@ -12,6 +19,7 @@ export const useSubjects = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
+  const [colorOptions, setColorOptions] = useState([]);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -131,6 +139,22 @@ export const useSubjects = () => {
     }
   };
 
+  const fetchColorOptions = useCallback(async () => {
+    try {
+      const response = await getColors();
+      const colors = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setColorOptions(
+        colors.map((color) => ({
+          value: String(color.id),
+          label: color.name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar colores:', err);
+    }
+  }, []);
+
   return {
     subjectsPage,
     totalItems,
@@ -155,5 +179,7 @@ export const useSubjects = () => {
     fetchSubjectById,
     handleCreateSubject,
     handleUpdateSubject,
+    colorOptions,
+    fetchColorOptions,
   };
 };

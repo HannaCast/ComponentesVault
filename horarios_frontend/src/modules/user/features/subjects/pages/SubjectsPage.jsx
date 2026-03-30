@@ -55,6 +55,8 @@ export const SubjectsPage = () => {
     fetchSubjectById,
     handleCreateSubject,
     handleUpdateSubject,
+    colorOptions,
+    fetchColorOptions,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -185,6 +187,10 @@ export const SubjectsPage = () => {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    fetchColorOptions();
+  }, [fetchColorOptions]);
 
   useEffect(() => {
     return () => {
@@ -334,6 +340,7 @@ export const SubjectsPage = () => {
             onSubmit={handleFormSubmit}
             onCancel={handleCloseDrawer}
             mode={drawerMode}
+            colorOptions={colorOptions}
           />
         )}
       </SideDrawer>
