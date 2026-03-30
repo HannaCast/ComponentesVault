@@ -4,6 +4,7 @@ import { LogOut, GraduationCap } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
+// Componente de encabezado principal de la aplicación, que muestra el título, rol del usuario y un botón para cerrar sesión.
 /**
  * Header principal de la aplicacion.
  * Props:

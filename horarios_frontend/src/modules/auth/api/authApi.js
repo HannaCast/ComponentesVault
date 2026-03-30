@@ -2,7 +2,8 @@ import api from "@requests/api";
 import apiToken from "@requests/apiToken";
 
 // Iniciar sesión
-export const login = (email, password) => api.post("/api/v1/auth/login/", { email, password });
+export const login = (email, password) =>
+	api.post("/api/v1/auth/login/", { email, password }, { encrypt: true });
 
 // Cerrar sesión
 export const logout = () => apiToken.post("/api/v1/auth/logout/");
@@ -14,4 +15,5 @@ export const refreshSession = () => api.post('/api/v1/auth/refresh/');
 export const getUserConfiguration = () => api.get('/api/v1/user/configurations/');
 
 // Registrarse como nuevo usuario
-export const register = (email, password, role) => api.post("/api/v1/auth/register/", { email, password, role });
+export const register = (email, password, role) =>
+	api.post("/api/v1/auth/register/", { email, password, role }, { encrypt: true });

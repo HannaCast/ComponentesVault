@@ -30,6 +30,29 @@ Sistema web para gestionar y generar horarios académicos, con backend en Django
 
 ## Configuración de entorno
 
+## Configurar Llaves RSA (manual)
+
+1. Genera las llaves con el script:
+
+```bash
+node scripts/generate-rsa-keys.mjs
+```
+
+Este comando:
+- Genera un par RSA 2048 en `horarios_backend/keys/`.
+- Imprime en consola el valor exacto para `VITE_RSA_PUBLIC_KEY`.
+
+2. Llena tus `.env` manualmente con estos valores:
+
+Backend (`horarios_backend/.env`):
+- `RSA_PRIVATE_KEY=`
+- `RSA_PRIVATE_KEY_PATH=keys/private_key.pem`
+
+Frontend (`horarios_frontend/.env`):
+- `VITE_RSA_PUBLIC_KEY="..."` con el valor que imprime el script.
+
+Con eso, login/registro cifrado quedan listos.
+
 ### Backend (`horarios_backend/.env`)
 
 Basado en `horarios_backend/.env.example`:
@@ -45,6 +68,10 @@ SECRET_KEY=your-secret-key-here
 DEBUG=True
 ALLOWED_HOSTS=
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+# Cifrado de requests (login/register)
+RSA_PRIVATE_KEY=
+RSA_PRIVATE_KEY_PATH=keys/private_key.pem
 ```
 
 Si usas otro puerto de Vite (por ejemplo 5174), agrégalo en `CORS_ALLOWED_ORIGINS`.
@@ -55,7 +82,13 @@ Basado en `horarios_frontend/.env.example`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
+VITE_RSA_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\nREEMPLAZAR_CON_LA_LLAVE_PUBLICA\n-----END PUBLIC KEY-----"
 ```
+
+Notas de cifrado RSA:
+- El frontend debe tener una clave publica PEM valida en `VITE_RSA_PUBLIC_KEY`.
+- El backend debe tener la clave privada PEM correspondiente en `RSA_PRIVATE_KEY` o `RSA_PRIVATE_KEY_PATH`.
+- Puedes generar ambas con `node scripts/generate-rsa-keys.mjs` y pegar manualmente los valores en `.env`.
 
 ## Instalación
 

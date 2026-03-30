@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
-import { getSubjects, updateSubject, deleteSubject } from '../api/subjectsApi';
+import { useCallback, useRef, useState } from 'react';
+import { getSubjectsPaginated, getSubject, updateSubject, deleteSubject, createSubject } from '../api/subjectsApi';
 
 export const useSubjects = () => {
-  const [subjects, setSubjects] = useState([]);
+  const [subjectsPage, setSubjectsPage] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [subjectLoading, setSubjectLoading] = useState(false);
+  const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
     { value: 'todos', label: 'Todas' },
@@ -16,49 +20,50 @@ export const useSubjects = () => {
     { value: 'inactivos', label: 'Inactivas' },
   ];
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async ({
+    page = 1,
+    limit = 10,
+    search = '',
+    estado = 'todos',
+    asc = true,
+  } = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getSubjects();
-      setSubjects(Array.isArray(response.data.data) ? response.data.data : []);
+
+      const status =
+        estado === 'todos'
+          ? undefined
+          : estado === 'activos'
+          ? 'true'
+          : 'false';
+
+      const order = asc ? 'ASC' : 'DESC';
+
+      const response = await getSubjectsPaginated({
+        page,
+        limit,
+        search,
+        status,
+        sortBy: 'name',
+        order,
+      });
+
+      setSubjectsPage(Array.isArray(response.data?.data) ? response.data.data : []);
+      setTotalItems(Number(response.data?.meta?.total) || 0);
+      lastQueryRef.current = { page, limit, search, estado, asc };
     } catch (err) {
       console.error('Error al cargar materias:', err);
       setError('No se pudieron cargar las materias. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const subjectsFiltered = subjects
-    .filter((subject) => {
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase();
-        const matchNombre = subject.name?.toLowerCase().includes(search);
-        const matchCodigo = subject.code?.toLowerCase().includes(search);
-        if (!matchNombre && !matchCodigo) return false;
-      }
-
-      if (estadoFiltro === 'activos' && !subject.is_active) return false;
-      if (estadoFiltro === 'inactivos' && subject.is_active) return false;
-
-      return true;
-    })
-    .sort((a, b) => {
-      const comparison = (a.name || '').localeCompare(b.name || '');
-      return ordenAscendente ? comparison : -comparison;
-    });
+  }, []);
 
   const handleToggleStatus = async (id, currentStatus) => {
     try {
       await updateSubject(id, { is_active: !currentStatus });
-      setSubjects((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, is_active: !currentStatus } : s))
-      );
+      await fetchSubjects(lastQueryRef.current);
     } catch (err) {
       console.error('Error al actualizar materia:', err);
       setError('No se pudo actualizar la materia.');
@@ -70,7 +75,7 @@ export const useSubjects = () => {
 
     try {
       await deleteSubject(deleteModal.id);
-      setSubjects((prev) => prev.filter((s) => s.id !== deleteModal.id));
+      await fetchSubjects(lastQueryRef.current);
       setDeleteModal({ isOpen: false, id: null });
     } catch (err) {
       console.error('Error al eliminar materia:', err);
@@ -78,9 +83,57 @@ export const useSubjects = () => {
     }
   };
 
+  const fetchSubjectById = useCallback(async (id) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      const response = await getSubject(id);
+      setSelectedSubject(response.data?.data || response.data);
+      return response.data?.data || response.data;
+    } catch (err) {
+      console.error('Error al cargar materia:', err);
+      setError('No se pudo cargar la materia.');
+      return null;
+    } finally {
+      setSubjectLoading(false);
+    }
+  }, []);
+
+  const handleCreateSubject = async (data) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      await createSubject(data);
+      await fetchSubjects(lastQueryRef.current);
+      return true;
+    } catch (err) {
+      console.error('Error al crear materia:', err);
+      setError('No se pudo crear la materia.');
+      return false;
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
+  const handleUpdateSubject = async (id, data) => {
+    try {
+      setSubjectLoading(true);
+      setError(null);
+      await updateSubject(id, data);
+      await fetchSubjects(lastQueryRef.current);
+      return true;
+    } catch (err) {
+      console.error('Error al actualizar materia:', err);
+      setError('No se pudo actualizar la materia.');
+      return false;
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
   return {
-    subjects,
-    subjectsFiltered,
+    subjectsPage,
+    totalItems,
     loading,
     error,
     setError,
@@ -96,5 +149,11 @@ export const useSubjects = () => {
     handleToggleStatus,
     handleDelete,
     fetchSubjects,
+    selectedSubject,
+    setSelectedSubject,
+    subjectLoading,
+    fetchSubjectById,
+    handleCreateSubject,
+    handleUpdateSubject,
   };
 };

@@ -1,20 +1,40 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, Trash2, ArrowUpDown, AlertCircle } from 'lucide-react';
+import { Plus, BookOpen, Eye, Pencil } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
-import { Switch } from '@shared/components/inputs/Switch';
-import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
+import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
+import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
+import { SideDrawer } from '@shared/components/layout/SideDrawer';
+import { EntityListItem } from '@shared/components/tables/EntityListItem';
+import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { useSubjects } from '../hooks/useSubjects';
+import { SubjectForm } from '../components/SubjectForm';
+import { SubjectDetail } from '../components/SubjectDetail';
 
 export const SubjectsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const pageChangeTimeoutRef = useRef(null);
+  const { shouldRun } = useRequestDeduper({ windowMs: 150 });
+  const ITEMS_PER_PAGE = 6;
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState('create'); // 'create', 'edit', 'view'
+  const [drawerSubject, setDrawerSubject] = useState(null);
+  const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
+
   const {
-    subjectsFiltered,
+    subjectsPage,
+    totalItems,
     loading,
     error,
     searchTerm,
@@ -28,188 +48,295 @@ export const SubjectsPage = () => {
     statusOptions,
     handleToggleStatus,
     handleDelete,
-    subjects,
+    fetchSubjects,
+    selectedSubject,
+    setSelectedSubject,
+    subjectLoading,
+    fetchSubjectById,
+    handleCreateSubject,
+    handleUpdateSubject,
   } = useSubjects();
 
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const selectedUniversityName = user?.selected_university?.short_name
+    || user?.selected_university?.name
+    || user?.selected_university
+    || 'Universidad seleccionada';
+
+  const isAnyRowActionRunning = rowActionState.subjectId !== null;
+
+  const runRowAction = async (subjectId, action, task) => {
+    if (isAnyRowActionRunning) {
+      return;
+    }
+
+    setRowActionState({ subjectId, action });
+
+    try {
+      await task();
+    } finally {
+      setRowActionState({ subjectId: null, action: null });
+    }
+  };
+
+  const handleOpenDrawerCreate = () => {
+    setDrawerMode('create');
+    setDrawerSubject(null);
+    setSelectedSubject(null);
+    setDrawerOpen(true);
+  };
+
+  const handleOpenDrawerView = async (id) => {
+    await runRowAction(id, 'view', async () => {
+      setDrawerMode('view');
+      const subjectData = await fetchSubjectById(id);
+      if (subjectData) {
+        setDrawerOpen(true);
+      }
+    });
+  };
+
+  const handleOpenDrawerEdit = async (id) => {
+    await runRowAction(id, 'edit', async () => {
+      setDrawerMode('edit');
+      const subjectData = await fetchSubjectById(id);
+      if (subjectData) {
+        setDrawerOpen(true);
+      }
+    });
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setDrawerMode('create');
+    setDrawerSubject(null);
+    setSelectedSubject(null);
+  };
+
+  const handleDrawerEditClick = () => {
+    if (selectedSubject) {
+      setDrawerMode('edit');
+    }
+  };
+
+  const handleFormSubmit = async (formData) => {
+    try {
+      let result;
+      if (drawerMode === 'create') {
+        result = await handleCreateSubject(formData);
+      } else if (drawerMode === 'edit') {
+        result = await handleUpdateSubject(selectedSubject.id, formData);
+      }
+
+      if (result) {
+        const action = drawerMode === 'create' ? 'creada' : 'actualizada';
+        toast.success(`Materia ${action} exitosamente`);
+        handleCloseDrawer();
+      }
+    } catch (err) {
+      console.error('Error en formulario:', err);
+    }
+  };
+
+  useEffect(() => {
+    const queryParams = {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: searchTerm,
+      estado: estadoFiltro,
+      asc: ordenAscendente,
+    };
+    const queryKey = buildRequestSignature(queryParams, ['page', 'limit', 'search', 'estado', 'asc']);
+
+    if (!shouldRun(queryKey)) {
+      return;
+    }
+
+    fetchSubjects(queryParams);
+  }, [
+    currentPage,
+    ITEMS_PER_PAGE,
+    searchTerm,
+    estadoFiltro,
+    ordenAscendente,
+    shouldRun,
+    fetchSubjects,
+  ]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    toast.error(error, { id: 'subjects-page-error' });
+  }, [error]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, setSearchTerm]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    return () => {
+      if (pageChangeTimeoutRef.current) {
+        clearTimeout(pageChangeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handlePageChange = (nextPage) => {
+    const safePage = Math.min(Math.max(nextPage, 1), totalPages);
+
+    if (pageChangeTimeoutRef.current) {
+      clearTimeout(pageChangeTimeoutRef.current);
+    }
+
+    pageChangeTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(safePage);
+    }, 500);
+  };
+
   if (!user?.selected_university) {
-    return (
-      <div
-        className="rounded-lg border p-6 text-center"
-        style={{
-          backgroundColor: 'var(--warning-subtle, #fef3c7)',
-          borderColor: 'var(--warning-border, #fcd34d)',
-        }}
-      >
-        <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--warning, #f59e0b)' }} />
-        <p className="font-medium" style={{ color: 'var(--warning-text, #92400e)' }}>
-          Por favor selecciona una universidad en el apartado de Universidades
-        </p>
-      </div>
-    );
+    return <SelectedUniversityAlert />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
-            Materias
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            Gestiona las materias de tu universidad
-          </p>
-        </div>
-        <ActionButton
-          icon={Plus}
-          label="Nueva Materia"
-          onClick={() => navigate('/usuario/materias/crear')}
-          variant="primary"
-          size="medium"
-          fullWidth={false}
-        />
-      </div>
-
-      {error && (
-        <div
-          className="rounded-lg p-4 border"
-          style={{
-            backgroundColor: 'var(--error-subtle, #fef2f2)',
-            borderColor: 'var(--error-border, #fee2e2)',
-          }}
-        >
-          <p style={{ color: 'var(--error, #dc2626)' }}>{error}</p>
-        </div>
-      )}
+      <PageSectionHeader
+        title="Materias"
+        contextLabel={`Materias de: ${selectedUniversityName}`}
+        actionIcon={Plus}
+        actionLabel="Nueva Materia"
+        onAction={handleOpenDrawerCreate}
+      />
 
       <SurfacePanel>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             label="Buscar Materia"
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Nombre o codigo"
+            reserveHelperSpace={false}
           />
 
           <Select
             label="Estado"
             value={estadoFiltro}
-            onChange={(e) => setEstadoFiltro(e.target.value)}
+            onChange={(e) => {
+              setEstadoFiltro(e.target.value);
+              setCurrentPage(1);
+            }}
             options={statusOptions}
             placeholder="Todas"
+            reserveHelperSpace={false}
           />
 
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
-              Orden
-            </label>
-            <ActionButton
-              icon={ArrowUpDown}
-              label={ordenAscendente ? 'A-Z' : 'Z-A'}
-              onClick={() => setOrdenAscendente((prev) => !prev)}
-              variant="outline"
-              size="medium"
-            />
-          </div>
+          <Select
+            label="Orden"
+            value={ordenAscendente ? 'asc' : 'desc'}
+            onChange={(e) => {
+              setOrdenAscendente(e.target.value === 'asc');
+              setCurrentPage(1);
+            }}
+            options={[
+              { value: 'asc', label: 'Ascendente' },
+              { value: 'desc', label: 'Descendente' },
+            ]}
+            placeholder="Ascendente"
+            showPlaceholderOption={false}
+            reserveHelperSpace={false}
+          />
         </div>
       </SurfacePanel>
 
-      {loading ? (
-        <SurfacePanel padding="p-12" centered>
-          <div className="inline-block">
-            <div
-              className="animate-spin w-8 h-8 border-4 rounded-full"
-              style={{
-                borderColor: 'var(--border-default, #d1d5db)',
-                borderTopColor: 'var(--primary-color, #2563eb)',
-              }}
-            />
-          </div>
-          <p className="mt-4" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            Cargando materias...
-          </p>
-        </SurfacePanel>
-      ) : subjectsFiltered.length === 0 ? (
-        <SurfacePanel padding="p-12" centered>
-          <BookOpen className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary, #6b7280)' }} />
-          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
-            {subjects.length === 0 ? 'No hay materias registradas' : 'No se encontraron materias'}
-          </h3>
-          <p className="mb-6" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            {subjects.length === 0 ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda'}
-          </p>
-          {subjects.length === 0 && (
-            <div className="flex justify-center">
-              <ActionButton
-                icon={Plus}
-                label="Agregar Materia"
-                onClick={() => navigate('/usuario/materias/crear')}
-                variant="primary"
-                size="medium"
-                fullWidth={false}
-              />
-            </div>
-          )}
-        </SurfacePanel>
-      ) : (
-        <SurfacePanel className="divide-y" padding="p-0">
-          {subjectsFiltered.map((subject) => (
-            <div
-              key={subject.id}
-              className="p-4 transition-colors hover:opacity-75"
-              style={{ backgroundColor: 'var(--bg-elevated, #ffffff)' }}
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 cursor-pointer" onClick={() => navigate(`/usuario/materias/editar/${subject.id}`)}>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: 'var(--primary-100, rgba(37, 99, 235, 0.1))' }}
-                    >
-                      <BookOpen className="w-5 h-5" style={{ color: 'var(--primary-color, #2563eb)' }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-medium truncate" style={{ color: 'var(--text-primary, #111827)' }}>
-                        {subject.name}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                        <span className="truncate">Codigo: {subject.code || '-'}</span>
-                        {subject.credits ? (
-                          <>
-                            <span>•</span>
-                            <span>{subject.credits} creditos</span>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      <EntityListStateRenderer
+        loading={loading}
+        loadingMessage="Cargando materias..."
+        items={subjectsPage}
+        getItemKey={(subject) => subject.id}
+        emptyState={{
+          icon: BookOpen,
+          title: !searchTerm && estadoFiltro === 'todos' ? 'No hay materias registradas' : 'No se encontraron materias',
+          description: !searchTerm && estadoFiltro === 'todos' ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda',
+          actionIcon: !searchTerm && estadoFiltro === 'todos' ? Plus : undefined,
+          actionLabel: !searchTerm && estadoFiltro === 'todos' ? 'Agregar Materia' : undefined,
+          onAction: !searchTerm && estadoFiltro === 'todos' ? handleOpenDrawerCreate : undefined,
+        }}
+        renderItem={(subject, index) => (
+          <EntityListItem
+            icon={BookOpen}
+            title={subject.name}
+            metaItems={[
+              `Codigo: ${subject.code || '-'}`,
+              subject.credits ? `${subject.credits} creditos` : null,
+            ]}
+            isActive={subject.is_active}
+            activeText="Activa"
+            inactiveText="Inactiva"
+            onToggleStatus={() => runRowAction(
+              subject.id,
+              'toggle',
+              async () => handleToggleStatus(subject.id, Boolean(subject.is_active)),
+            )}
+            onView={() => handleOpenDrawerView(subject.id)}
+            onEdit={() => handleOpenDrawerEdit(subject.id)}
+            onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
+            showBottomBorder={index < subjectsPage.length - 1}
+            loadingAction={rowActionState.subjectId === subject.id ? rowActionState.action : null}
+            actionsDisabled={isAnyRowActionRunning && rowActionState.subjectId !== subject.id}
+          />
+        )}
+        pagination={{
+          currentPage,
+          totalPages,
+          totalItems,
+          itemsPerPage: ITEMS_PER_PAGE,
+          onPageChange: handlePageChange,
+        }}
+      />
 
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                      {subject.is_active ? 'Activa' : 'Inactiva'}
-                    </span>
-                    <Switch
-                      checked={subject.is_active}
-                      onCheckedChange={() => handleToggleStatus(subject.id, subject.is_active)}
-                    />
-                  </div>
-                  <ActionButton
-                    icon={Trash2}
-                    label=""
-                    onClick={() => setDeleteModal({ isOpen: true, id: subject.id })}
-                    variant="secondary"
-                    size="small"
-                    fullWidth={false}
-                    customStyle={{ padding: '0.375rem' }}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </SurfacePanel>
-      )}
+      <SideDrawer
+        isOpen={drawerOpen}
+        onClose={handleCloseDrawer}
+        title={
+          drawerMode === 'create'
+            ? 'Crear Nueva Materia'
+            : drawerMode === 'edit'
+            ? 'Editar Materia'
+            : `${selectedSubject?.name || 'Detalle'}`
+        }
+        size="md"
+        headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
+        headerBadge={drawerMode === 'create' ? 'Crear' : drawerMode === 'edit' ? 'Editar' : 'Ver'}
+      >
+        {drawerMode === 'view' ? (
+          <SubjectDetail
+            subject={selectedSubject}
+            onClose={handleCloseDrawer}
+            onEdit={handleDrawerEditClick}
+          />
+        ) : (
+          <SubjectForm
+            initialData={selectedSubject}
+            isLoading={subjectLoading}
+            onSubmit={handleFormSubmit}
+            onCancel={handleCloseDrawer}
+            mode={drawerMode}
+          />
+        )}
+      </SideDrawer>
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}

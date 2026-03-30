@@ -48,7 +48,7 @@ def _set_refresh_cookie(response, refresh_token: str) -> None:
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
-    """@decrypt_request()"""
+    @decrypt_request()
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         """Autentica al usuario y establece access/refresh en cookies HttpOnly."""
@@ -99,7 +99,7 @@ class RefreshView(APIView):
 class RegisterView(APIView):
     permission_classes = []
 
-    """@decrypt_request()"""
+    @decrypt_request()
     @transaction.atomic
     def post(self, request):
         """Registra un nuevo usuario con rol usuario."""

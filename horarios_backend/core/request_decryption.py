@@ -28,6 +28,12 @@ def _b64decode(value: str) -> bytes:
         return base64.urlsafe_b64decode(raw)
 
 
+def _is_encrypted_request(request) -> bool:
+    """Determina si la solicitud viene marcada para descifrado."""
+    header_value = request.headers.get('X-Encrypted', '')
+    return str(header_value).strip().lower() in {'true', '1', 'yes'}
+
+
 @lru_cache(maxsize=1)
 def _load_rsa_private_key():
     """
@@ -129,6 +135,10 @@ def decrypt_request(message: str = _DECRYPT_ERROR_MESSAGE):
     def decorator(func):
         @wraps(func)
         def wrapper(self, request, *args, **kwargs):
+            # Si el request no viene marcado como cifrado, se procesa normalmente.
+            if not _is_encrypted_request(request):
+                return func(self, request, *args, **kwargs)
+
             try:
                 encrypted_key_b64  = request.data.get('key')
                 iv_b64             = request.data.get('iv')

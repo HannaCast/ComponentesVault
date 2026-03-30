@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Componente de panel reutilizable con estilos base para superficies elevadas o de fondo, con opciones de padding y centrado.
 export const SurfacePanel = ({
   children,
   className = '',

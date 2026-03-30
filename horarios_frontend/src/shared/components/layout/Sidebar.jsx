@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
 
+// Componente de barra lateral para navegación principal, adaptada según el rol del usuario (admin o usuario regular).
 /**
  * Sidebar principal de navegacion.
  * Props:
@@ -23,13 +24,13 @@ export const Sidebar = ({ collapsed = false, className = '' }) => {
   const { user } = useAuth();
 
   const menuItemsUser = [
-    { icon: Calendar, label: 'Generar Horario', path: '/usuario/generar-horario' },
+    { icon: Calendar, label: 'Generar Horario', path: '/usuario/universidad/generar-horario' },
     { icon: School, label: 'Universidades', path: '/usuario/universidades' },
-    { icon: GraduationCap, label: 'Carreras', path: '/usuario/carreras' },
-    { icon: BookOpen, label: 'Materias', path: '/usuario/materias' },
-    { icon: Users, label: 'Grupos', path: '/usuario/grupos' },
-    { icon: UserCheck, label: 'Profesores', path: '/usuario/profesores' },
-    { icon: Building2, label: 'Aulas', path: '/usuario/aulas' },
+    { icon: GraduationCap, label: 'Carreras', path: '/usuario/universidad/carreras' },
+    { icon: BookOpen, label: 'Materias', path: '/usuario/universidad/materias' },
+    { icon: Users, label: 'Grupos', path: '/usuario/universidad/grupos' },
+    { icon: UserCheck, label: 'Profesores', path: '/usuario/universidad/profesores' },
+    { icon: Building2, label: 'Aulas', path: '/usuario/universidad/aulas' },
     { icon: Settings, label: 'Ajustes', path: '/usuario/ajustes' },
   ];
 

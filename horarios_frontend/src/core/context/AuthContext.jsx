@@ -75,8 +75,8 @@ export const AuthProvider = ({ children }) => {
         return userData;
       }
       return null;
-    } catch {
-      return null;
+    } catch (error) {
+      throw error;
     }
   };
 
