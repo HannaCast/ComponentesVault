@@ -11,3 +11,8 @@ from .careers import (
     CareerPaginatedView,
     CareerToggleStatusView,
 )
+
+from .career_period_exceptions import (
+    CareerPeriodExceptionDetailView,
+    CareerPeriodExceptionListView,
+)
