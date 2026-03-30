@@ -4,3 +4,9 @@ from .modalities import (
     ModalitiesWriteSerializer,
     ModalitiesSelectSerializer,
 )
+
+from .career_period_exceptions import (
+    CareerPeriodExceptionDetailSerializer,
+    CareerPeriodExceptionListSerializer,
+    CareerPeriodExceptionWriteSerializer,
+)
