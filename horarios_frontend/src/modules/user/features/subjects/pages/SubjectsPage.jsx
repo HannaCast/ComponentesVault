@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Eye, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
@@ -18,7 +17,6 @@ import { SubjectForm } from '../components/SubjectForm';
 import { SubjectDetail } from '../components/SubjectDetail';
 
 export const SubjectsPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -30,9 +28,13 @@ export const SubjectsPage = () => {
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState('create'); // 'create', 'edit', 'view'
-  const [drawerSubject, setDrawerSubject] = useState(null);
   const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
   const [isOpeningCreate, setIsOpeningCreate] = useState(false);
+  const [saveModal, setSaveModal] = useState({
+    isOpen: false,
+    mode: 'create',
+    formData: null,
+  });
   const [toggleModal, setToggleModal] = useState({
     isOpen: false,
     id: null,
@@ -103,7 +105,6 @@ export const SubjectsPage = () => {
     try {
       await loadCatalogsForModal('create');
       setDrawerMode('create');
-      setDrawerSubject(null);
       setSelectedSubject(null);
       setDrawerOpen(true);
     } finally {
@@ -152,8 +153,8 @@ export const SubjectsPage = () => {
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setDrawerMode('create');
-    setDrawerSubject(null);
     setSelectedSubject(null);
+    setSaveModal({ isOpen: false, mode: 'create', formData: null });
   };
 
   const handleOpenToggleModal = (subject) => {
@@ -188,17 +189,32 @@ export const SubjectsPage = () => {
     }
   };
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = (formData) => {
+    setSaveModal({
+      isOpen: true,
+      mode: drawerMode === 'edit' ? 'edit' : 'create',
+      formData,
+    });
+  };
+
+  const handleConfirmSave = async () => {
+    const pendingData = saveModal.formData;
+    const pendingMode = saveModal.mode;
+
+    if (!pendingData) {
+      return;
+    }
+
     try {
       let result;
-      if (drawerMode === 'create') {
-        result = await handleCreateSubject(formData);
-      } else if (drawerMode === 'edit') {
-        result = await handleUpdateSubject(selectedSubject.id, formData);
+      if (pendingMode === 'create') {
+        result = await handleCreateSubject(pendingData);
+      } else if (pendingMode === 'edit' && selectedSubject?.id) {
+        result = await handleUpdateSubject(selectedSubject.id, pendingData);
       }
 
       if (result) {
-        const action = drawerMode === 'create' ? 'creada' : 'actualizada';
+        const action = pendingMode === 'create' ? 'creada' : 'actualizada';
         toast.success(`Materia ${action} exitosamente`);
         handleCloseDrawer();
       }
@@ -412,6 +428,18 @@ export const SubjectsPage = () => {
           />
         )}
       </SideDrawer>
+
+      <ConfirmModal
+        isOpen={saveModal.isOpen}
+        onClose={() => setSaveModal({ isOpen: false, mode: 'create', formData: null })}
+        onConfirm={handleConfirmSave}
+        title={saveModal.mode === 'edit' ? 'Confirmar Guardado' : 'Confirmar Creación'}
+        message={saveModal.mode === 'edit'
+          ? '¿Deseas guardar los cambios de esta materia?'
+          : '¿Deseas crear esta materia con la información capturada?'}
+        confirmLabel={saveModal.mode === 'edit' ? 'Guardar' : 'Crear'}
+        closeOnConfirm={true}
+      />
 
       <ConfirmModal
         isOpen={toggleModal.isOpen}
