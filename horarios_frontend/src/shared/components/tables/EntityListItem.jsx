@@ -51,9 +51,9 @@ export const EntityListItem = ({
         borderBottom: showBottomBorder ? '1px solid var(--border-subtle, #e5e7eb)' : 'none',
       }}
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div
-          className={`flex-1 ${onContentClick ? 'cursor-pointer' : ''}`}
+          className={`w-full min-w-0 sm:flex-1 ${onContentClick ? 'cursor-pointer' : ''}`}
           onClick={onContentClick}
         >
           <div className="flex items-center gap-3">
@@ -65,22 +65,33 @@ export const EntityListItem = ({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="font-medium truncate" style={{ color: 'var(--text-primary, #111827)' }}>
+              <h3
+                className="font-medium truncate"
+                style={{ color: 'var(--text-primary, #111827)' }}
+                title={title}
+              >
                 {title}
               </h3>
 
               {subtitle ? (
-                <p className="text-sm mt-1 truncate" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                <p
+                  className="text-sm mt-1 truncate"
+                  style={{ color: 'var(--text-secondary, #6b7280)' }}
+                  title={subtitle}
+                >
                   {subtitle}
                 </p>
               ) : null}
 
               {visibleMetaItems.length > 0 ? (
-                <div className="flex items-center gap-2 text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                <div
+                  className="flex items-center gap-2 text-sm mt-1 min-w-0 overflow-hidden whitespace-nowrap"
+                  style={{ color: 'var(--text-secondary, #6b7280)' }}
+                >
                   {visibleMetaItems.map((item, idx) => (
                     <React.Fragment key={`${item}-${idx}`}>
-                      {idx > 0 ? <span>•</span> : null}
-                      <span className="truncate">{item}</span>
+                      {idx > 0 ? <span className="shrink-0">•</span> : null}
+                      <span className="truncate max-w-[10rem] sm:max-w-[14rem]" title={item}>{item}</span>
                     </React.Fragment>
                   ))}
                 </div>
@@ -89,8 +100,8 @@ export const EntityListItem = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 md:gap-3">
+            <div className="flex items-center gap-2 shrink-0">
                 <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                     {isActive ? activeText : inactiveText}
                 </span>
@@ -110,7 +121,7 @@ export const EntityListItem = ({
             </div>
 
             {(onView || onEdit || onDelete) && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 {onView ? (
                   isLoadingView ? (
                     <ActionButton

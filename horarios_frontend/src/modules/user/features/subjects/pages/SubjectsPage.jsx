@@ -332,6 +332,7 @@ export const SubjectsPage = () => {
             }}
             options={statusOptions}
             placeholder="Todas"
+            showPlaceholderOption={false}
             reserveHelperSpace={false}
           />
 

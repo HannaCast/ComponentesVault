@@ -27,7 +27,7 @@ export const PageSectionHeader = ({
   actionVariant = 'primary',
 }) => {
   return (
-    <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
         <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
           {title}
@@ -52,6 +52,7 @@ export const PageSectionHeader = ({
         </div>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap justify-center">
       {actionLabel && onAction ? (
         <ActionButton
           icon={actionIcon}
@@ -65,6 +66,7 @@ export const PageSectionHeader = ({
           fullWidth={false}
         />
       ) : null}
+      </div>
     </div>
   );
 };
