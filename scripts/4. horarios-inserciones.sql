@@ -72,3 +72,13 @@ INSERT INTO teachers (name, surname, last_name, require_classroom, status, is_de
 ('Gabriela',  'Martínez',   'Aguilar',   0, 1, 0),
 ('Carlos',    'López',      'Medina',    1, 1, 0),
 ('María',     'Sánchez',    NULL,        0, 1, 0);
+
+
+-----------------------------------------------------
+/*           TABLA DE TIPOS DE AULA                 */
+-----------------------------------------------------
+
+INSERT INTO classroom_types (name, description, status, is_deleted) VALUES
+('CompuAula',   NULL, 1, 0),
+('Aula',        NULL, 1, 0),
+('Laboratoria', NULL, 1, 0);
