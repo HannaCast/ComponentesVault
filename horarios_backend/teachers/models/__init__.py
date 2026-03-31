@@ -1,1 +1,2 @@
 from .teachers import Teachers
+from .teacher_availabilities import TeacherAvailabilities
