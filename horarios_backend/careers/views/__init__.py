@@ -16,3 +16,8 @@ from .career_period_exceptions import (
     CareerPeriodExceptionDetailView,
     CareerPeriodExceptionListView,
 )
+
+from .career_subjects import (
+    CareerSubjectDetailView,
+    CareerSubjectListView,
+)

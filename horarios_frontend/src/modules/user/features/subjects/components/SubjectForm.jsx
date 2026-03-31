@@ -5,7 +5,7 @@ import Checkbox from '@shared/components/inputs/Checkbox';
 import { ColorSwatchPicker } from '@shared/components/inputs/ColorSwatchPicker';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectableListField } from '@shared/components/inputs/SelectableListField';
-import toast from 'react-hot-toast';
+import { subjectValidationSchema } from '../validations/subjectValidationSchema';
 
 export const SubjectForm = ({
   initialData = null,
@@ -31,6 +31,26 @@ export const SubjectForm = ({
 
   const [professorsTemp, setProfessorsTemp] = useState('');
   const [careersTemp, setCareersTemp] = useState('');
+  const [careersPeriodTemp, setCareersPeriodTemp] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+
+  const getCareerById = (careerId) => {
+    const target = String(careerId || '').trim();
+    return careerOptions.find((career) => String(career.value) === target) || null;
+  };
+
+  const clearCareersError = () => {
+    setFormErrors((prev) => {
+      if (!prev.careers) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        careers: '',
+      };
+    });
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -42,14 +62,54 @@ export const SubjectForm = ({
               const rawValue = career.id ?? career.value;
               const value = String(rawValue || '').trim();
               const label = career.name ?? career.label ?? value;
-              return value ? { value, label: String(label || value) } : null;
+              const periodNumber = Number.parseInt(career.period_number, 10);
+
+              return value
+                ? {
+                    value,
+                    label: String(label || value),
+                    period_number: Number.isFinite(periodNumber) && periodNumber > 0
+                      ? periodNumber
+                      : 1,
+                  }
+                : null;
             }
 
             const value = String(career || '').trim();
-            return value ? { value, label: value } : null;
+            return value ? { value, label: value, period_number: 1 } : null;
           })
           .filter(Boolean)
         : [];
+
+      const normalizedProfessors = Array.isArray(initialData.teachers)
+        ? initialData.teachers
+          .map((teacher) => {
+            if (teacher && typeof teacher === 'object') {
+              const rawValue = teacher.id ?? teacher.value;
+              const value = String(rawValue || '').trim();
+              const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
+              return value ? { value, label: String(label || value) } : null;
+            }
+
+            const value = String(teacher || '').trim();
+            return value ? { value, label: value } : null;
+          })
+          .filter(Boolean)
+        : Array.isArray(initialData.professors)
+          ? initialData.professors
+            .map((teacher) => {
+              if (teacher && typeof teacher === 'object') {
+                const rawValue = teacher.id ?? teacher.value;
+                const value = String(rawValue || '').trim();
+                const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
+                return value ? { value, label: String(label || value) } : null;
+              }
+
+              const value = String(teacher || '').trim();
+              return value ? { value, label: value } : null;
+            })
+            .filter(Boolean)
+          : [];
 
       setFormData({
         name: initialData.name || '',
@@ -59,7 +119,7 @@ export const SubjectForm = ({
         hours_per_week: initialData.hours_per_week || '',
         color: Number.isFinite(parsedColorId) && parsedColorId > 0 ? String(parsedColorId) : '',
         careers: normalizedCareers,
-        professors: initialData.professors || [],
+        professors: normalizedProfessors,
         is_mandatory: Number(initialData.is_mandatory) === 1,
       });
     }
@@ -70,11 +130,25 @@ export const SubjectForm = ({
       ...prev,
       [field]: value,
     }));
+
+    setFormErrors((prev) => {
+      if (!prev[field]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [field]: '',
+      };
+    });
   };
 
-  const handleAddCareer = (careerValue = careersTemp, careerLabel = '') => {
+  const handleAddCareer = (careerValue = careersTemp, careerLabel = '', periodValue = careersPeriodTemp) => {
     const nextCareer = String(careerValue || '').trim();
-    const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const optionLabel = careerOptions.find((item) => String(item.value) === nextCareer)?.label;
+    const nextCareerLabel = String(careerLabel || optionLabel || nextCareer).trim();
+    const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
+    const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
     if (nextCareer) {
       if (
@@ -91,9 +165,18 @@ export const SubjectForm = ({
 
       setFormData((prev) => ({
         ...prev,
-        careers: [...prev.careers, { value: nextCareer, label: nextCareerLabel }],
+        careers: [
+          ...prev.careers,
+          {
+            value: nextCareer,
+            label: nextCareerLabel,
+            period_number: nextPeriodNumber,
+          },
+        ],
       }));
       setCareersTemp('');
+      setCareersPeriodTemp('');
+      clearCareersError();
     }
   };
 
@@ -102,37 +185,56 @@ export const SubjectForm = ({
       ...prev,
       careers: prev.careers.filter((_, i) => i !== index),
     }));
+    clearCareersError();
   };
 
-  const handleUpdateCareer = (index, careerValue, careerLabel = '') => {
+  const handleUpdateCareer = (index, careerValue, careerLabel = '', periodValue = 1) => {
     const nextCareer = String(careerValue || '').trim();
-    const nextCareerLabel = String(careerLabel || nextCareer).trim();
+    const optionLabel = careerOptions.find((item) => String(item.value) === nextCareer)?.label;
+    const nextCareerLabel = String(careerLabel || optionLabel || nextCareer).trim();
+    const parsedPeriod = Number.parseInt(String(periodValue || '').trim(), 10);
+    const nextPeriodNumber = Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1;
 
     if (!nextCareer) return;
 
     setFormData((prev) => {
       const nextCareers = [...prev.careers];
-      nextCareers[index] = { value: nextCareer, label: nextCareerLabel };
+      nextCareers[index] = {
+        value: nextCareer,
+        label: nextCareerLabel,
+        period_number: nextPeriodNumber,
+      };
 
       return {
         ...prev,
         careers: nextCareers,
       };
     });
+    clearCareersError();
   };
 
   const handleAddProfessor = (professorValue = professorsTemp) => {
     const nextProfessor = String(professorValue || '').trim();
+    const nextProfessorLabel = String(
+      professorOptions.find((item) => String(item.value) === nextProfessor)?.label || nextProfessor,
+    ).trim();
 
     if (nextProfessor) {
-      if (formData.professors.some((professor) => String(professor) === nextProfessor)) {
+      if (
+        formData.professors.some((professor) => {
+          if (professor && typeof professor === 'object') {
+            return String(professor.value) === nextProfessor;
+          }
+          return String(professor) === nextProfessor;
+        })
+      ) {
         setProfessorsTemp('');
         return;
       }
 
       setFormData((prev) => ({
         ...prev,
-        professors: [...prev.professors, nextProfessor],
+        professors: [...prev.professors, { value: nextProfessor, label: nextProfessorLabel }],
       }));
       setProfessorsTemp('');
     }
@@ -145,14 +247,16 @@ export const SubjectForm = ({
     }));
   };
 
-  const handleUpdateProfessor = (index, professorValue) => {
+  const handleUpdateProfessor = (index, professorValue, professorLabel = '') => {
     const nextProfessor = String(professorValue || '').trim();
+    const optionLabel = professorOptions.find((item) => String(item.value) === nextProfessor)?.label;
+    const nextProfessorLabel = String(professorLabel || optionLabel || nextProfessor).trim();
 
     if (!nextProfessor) return;
 
     setFormData((prev) => {
       const nextProfessors = [...prev.professors];
-      nextProfessors[index] = nextProfessor;
+      nextProfessors[index] = { value: nextProfessor, label: nextProfessorLabel };
 
       return {
         ...prev,
@@ -161,52 +265,150 @@ export const SubjectForm = ({
     });
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      toast.error('El nombre de la materia es requerido');
+  const validateForm = async (dataToValidate = formData) => {
+    try {
+      await subjectValidationSchema.validate(dataToValidate, {
+        abortEarly: false,
+        context: { mode },
+      });
+
+      for (const career of dataToValidate.careers) {
+        if (!career || typeof career !== 'object') {
+          continue;
+        }
+
+        const selectedCareer = getCareerById(career.value);
+        const maxPeriods = Number.parseInt(selectedCareer?.total_periods, 10);
+        const periodNumber = Number.parseInt(career.period_number, 10);
+
+        if (
+          Number.isFinite(maxPeriods)
+          && maxPeriods > 0
+          && Number.isFinite(periodNumber)
+          && periodNumber > maxPeriods
+        ) {
+          setFormErrors({
+            careers: (
+              `El periodo para ${selectedCareer?.label || 'la carrera seleccionada'} `
+              + `no puede ser mayor a ${maxPeriods}.`
+            ),
+          });
+          return false;
+        }
+      }
+
+      setFormErrors({});
+      return true;
+    } catch (error) {
+      const nextErrors = {};
+
+      if (Array.isArray(error?.inner) && error.inner.length > 0) {
+        error.inner.forEach((validationError) => {
+          if (!validationError?.path || nextErrors[validationError.path]) {
+            return;
+          }
+
+          nextErrors[validationError.path] = validationError.message;
+        });
+      }
+
+      setFormErrors(nextErrors);
       return false;
     }
-    if (!formData.code.trim()) {
-      toast.error('El código es requerido');
-      return false;
-    }
-    if (!formData.short_name.trim()) {
-      toast.error('El nombre corto es requerido');
-      return false;
-    }
-    if (!formData.hours_per_week || Number(formData.hours_per_week) <= 0) {
-      toast.error('Las horas por semana son requeridas y deben ser mayores a 0');
-      return false;
-    }
-    if (mode === 'create' && !formData.color) {
-      toast.error('Debes seleccionar un color');
-      return false;
-    }
-    return true;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
+
+    // Auto-attach pending selections so users don't lose a selected item if they skip "Agregar".
+    const effectiveCareers = [...formData.careers];
+    const pendingCareer = String(careersTemp || '').trim();
+    if (pendingCareer && !effectiveCareers.some((row) => String(row?.value) === pendingCareer)) {
+      const parsedPeriod = Number.parseInt(String(careersPeriodTemp || '').trim(), 10);
+      const optionLabel = careerOptions.find((item) => String(item.value) === pendingCareer)?.label;
+
+      effectiveCareers.push({
+        value: pendingCareer,
+        label: String(optionLabel || pendingCareer),
+        period_number: Number.isFinite(parsedPeriod) && parsedPeriod > 0 ? parsedPeriod : 1,
+      });
+    }
+
+    const effectiveProfessors = [...formData.professors];
+    const pendingProfessor = String(professorsTemp || '').trim();
+    if (pendingProfessor && !effectiveProfessors.some((row) => String(row?.value) === pendingProfessor)) {
+      const optionLabel = professorOptions.find((item) => String(item.value) === pendingProfessor)?.label;
+      effectiveProfessors.push({
+        value: pendingProfessor,
+        label: String(optionLabel || pendingProfessor),
+      });
+    }
+
+    const effectiveFormData = {
+      ...formData,
+      careers: effectiveCareers,
+      professors: effectiveProfessors,
+    };
+
+    if (!(await validateForm(effectiveFormData))) {
       return;
     }
 
     const submitData = {
-      ...formData,
-      hours_per_week: Number.parseInt(formData.hours_per_week, 10),
-      is_mandatory: formData.is_mandatory ? 1 : 0,
-      careers: formData.careers
+      ...effectiveFormData,
+      hours_per_week: Number.parseInt(effectiveFormData.hours_per_week, 10),
+      is_mandatory: effectiveFormData.is_mandatory ? 1 : 0,
+      careers: effectiveFormData.careers
         .map((career) => {
           if (career && typeof career === 'object') {
-            return Number.parseInt(career.value, 10);
+            const careerId = Number.parseInt(career.value, 10);
+            const periodNumber = Number.parseInt(career.period_number, 10);
+
+            if (!Number.isFinite(careerId)) {
+              return null;
+            }
+
+            return {
+              career_id: careerId,
+              period_number: Number.isFinite(periodNumber) && periodNumber > 0
+                ? periodNumber
+                : 1,
+            };
           }
-          return Number.parseInt(career, 10);
+          const careerId = Number.parseInt(career, 10);
+          if (!Number.isFinite(careerId)) {
+            return null;
+          }
+
+          return {
+            career_id: careerId,
+            period_number: 1,
+          };
         })
-        .filter(Number.isFinite),
+        .filter(Boolean),
+      teachers: effectiveFormData.professors
+        .map((professor) => {
+          if (professor && typeof professor === 'object') {
+            const teacherId = Number.parseInt(professor.value, 10);
+            if (!Number.isFinite(teacherId)) {
+              return null;
+            }
+            return { teacher_id: teacherId };
+          }
+
+          const teacherId = Number.parseInt(professor, 10);
+          if (!Number.isFinite(teacherId)) {
+            return null;
+          }
+          return { teacher_id: teacherId };
+        })
+        .filter(Boolean),
     };
 
-    if (formData.color) {
-      submitData.color = Number.parseInt(formData.color, 10);
+    delete submitData.professors;
+
+    if (effectiveFormData.color) {
+      submitData.color = Number.parseInt(effectiveFormData.color, 10);
     } else {
       delete submitData.color;
     }
@@ -226,6 +428,7 @@ export const SubjectForm = ({
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
           placeholder="Ej: Administración de Base de Datos"
+          error={formErrors.name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -239,6 +442,7 @@ export const SubjectForm = ({
           value={formData.short_name}
           onChange={(e) => handleInputChange('short_name', e.target.value)}
           placeholder="Ej: ABD"
+          error={formErrors.short_name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -248,6 +452,7 @@ export const SubjectForm = ({
           value={formData.code}
           onChange={(e) => handleInputChange('code', e.target.value)}
           placeholder="Ej: ABD-01"
+          error={formErrors.code}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
         />
@@ -271,6 +476,7 @@ export const SubjectForm = ({
         value={formData.hours_per_week}
         onChange={(e) => handleInputChange('hours_per_week', e.target.value)}
         placeholder="Ej: 4"
+        error={formErrors.hours_per_week}
         disabled={isViewMode || isLoading}
         min="0"
         max="168"
@@ -280,15 +486,24 @@ export const SubjectForm = ({
       {/* Carreras */}
       <SelectableListField
         label="Carreras a las que pertenece esta materia"
+        error={formErrors.careers}
         selectedValues={formData.careers}
         options={careerOptions}
         selectedOption={careersTemp}
+        selectedSecondaryOption={careersPeriodTemp}
         onSelectedOptionChange={setCareersTemp}
+        onSelectedSecondaryOptionChange={setCareersPeriodTemp}
         onAdd={handleAddCareer}
         onUpdate={handleUpdateCareer}
         onRemove={handleRemoveCareer}
         placeholder="Seleccionar carrera"
         addLabel="Agregar Carrera"
+        enableSecondaryField
+        primaryLabel="Carrera"
+        secondaryLabel="Periodo"
+        secondaryPlaceholder="1"
+        secondaryType="number"
+        secondaryMin={1}
         disabled={isViewMode || isLoading}
       />
 
@@ -315,6 +530,7 @@ export const SubjectForm = ({
         options={colorOptions}
         disabled={isViewMode || isLoading}
         required={mode === 'create'}
+        error={formErrors.color}
         helperText="Selecciona un color visual para identificar la materia"
       />
 

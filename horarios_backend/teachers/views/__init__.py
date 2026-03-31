@@ -5,3 +5,4 @@ from .teacher_availabilities import (
     TeacherAvailabilityDetailView,
     TeacherAvailabilityToggleView,
 )
+from .teachers_subjects import TeacherSubjectListView, TeacherSubjectDetailView

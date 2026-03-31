@@ -7,4 +7,4 @@ class CareerSelectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Careers
-        fields = ['id', 'name', 'short_name', 'modality']
+        fields = ['id', 'name', 'short_name', 'modality', 'total_periods']

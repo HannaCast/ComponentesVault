@@ -48,6 +48,10 @@ export const createSubject = (data) =>
 export const updateSubject = (id, data) => 
   apiToken.put(`/api/v1/university/subjects/${id}/`, data);
 
+// Cambiar estado (activo/inactivo) de una materia
+export const toggleSubjectStatus = (id) =>
+  apiToken.put(`/api/v1/university/subjects/${id}/toggle-status/`);
+
 // Eliminar una materia
 export const deleteSubject = (id) => 
   apiToken.delete(`/api/v1/university/subjects/${id}/`);

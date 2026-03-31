@@ -33,6 +33,12 @@ export const SubjectsPage = () => {
   const [drawerSubject, setDrawerSubject] = useState(null);
   const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
   const [isOpeningCreate, setIsOpeningCreate] = useState(false);
+  const [toggleModal, setToggleModal] = useState({
+    isOpen: false,
+    id: null,
+    name: '',
+    isCurrentlyActive: false,
+  });
 
   const {
     subjectsPage,
@@ -150,6 +156,31 @@ export const SubjectsPage = () => {
     setSelectedSubject(null);
   };
 
+  const handleOpenToggleModal = (subject) => {
+    setToggleModal({
+      isOpen: true,
+      id: subject.id,
+      name: subject.name || 'la materia',
+      isCurrentlyActive: Number(subject.status) === 1,
+    });
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!toggleModal.id) {
+      return;
+    }
+
+    const wasActive = toggleModal.isCurrentlyActive;
+
+    await runRowAction(toggleModal.id, 'toggle', async () => {
+      await handleToggleStatus(toggleModal.id);
+    });
+
+    toast.success(
+      `Materia ${wasActive ? 'desactivada' : 'activada'} exitosamente`
+    );
+  };
+
   const handleDrawerEditClick = async () => {
     if (selectedSubject) {
       await loadCatalogsForModal('edit');
@@ -206,8 +237,12 @@ export const SubjectsPage = () => {
       return;
     }
 
+    if (drawerOpen && drawerMode !== 'view') {
+      return;
+    }
+
     toast.error(error, { id: 'subjects-page-error' });
-  }, [error]);
+  }, [error, drawerOpen, drawerMode]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -318,19 +353,15 @@ export const SubjectsPage = () => {
         renderItem={(subject, index) => (
           <EntityListItem
             icon={BookOpen}
-            title={subject.name}
+            title={`${subject.name} ${subject.short_name ? `(${subject.short_name})` : ''}`}
             metaItems={[
               `Codigo: ${subject.code || '-'}`,
               subject.credits ? `${subject.credits} creditos` : null,
             ]}
-            isActive={subject.is_active}
+            isActive={Number(subject.status) === 1}
             activeText="Activa"
             inactiveText="Inactiva"
-            onToggleStatus={() => runRowAction(
-              subject.id,
-              'toggle',
-              async () => handleToggleStatus(subject.id, Boolean(subject.is_active)),
-            )}
+            onToggleStatus={() => handleOpenToggleModal(subject)}
             onView={() => handleOpenDrawerView(subject.id)}
             onEdit={() => handleOpenDrawerEdit(subject.id)}
             onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
@@ -358,7 +389,7 @@ export const SubjectsPage = () => {
               ? 'Editar Materia'
               : `${selectedSubject?.name || 'Detalle'}`
         }
-        size="md"
+        size="lg"
         headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
         headerBadge={drawerMode === 'create' ? 'Crear' : drawerMode === 'edit' ? 'Editar' : 'Ver'}
       >
@@ -383,11 +414,23 @@ export const SubjectsPage = () => {
       </SideDrawer>
 
       <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        onClose={() => setToggleModal({ isOpen: false, id: null, name: '', isCurrentlyActive: false })}
+        onConfirm={handleConfirmToggleStatus}
+        title={toggleModal.isCurrentlyActive ? 'Desactivar Materia' : 'Activar Materia'}
+        message={toggleModal.isCurrentlyActive
+          ? 'Al desactivar esta materia no se tomará en cuenta para la generación de horarios. ¿Deseas continuar?'
+          : 'Esta materia volverá a considerarse para la generación de horarios. ¿Deseas continuar?'}
+        confirmLabel={toggleModal.isCurrentlyActive ? 'Desactivar' : 'Activar'}
+      />
+
+      <ConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, id: null })}
         onConfirm={handleDelete}
         title="Eliminar Materia"
         message="Esta seguro que desea eliminar esta materia? Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
       />
     </div>
   );
