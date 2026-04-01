@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Landing } from '../../modules/auth/pages/Landing';
 import { Login } from '../../modules/auth/pages/Login';
@@ -39,6 +40,10 @@ const RequireRole = ({ role }) => {
   }
 
   return <Outlet />;
+};
+
+RequireRole.propTypes = {
+  role: PropTypes.oneOf(['admin', 'user']).isRequired,
 };
 
 const UserThemeGate = () => {
@@ -92,6 +97,10 @@ const RequireGuest = ({ children }) => {
   }
   if (user) return <Navigate to={getHomePathByRole(user.role)} replace />;
   return children;
+};
+
+RequireGuest.propTypes = {
+  children: PropTypes.node,
 };
 
 const NotFoundRoute = () => {
