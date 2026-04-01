@@ -18,6 +18,25 @@ const getHomePathByRole = (role) => {
   return normalizedRole.includes('admin') ? '/admin' : '/usuario';
 };
 
+const getCalendarDayClass = (dayNumber) => {
+  const columnIndex = (dayNumber - 1) % 7;
+  const colorIndex = (dayNumber - 1) % 3;
+
+  if (columnIndex === 5 || columnIndex === 6) {
+    return 'bg-gray-100 text-gray-400';
+  }
+
+  if (colorIndex === 0) {
+    return 'bg-blue-500 text-white';
+  }
+
+  if (colorIndex === 1) {
+    return 'bg-purple-500 text-white';
+  }
+
+  return 'bg-green-500 text-white';
+};
+
 export const Landing = () => {
   const navigate = useNavigate();
   const { user, restoreSession } = useAuth();
@@ -118,7 +137,7 @@ export const Landing = () => {
               <span className="text-sm font-medium">Sistema de Gestión Académica</span>
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Genera Horarios
+              Genera Horarios{' '}
               <span className="block text-blue-600">en Minutos</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8">
@@ -154,22 +173,12 @@ export const Landing = () => {
                     </div>
                   ))}
                 </div>
-                {[...Array(28)].map((_, i) => (
+                {Array.from({ length: 28 }, (_, index) => index + 1).map((dayNumber) => (
                   <div
-                    key={i}
-                    className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium ${
-                      i % 7 === 5 || i % 7 === 6
-                        ? 'bg-gray-100 text-gray-400'
-                        : i % 3 === 0
-                        ? 'bg-blue-500 text-white'
-                        : i % 3 === 1
-                        ? 'bg-purple-500 text-white'
-                        : i % 3 === 2
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-50 text-gray-600'
-                    }`}
+                    key={dayNumber}
+                    className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium ${getCalendarDayClass(dayNumber)}`}
                   >
-                    {i + 1}
+                    {dayNumber}
                   </div>
                 ))}
               </div>
@@ -192,11 +201,11 @@ export const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
+            {features.map((feature) => {
               const Icon = feature.icon;
               return (
                 <div
-                  key={index}
+                  key={feature.title}
                   className="p-6 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all"
                 >
                   <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
@@ -228,8 +237,8 @@ export const Landing = () => {
                 administrar horarios académicos de manera profesional y eficiente.
               </p>
               <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                {benefits.map((benefit) => (
+                  <div key={benefit} className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
                     <span className="text-gray-700">{benefit}</span>
                   </div>
