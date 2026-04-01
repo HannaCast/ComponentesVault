@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import Input from '@shared/components/inputs/InputText';
 import Textarea from '@shared/components/inputs/Textarea';
@@ -7,6 +7,27 @@ import { ColorSwatchPicker } from '@shared/components/inputs/ColorSwatchPicker';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectableListField } from '@shared/components/inputs/SelectableListField';
 import { subjectValidationSchema } from '../validations/subjectValidationSchema';
+
+const getFirstColorValue = (options = []) => {
+  const firstColorValue = options[0]?.value;
+  if (firstColorValue === undefined || firstColorValue === null) {
+    return '';
+  }
+
+  return String(firstColorValue);
+};
+
+const createDefaultFormData = (defaultColor = '') => ({
+  name: '',
+  short_name: '',
+  code: '',
+  description: '',
+  hours_per_week: '',
+  color: defaultColor,
+  careers: [],
+  professors: [],
+  is_mandatory: true,
+});
 
 export const SubjectForm = ({
   initialData = null,
@@ -18,22 +39,13 @@ export const SubjectForm = ({
   professorOptions = [],
   colorOptions = [],
 }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    short_name: '',
-    code: '',
-    description: '',
-    hours_per_week: '',
-    color: '',
-    careers: [],
-    professors: [],
-    is_mandatory: false,
-  });
+  const [formData, setFormData] = useState(() => createDefaultFormData(getFirstColorValue(colorOptions)));
 
   const [professorsTemp, setProfessorsTemp] = useState('');
   const [careersTemp, setCareersTemp] = useState('');
   const [careersPeriodTemp, setCareersPeriodTemp] = useState('');
   const [formErrors, setFormErrors] = useState({});
+  const previousModeRef = useRef(mode);
 
   const getCareerById = (careerId) => {
     const target = String(careerId || '').trim();
@@ -116,6 +128,38 @@ export const SubjectForm = ({
       });
     }
   }, [initialData]);
+
+  useEffect(() => {
+    const previousMode = previousModeRef.current;
+    const enteringCreateMode = mode === 'create' && previousMode !== 'create';
+    previousModeRef.current = mode;
+
+    if (mode !== 'create' || initialData) {
+      return;
+    }
+
+    const firstColorValue = getFirstColorValue(colorOptions);
+
+    if (enteringCreateMode) {
+      setFormData(createDefaultFormData(firstColorValue));
+      return;
+    }
+
+    if (!firstColorValue) {
+      return;
+    }
+
+    setFormData((prev) => {
+      if (prev.color) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        color: firstColorValue,
+      };
+    });
+  }, [mode, initialData, colorOptions]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
