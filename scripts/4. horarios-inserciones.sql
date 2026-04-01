@@ -37,6 +37,25 @@ INSERT INTO modalities (name, require_classroom, status, configurations, univers
 ('En línea', 0, 1, '{"allowed_days": [1, 2, 3, 4, 5], "classroom_days_per_week": 0}', 1), 
 ('Mixta', 1, 1, '{"allowed_days": [1, 2, 3, 4, 5], "classroom_days_per_week": 3}', 1);
 
+-----------------------------------------------------
+/*            TABLA DE PERIODOS ACADÉMICOS          */
+-----------------------------------------------------
+-- Nota: `academic_periods.university_id` tiene FK a `universities.id`.
+-- Este seed inserta filas solo si existe la universidad con id=1.
+INSERT INTO academic_periods
+  (name, university_id, start_month, end_month, year, `order`, is_active, is_deleted)
+SELECT
+  'Mayo - Agosto', u.id, 5, 8, 2026, 1, 1, 0
+FROM universities u
+WHERE u.id = 1;
+
+INSERT INTO academic_periods
+  (name, university_id, start_month, end_month, year, `order`, is_active, is_deleted)
+SELECT
+  'Septiembre - Diciembre', u.id, 9, 12, 2026, 2, 0, 0
+FROM universities u
+WHERE u.id = 1;
+
 
 
 -----------------------------------------------------

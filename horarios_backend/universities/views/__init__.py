@@ -1,2 +1,3 @@
 from .universities import UniversityCreate, UniversityList, UniversityDetail
 from .period_types import PeriodTypesSelectView
+from .academic_periods import AcademicPeriodListCreateView, AcademicPeriodDetailView, AcademicPeriodToggleStatusView
