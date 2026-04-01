@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 /**
  * ActionButton
  * Props:
@@ -10,7 +12,7 @@
  * - iconPosition: 'left' | 'right'.
  * - iconSize: Tamano del icono (opcional).
  * - className: Clases adicionales.
- * - fullWidth: Si true, ocupa todo el ancho disponible.
+ * - fullWidth: Si true, ocupa el ancho completo disponible.
  * - disabled: Deshabilita el boton.
  * - loading: Muestra estado de carga.
  * - loadingLabel: Texto a mostrar cuando loading=true.
@@ -85,24 +87,29 @@ export function ActionButton({
     opacity: isBlocked ? 0.6 : 1,
   };
 
-  const variantStyles = isPrimary
-    ? {
-        backgroundColor: customBackgroundColor || 'var(--accent, #2563eb)',
-        color: customTextColor || 'var(--text-on-accent, #ffffff)',
-      }
-    : isOutline
-    ? {
-        backgroundColor: 'var(--button-outline-bg, transparent)',
-        color: 'var(--button-outline-text, var(--text-primary, #111827))',
-        border: '1px solid var(--button-outline-border, var(--border-strong, #9ca3af))',
-      }
-    : {
-        backgroundColor: 'transparent',
-        color: 'var(--text-primary, #111827)',
-        border: '1px solid var(--border-default, #d1d5db)',
-      };
+  let variantStyles;
+  if (isPrimary) {
+    variantStyles = {
+      backgroundColor: customBackgroundColor || 'var(--accent, #2563eb)',
+      color: customTextColor || 'var(--text-on-accent, #ffffff)',
+    };
+  } else if (isOutline) {
+    variantStyles = {
+      backgroundColor: 'var(--button-outline-bg, transparent)',
+      color: 'var(--button-outline-text, var(--text-primary, #111827))',
+      border: '1px solid var(--button-outline-border, var(--border-strong, #9ca3af))',
+    };
+  } else {
+    variantStyles = {
+      backgroundColor: 'transparent',
+      color: 'var(--text-primary, #111827)',
+      border: '1px solid var(--border-default, #d1d5db)',
+    };
+  }
 
-  const styles = { ...baseStyles, ...variantStyles, ...(customStyle || {}) };
+  const styles = customStyle
+    ? { ...baseStyles, ...variantStyles, ...customStyle }
+    : { ...baseStyles, ...variantStyles };
 
   const applyStyleObject = (target, styleObject) => {
     if (!styleObject) return;
@@ -192,3 +199,24 @@ export function ActionButton({
     </button>
   );
 }
+
+ActionButton.propTypes = {
+  icon: PropTypes.elementType,
+  label: PropTypes.node,
+  onClick: PropTypes.func,
+  variant: PropTypes.oneOf(['primary', 'secondary', 'outline']),
+  size: PropTypes.oneOf(['small', 'medium', 'large']),
+  align: PropTypes.oneOf(['center', 'left']),
+  iconPosition: PropTypes.oneOf(['left', 'right']),
+  iconSize: PropTypes.number,
+  className: PropTypes.string,
+  fullWidth: PropTypes.bool,
+  disabled: PropTypes.bool,
+  loading: PropTypes.bool,
+  loadingLabel: PropTypes.node,
+  customStyle: PropTypes.object,
+  customHoverStyle: PropTypes.object,
+  customBackgroundColor: PropTypes.string,
+  customTextColor: PropTypes.string,
+  type: PropTypes.oneOf(['button', 'submit', 'reset']),
+};

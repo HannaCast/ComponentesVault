@@ -29,6 +29,21 @@ const Textarea = forwardRef(
     const isBaseDisabled = props.disabled;
     const [showTooltip, setShowTooltip] = useState(false);
     const tooltipRef = useRef(null);
+    const hasError = Boolean(error);
+    const textareaBackgroundColor = hasError
+      ? 'var(--error-subtle, #fef2f2)'
+      : 'var(--bg-surface, #f3f4f6)';
+
+    let textareaBorderColor = 'var(--border-default, #d1d5db)';
+    if (hasError) {
+      textareaBorderColor = 'var(--error, #dc2626)';
+    } else if (isBaseDisabled) {
+      textareaBorderColor = 'transparent';
+    }
+
+    const textareaTextColor = isBaseDisabled
+      ? 'var(--text-disabled, #94a3b8)'
+      : 'var(--text-primary, #111827)';
 
     useEffect(() => {
       if (!showTooltip) {
@@ -100,17 +115,9 @@ const Textarea = forwardRef(
         <textarea
           ref={ref}
           style={{
-            backgroundColor: error
-              ? 'var(--error-subtle, #fef2f2)'
-              : 'var(--bg-surface, #f3f4f6)',
-            borderColor: error
-              ? 'var(--error, #dc2626)'
-              : isBaseDisabled
-              ? 'transparent'
-              : 'var(--border-default, #d1d5db)',
-            color: isBaseDisabled
-              ? 'var(--text-disabled, #94a3b8)'
-              : 'var(--text-primary, #111827)',
+            backgroundColor: textareaBackgroundColor,
+            borderColor: textareaBorderColor,
+            color: textareaTextColor,
           }}
           className={`
             w-full px-4 py-2.5 border rounded-lg text-sm
@@ -130,12 +137,8 @@ const Textarea = forwardRef(
           }}
           onBlur={(e) => {
             if (!isBaseDisabled) {
-              e.currentTarget.style.backgroundColor = error
-                ? 'var(--error-subtle, #fef2f2)'
-                : 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = error
-                ? 'var(--error, #dc2626)'
-                : 'var(--border-default, #d1d5db)';
+              e.currentTarget.style.backgroundColor = textareaBackgroundColor;
+              e.currentTarget.style.borderColor = textareaBorderColor;
               e.currentTarget.style.boxShadow = 'none';
             }
             props.onBlur?.(e);

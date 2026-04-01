@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * ColorSwatchPicker
@@ -77,4 +78,20 @@ export const ColorSwatchPicker = ({
       )}
     </div>
   );
+};
+
+ColorSwatchPicker.propTypes = {
+  label: PropTypes.node,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func,
+  options: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    label: PropTypes.string,
+    hex: PropTypes.string,
+  })),
+  disabled: PropTypes.bool,
+  required: PropTypes.bool,
+  error: PropTypes.node,
+  helperText: PropTypes.node,
+  className: PropTypes.string,
 };

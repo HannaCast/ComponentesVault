@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
 import { AlertCircle, X } from 'lucide-react';
 
@@ -33,19 +34,17 @@ export const ConfirmModal = ({
     <div
       className={`fixed inset-0 ${zIndexClass} flex items-center justify-center`}
       style={{ zIndex }}
-      role="presentation"
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40"
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 border-0 p-0"
         onClick={handleCloseOnlyModal}
+        aria-label="Cerrar modal"
       />
 
       {/* Modal */}
-      <div
-        className="relative bg-white rounded-lg shadow-lg max-w-sm mx-4"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="relative bg-white rounded-lg shadow-lg max-w-sm mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -56,6 +55,7 @@ export const ConfirmModal = ({
             type="button"
             onClick={handleCloseOnlyModal}
             className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
@@ -88,4 +88,16 @@ export const ConfirmModal = ({
   );
 
   return createPortal(modalContent, document.body);
+};
+
+ConfirmModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  onConfirm: PropTypes.func,
+  title: PropTypes.node,
+  message: PropTypes.node,
+  confirmLabel: PropTypes.node,
+  closeOnConfirm: PropTypes.bool,
+  zIndexClass: PropTypes.string,
+  zIndex: PropTypes.number,
 };

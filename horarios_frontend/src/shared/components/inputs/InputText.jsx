@@ -32,8 +32,23 @@ const InputText = forwardRef(
   ) => {
     const isBaseDisabled = props.disabled;
     const [showTooltip, setShowTooltip] = useState(false);
+    const hasError = Boolean(error);
     const effectivePlaceholder =
       isBaseDisabled && !props.value ? '—' : props.placeholder;
+    const inputBackgroundColor = hasError
+      ? 'var(--error-subtle, #fef2f2)'
+      : 'var(--bg-surface, #f3f4f6)';
+
+    let inputBorderColor = 'var(--border-default, #d1d5db)';
+    if (hasError) {
+      inputBorderColor = 'var(--error, #dc2626)';
+    } else if (isBaseDisabled) {
+      inputBorderColor = 'transparent';
+    }
+
+    const inputTextColor = isBaseDisabled
+      ? 'var(--text-disabled, #94a3b8)'
+      : 'var(--text-primary, #111827)';
 
     return (
       <div className="w-full">
@@ -90,19 +105,9 @@ const InputText = forwardRef(
           ref={ref}
           type={type}
           style={{
-            backgroundColor: error
-              ? 'var(--error-subtle, #fef2f2)'
-              : isBaseDisabled
-                ? 'var(--bg-surface, #f3f4f6)'
-                : 'var(--bg-surface, #f3f4f6)',
-            borderColor: error
-              ? 'var(--error, #dc2626)'
-              : isBaseDisabled
-                ? 'transparent'
-                : 'var(--border-default, #d1d5db)',
-            color: isBaseDisabled
-              ? 'var(--text-disabled, #94a3b8)'
-              : 'var(--text-primary, #111827)',
+            backgroundColor: inputBackgroundColor,
+            borderColor: inputBorderColor,
+            color: inputTextColor,
           }}
           className={`
             w-full px-4 py-2.5 border rounded-lg text-sm
@@ -121,12 +126,8 @@ const InputText = forwardRef(
           }}
           onBlur={(e) => {
             if (!isBaseDisabled) {
-              e.currentTarget.style.backgroundColor = error
-                ? 'var(--error-subtle, #fef2f2)'
-                : 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = error
-                ? 'var(--error, #dc2626)'
-                : 'var(--border-default, #d1d5db)';
+              e.currentTarget.style.backgroundColor = inputBackgroundColor;
+              e.currentTarget.style.borderColor = inputBorderColor;
               e.currentTarget.style.boxShadow = 'none';
             }
             props.onBlur?.(e);

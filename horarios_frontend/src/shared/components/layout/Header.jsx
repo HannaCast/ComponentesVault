@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, GraduationCap, Menu } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
@@ -120,4 +121,9 @@ export const Header = ({ className = '', onMenuClick }) => {
       </div>
     </header>
   );
+};
+
+Header.propTypes = {
+  className: PropTypes.string,
+  onMenuClick: PropTypes.func,
 };

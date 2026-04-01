@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 // Componente de encabezado para secciones o pantallas, con soporte para título, contexto adicional y acción principal.
@@ -14,7 +15,7 @@ import { ActionButton } from '@shared/components/inputs/ActionButton';
  * - onAction: Callback del boton de accion.
  * - actionVariant: Variante visual del boton.
  */
-export const PageSectionHeader = ({
+const PageSectionHeader = ({
   title,
   contextLabel,
   secondaryContextLabel,
@@ -70,3 +71,18 @@ export const PageSectionHeader = ({
     </div>
   );
 };
+
+PageSectionHeader.propTypes = {
+  title: PropTypes.node,
+  contextLabel: PropTypes.node,
+  secondaryContextLabel: PropTypes.node,
+  actionIcon: PropTypes.elementType,
+  actionLabel: PropTypes.node,
+  onAction: PropTypes.func,
+  actionLoading: PropTypes.bool,
+  actionLoadingLabel: PropTypes.string,
+  actionDisabled: PropTypes.bool,
+  actionVariant: PropTypes.string,
+};
+
+export { PageSectionHeader };

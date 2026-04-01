@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { SurfacePanel } from './SurfacePanel';
 
 // Componente reusable para mostrar un estado de carga centrado dentro de un panel.
@@ -28,4 +29,10 @@ export const LoadingStatePanel = ({
       </p>
     </SurfacePanel>
   );
+};
+
+LoadingStatePanel.propTypes = {
+  message: PropTypes.node,
+  padding: PropTypes.string,
+  spinnerSizeClass: PropTypes.string,
 };

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export const Switch = ({ checked, onCheckedChange, disabled = false }) => {
   return (
@@ -18,4 +19,10 @@ export const Switch = ({ checked, onCheckedChange, disabled = false }) => {
       />
     </button>
   );
+};
+
+Switch.propTypes = {
+  checked: PropTypes.bool,
+  onCheckedChange: PropTypes.func,
+  disabled: PropTypes.bool,
 };

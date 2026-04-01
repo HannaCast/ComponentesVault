@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Plus, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
 import Input from '@shared/components/inputs/InputText';
@@ -295,4 +296,49 @@ export const SelectableListField = ({
       ) : null}
     </div>
   );
+};
+
+const SelectableValueShape = PropTypes.shape({
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  label: PropTypes.string,
+  name: PropTypes.string,
+  period_number: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  secondaryValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+});
+
+const SelectOptionShape = PropTypes.shape({
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  label: PropTypes.string,
+  disabled: PropTypes.bool,
+});
+
+SelectableListField.propTypes = {
+  label: PropTypes.node,
+  error: PropTypes.node,
+  selectedValues: PropTypes.arrayOf(
+    PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      SelectableValueShape,
+    ]),
+  ),
+  options: PropTypes.arrayOf(SelectOptionShape),
+  selectedOption: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedSecondaryOption: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSelectedOptionChange: PropTypes.func,
+  onSelectedSecondaryOptionChange: PropTypes.func,
+  onAdd: PropTypes.func,
+  onUpdate: PropTypes.func,
+  onRemove: PropTypes.func,
+  placeholder: PropTypes.string,
+  addLabel: PropTypes.string,
+  disabled: PropTypes.bool,
+  enableSecondaryField: PropTypes.bool,
+  primaryLabel: PropTypes.string,
+  secondaryLabel: PropTypes.string,
+  secondaryPlaceholder: PropTypes.string,
+  secondaryType: PropTypes.string,
+  secondaryMin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  secondaryMax: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };

@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useId, useState } from 'react';
 import { Info } from 'lucide-react';
 
 /**
@@ -35,7 +35,19 @@ const Checkbox = forwardRef(
     ref
   ) => {
     const [showTooltip, setShowTooltip] = useState(false);
-    const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const checkboxId = id || `checkbox-${generatedId}`;
+
+    let checkboxBorderColor = 'var(--border-default, #d1d5db)';
+    if (error) {
+      checkboxBorderColor = 'var(--error, #dc2626)';
+    } else if (checked) {
+      checkboxBorderColor = 'var(--accent, #2563eb)';
+    }
+
+    const checkboxBackgroundColor = checked
+      ? 'var(--accent, #2563eb)'
+      : 'var(--bg-surface, #f3f4f6)';
 
     const handleChange = (e) => {
       if (onChange) {
@@ -56,14 +68,8 @@ const Checkbox = forwardRef(
               disabled={disabled}
               className="w-5 h-5 rounded border-2 cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-50"
               style={{
-                borderColor: error
-                  ? 'var(--error, #dc2626)'
-                  : checked
-                  ? 'var(--accent, #2563eb)'
-                  : 'var(--border-default, #d1d5db)',
-                backgroundColor: checked
-                  ? 'var(--accent, #2563eb)'
-                  : 'var(--bg-surface, #f3f4f6)',
+                borderColor: checkboxBorderColor,
+                backgroundColor: checkboxBackgroundColor,
                 accentColor: 'var(--accent, #2563eb)',
               }}
               {...props}

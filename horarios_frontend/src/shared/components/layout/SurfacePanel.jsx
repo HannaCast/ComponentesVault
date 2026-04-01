@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 // Componente de panel reutilizable con estilos base para superficies elevadas o de fondo, con opciones de padding y centrado.
 export const SurfacePanel = ({
@@ -19,4 +20,12 @@ export const SurfacePanel = ({
       {children}
     </div>
   );
+};
+
+SurfacePanel.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  padding: PropTypes.string,
+  centered: PropTypes.bool,
+  elevated: PropTypes.bool,
 };

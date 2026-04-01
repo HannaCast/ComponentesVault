@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Calendar,
@@ -78,4 +79,10 @@ export const Sidebar = ({ collapsed = false, className = '', onNavigate }) => {
       </nav>
     </aside>
   );
+};
+
+Sidebar.propTypes = {
+  collapsed: PropTypes.bool,
+  className: PropTypes.string,
+  onNavigate: PropTypes.func,
 };
