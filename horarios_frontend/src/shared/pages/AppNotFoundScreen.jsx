@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Home } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
@@ -49,4 +50,11 @@ export const AppNotFoundScreen = ({
       </div>
     </div>
   );
+};
+
+AppNotFoundScreen.propTypes = {
+  title: PropTypes.node,
+  description: PropTypes.node,
+  buttonLabel: PropTypes.node,
+  onButtonClick: PropTypes.func,
 };
