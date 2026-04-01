@@ -44,12 +44,12 @@ export const useSubjects = () => {
       setLoading(true);
       setError(null);
 
-      const status =
-        estado === 'todos'
-          ? undefined
-          : estado === 'activos'
-          ? 'true'
-          : 'false';
+      let status;
+      if (estado === 'activos') {
+        status = 'true';
+      } else if (estado === 'inactivos') {
+        status = 'false';
+      }
 
       const order = asc ? 'ASC' : 'DESC';
 

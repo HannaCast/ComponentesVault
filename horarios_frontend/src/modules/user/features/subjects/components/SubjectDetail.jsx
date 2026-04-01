@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { BookOpen } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
@@ -63,9 +64,9 @@ export const SubjectDetail = ({
       {/* Estado y Obligatoria */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Estado
-          </label>
+          </p>
           <div className="flex items-center gap-2">
             <div
               className={`w-3 h-3 rounded-full ${
@@ -79,9 +80,9 @@ export const SubjectDetail = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Obligatoria
-          </label>
+          </p>
           <p className="text-sm text-[var(--text-primary)]">
             {isMandatory ? '✓ Sí' : '✗ No'}
           </p>
@@ -91,9 +92,9 @@ export const SubjectDetail = ({
       {/* Descripción */}
       {subject.description && (
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
             Descripción
-          </label>
+          </p>
           <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap bg-[var(--bg-elevated)] p-3 rounded-lg">
             {subject.description}
           </p>
@@ -103,18 +104,18 @@ export const SubjectDetail = ({
       {/* Datos generales */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Horas por Semana
-          </label>
+          </p>
           <p className="text-lg font-semibold text-[var(--text-primary)]">
             {subject.hours_per_week || '-'}
           </p>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Color
-          </label>
+          </p>
           <p className="text-sm text-[var(--text-primary)]">
             {subject.color || '-'}
           </p>
@@ -124,9 +125,9 @@ export const SubjectDetail = ({
       {/* Carreras */}
       {subject.careers && subject.careers.length > 0 && (
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
             Carreras
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {subject.careers.map((career, index) => (
               <span
@@ -144,9 +145,9 @@ export const SubjectDetail = ({
       {/* Profesores */}
       {subject.teachers && subject.teachers.length > 0 && (
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
             Profesores Asignados
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {subject.teachers.map((professor, index) => (
               <span
@@ -163,15 +164,15 @@ export const SubjectDetail = ({
       {/* Auditoría */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Creado el
-          </label>
+          </p>
           <p className="text-sm text-[var(--text-primary)]">{formatDateTime(subject.created_at)}</p>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
             Actualizado el
-          </label>
+          </p>
           <p className="text-sm text-[var(--text-primary)]">{formatDateTime(subject.updated_at)}</p>
         </div>
       </div>
@@ -192,4 +193,33 @@ export const SubjectDetail = ({
       </div>
     </div>
   );
+};
+
+SubjectDetail.propTypes = {
+  subject: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    name: PropTypes.string,
+    short_name: PropTypes.string,
+    code: PropTypes.string,
+    status: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+    is_mandatory: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+    description: PropTypes.string,
+    hours_per_week: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    color: PropTypes.string,
+    color_hex: PropTypes.string,
+    created_at: PropTypes.string,
+    updated_at: PropTypes.string,
+    careers: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      name: PropTypes.string,
+      period_number: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    })),
+    teachers: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      full_name: PropTypes.string,
+      name: PropTypes.string,
+    })),
+  }),
+  onClose: PropTypes.func,
+  onEdit: PropTypes.func,
 };

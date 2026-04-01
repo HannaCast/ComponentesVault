@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import Input from '@shared/components/inputs/InputText';
 import Textarea from '@shared/components/inputs/Textarea';
 import Checkbox from '@shared/components/inputs/Checkbox';
@@ -81,35 +82,26 @@ export const SubjectForm = ({
           .filter(Boolean)
         : [];
 
-      const normalizedProfessors = Array.isArray(initialData.teachers)
-        ? initialData.teachers
-          .map((teacher) => {
-            if (teacher && typeof teacher === 'object') {
-              const rawValue = teacher.id ?? teacher.value;
-              const value = String(rawValue || '').trim();
-              const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
-              return value ? { value, label: String(label || value) } : null;
-            }
+      let professorSource = [];
+      if (Array.isArray(initialData.teachers)) {
+        professorSource = initialData.teachers;
+      } else if (Array.isArray(initialData.professors)) {
+        professorSource = initialData.professors;
+      }
 
-            const value = String(teacher || '').trim();
-            return value ? { value, label: value } : null;
-          })
-          .filter(Boolean)
-        : Array.isArray(initialData.professors)
-          ? initialData.professors
-            .map((teacher) => {
-              if (teacher && typeof teacher === 'object') {
-                const rawValue = teacher.id ?? teacher.value;
-                const value = String(rawValue || '').trim();
-                const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
-                return value ? { value, label: String(label || value) } : null;
-              }
+      const normalizedProfessors = professorSource
+        .map((teacher) => {
+          if (teacher && typeof teacher === 'object') {
+            const rawValue = teacher.id ?? teacher.value;
+            const value = String(rawValue || '').trim();
+            const label = teacher.full_name ?? teacher.name ?? teacher.label ?? value;
+            return value ? { value, label: String(label || value) } : null;
+          }
 
-              const value = String(teacher || '').trim();
-              return value ? { value, label: value } : null;
-            })
-            .filter(Boolean)
-          : [];
+          const value = String(teacher || '').trim();
+          return value ? { value, label: value } : null;
+        })
+        .filter(Boolean);
 
       setFormData({
         name: initialData.name || '',
@@ -576,4 +568,38 @@ export const SubjectForm = ({
       )}
     </form>
   );
+};
+
+const SubjectOptionShape = PropTypes.shape({
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  label: PropTypes.string,
+});
+
+const SubjectInitialDataShape = PropTypes.shape({
+  name: PropTypes.string,
+  short_name: PropTypes.string,
+  code: PropTypes.string,
+  description: PropTypes.string,
+  hours_per_week: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  color_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  color: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  is_mandatory: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+  careers: PropTypes.array,
+  teachers: PropTypes.array,
+  professors: PropTypes.array,
+});
+
+SubjectForm.propTypes = {
+  initialData: SubjectInitialDataShape,
+  isLoading: PropTypes.bool,
+  onSubmit: PropTypes.func,
+  onCancel: PropTypes.func,
+  mode: PropTypes.oneOf(['create', 'edit', 'view']),
+  careerOptions: PropTypes.arrayOf(SubjectOptionShape),
+  professorOptions: PropTypes.arrayOf(SubjectOptionShape),
+  colorOptions: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    label: PropTypes.string,
+    hex: PropTypes.string,
+  })),
 };
