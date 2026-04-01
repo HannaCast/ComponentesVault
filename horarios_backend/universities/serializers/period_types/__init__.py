@@ -1,2 +1,2 @@
-from .period_type_list_serializer import PeriodTypeListSerializer
+from .period_type_select_serializer import PeriodTypeSelectSerializer
 
