@@ -1,6 +1,15 @@
 USE cdi_horarios;
 
 -----------------------------------------------------
+/*         TABLA DE TIPOS DE PERÍODO ACADÉMICO      */
+-----------------------------------------------------
+INSERT INTO period_types (name, code, months_duration, status) VALUES
+  ('Cuatrimestre', 'CUAT',  4, 1),
+  ('Semestre',     'SEM',   6, 1),
+  ('Trimestre',    'TRIM',  3, 1),
+  ('Anual',        'ANUAL', 12, 1);
+
+-----------------------------------------------------
 /*    TABLA DE COLORES PARA MATERIAS               */
 -----------------------------------------------------
 INSERT INTO colors (name, hex, contrast_hex, status, is_deleted

@@ -1,1 +1,2 @@
 from .universities import UniversityWriteSerializer
+from .period_types import PeriodTypeListSerializer
