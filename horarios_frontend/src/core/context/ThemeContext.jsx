@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
@@ -11,18 +12,18 @@ const normalizeAccent = (accent) => (ALLOWED_ACCENTS.has(accent) ? accent : 'blu
 export const ThemeProvider = ({ children }) => {
   const rootElement = document.documentElement;
 
-  const [theme, setTheme] = useState(() => normalizeTheme(rootElement.getAttribute('data-theme')));
-  const [accent, setAccent] = useState(() => normalizeAccent(rootElement.getAttribute('data-accent')));
+  const [theme, setTheme] = useState(() => normalizeTheme(rootElement.dataset.theme));
+  const [accent, setAccent] = useState(() => normalizeAccent(rootElement.dataset.accent));
 
   useEffect(() => {
-    rootElement.setAttribute('data-theme', theme);
-    rootElement.setAttribute('data-accent', accent);
+    rootElement.dataset.theme = theme;
+    rootElement.dataset.accent = accent;
   }, [rootElement, theme, accent]);
 
   useEffect(() => {
     return () => {
-      rootElement.setAttribute('data-theme', 'light');
-      rootElement.setAttribute('data-accent', 'blue');
+      rootElement.dataset.theme = 'light';
+      rootElement.dataset.accent = 'blue';
     };
   }, [rootElement]);
 
@@ -34,6 +35,10 @@ export const ThemeProvider = ({ children }) => {
   const value = useMemo(() => ({ theme, accent, applyTheme }), [theme, accent]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+ThemeProvider.propTypes = {
+  children: PropTypes.node,
 };
 
 export const useTheme = () => {

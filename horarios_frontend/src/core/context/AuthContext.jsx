@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   login as loginApi,
   logout as logoutApi,
@@ -8,22 +9,19 @@ import {
 
 const AuthContext = createContext(null);
 
+const extractDataFromResponse = (response) => ({
+  id: response.data.data.id,
+  role: response.data.data.role_name,
+  selected_university: response.data.data.selected_university,
+  theme: response.data.data.theme || 'light',
+  accent: response.data.data.accent || 'blue',
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Extrae solo los datos necesarios del response para el estado de usuario
-  const extractDataFromResponse = (response) => {
-    return {
-      id: response.data.data.id,
-      role: response.data.data.role_name,
-      selected_university: response.data.data.selected_university,
-      theme: response.data.data.theme || 'light',
-      accent: response.data.data.accent || 'blue',
-    };
-  };
-
-  const restoreSession = async () => {
+  const restoreSession = useCallback(async () => {
     try {
       // Si access cookie sigue viva, my-info funcionara directo.
       const initialData = await getUserConfiguration();
@@ -43,10 +41,10 @@ export const AuthProvider = ({ children }) => {
         return null;
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const pathname = window.location.pathname;
+    const pathname = globalThis.location.pathname;
     const isPrivateRoute = pathname.startsWith('/admin') || pathname.startsWith('/usuario');
 
     if (!isPrivateRoute) {
@@ -63,37 +61,43 @@ export const AuthProvider = ({ children }) => {
     };
 
     bootstrap();
+  }, [restoreSession]);
+
+  const login = useCallback(async (email, password) => {
+    const { data } = await loginApi(email, password);
+    if (data.data?.user) {
+      const initialData = await getUserConfiguration();
+      const userData = extractDataFromResponse(initialData);
+      setUser(userData);
+      return userData;
+    }
+    return null;
   }, []);
 
-  const login = async (email, password) => {
-    try {
-      const { data } = await loginApi(email, password);
-      if (data.data?.user) {
-        const initialData = await getUserConfiguration();
-        const userData = extractDataFromResponse(initialData);
-        setUser(userData);
-        return userData;
-      }
-      return null;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await logoutApi();
-    } catch {
-      // No-op: limpiamos estado local de todos modos.
+    } catch (error) {
+      // Mantiene el flujo de cierre local aun si falla la API remota.
+      console.warn('No se pudo cerrar sesion en el servidor.', error);
     }
     setUser(null);
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ user, login, logout, authLoading, restoreSession }),
+    [user, login, logout, authLoading, restoreSession],
+  );
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, authLoading, restoreSession }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node,
 };
 
 export const useAuth = () => {
