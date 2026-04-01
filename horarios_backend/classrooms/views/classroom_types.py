@@ -5,11 +5,12 @@ from rest_framework.views import APIView
 from classrooms.models import ClassroomTypes
 from classrooms.serializers import ClassroomTypeSelectSerializer
 from core.api_response import ApiResponse
+from core.permissions import RequireSelectedUniversity
 
 
 @extend_schema(tags=['Classroom types'])
 class ClassroomTypesListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     def get(self, request):
         queryset = ClassroomTypes.objects.filter(
