@@ -82,3 +82,14 @@ INSERT INTO classroom_types (name, description, status, is_deleted) VALUES
 ('CompuAula',   NULL, 1, 0),
 ('Aula',        NULL, 1, 0),
 ('Laboratoria', NULL, 1, 0);
+
+
+-----------------------------------------------------
+/*               TABLA DE AULAS (CLASSROOMS)        */
+-----------------------------------------------------
+
+INSERT INTO classrooms (name, classroom_type_id, code, floor, building, building_code, universities_id, is_restricted, status, is_deleted) VALUES
+  ('Aula 101',        2, 'A-101', 1, 'Edificio A', 'A', 1, 0, 1, 0),
+  ('Aula 102',        2, 'A-102', 1, 'Edificio A', 'A', 1, 0, 1, 0),
+  ('CompuAula 201',   1, 'CA-201', 2, 'Edificio B', 'B', 1, 0, 1, 0),
+  ('Laboratorio Física', 3, 'LAB-FIS', 1, 'Edificio C', 'C', 1, 1, 1, 0);
