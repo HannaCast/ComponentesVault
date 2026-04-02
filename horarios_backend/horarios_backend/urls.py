@@ -27,4 +27,7 @@ urlpatterns = [
     # RUTAS DE AULAS
     path('api/', include('classrooms.urls')),
 
+    # RUTAS DE AUDITORIA
+    path('api/', include('audit.urls')),
+
 ]
