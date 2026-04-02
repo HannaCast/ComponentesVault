@@ -1,6 +1,75 @@
 USE cdi_horarios;
 
 -----------------------------------------------------
+/*  TABLAS DE ROLES, USUARIOS Y CONFIGURACION BASE  */
+-----------------------------------------------------
+
+INSERT INTO roles (name) VALUES
+  ('admin'),
+  ('usuario');
+
+INSERT INTO users (name, surname, last_name, email, password, status, role_id) VALUES
+  (
+    'Admin',
+    'Sistema',
+    'Horarios',
+    'admin@gmail.com',
+    'bcrypt_sha256$$2b$12$Bnk3UjyRKuiD4JxccE4gZ.gE37pdF6swpTHtAhVzsEPIwNuoXtv6O',
+    1,
+    1
+  ),
+  (
+    'Usuario',
+    'Sistema',
+    'Horarios',
+    'usuario@gmail.com',
+    'bcrypt_sha256$$2b$12$sg6nN/Ltj.kxwSd29afbXOf2fhyDYcnWBS5q04wPAWSqE/S2lw.i2',
+    1,
+    2
+  );
+
+INSERT INTO user_configurations (user_id, selected_university_id, theme, accent, status) VALUES
+  (1, NULL, 'light', 'blue', 1),
+  (2, NULL, 'light', 'blue', 1);
+
+-----------------------------------------------------
+/*      UNIVERSIDAD BASE UTEZ (MIGRACION INICIAL)   */
+-----------------------------------------------------
+
+INSERT INTO universities (
+  name,
+  short_name,
+  institution_code,
+  image_id,
+  user_id,
+  start_time,
+  end_time,
+  period_type_id,
+  uses_period_groups,
+  status,
+  is_deleted
+) VALUES (
+  'Universidad Tecnologica Emiliano Zapata del Estado de Morelos',
+  'UTEZ',
+  'UTEZ',
+  1,
+  2,
+  '07:00:00',
+  '22:00:00',
+  1,
+  1,
+  1,
+  0
+);
+
+UPDATE user_configurations
+SET selected_university_id = 1,
+    status = 1
+WHERE user_id = 2;
+
+
+
+-----------------------------------------------------
 /*         TABLA DE TIPOS DE PERÍODO ACADÉMICO      */
 -----------------------------------------------------
 INSERT INTO period_types (name, code, months_duration, status) VALUES
@@ -8,6 +77,8 @@ INSERT INTO period_types (name, code, months_duration, status) VALUES
   ('Semestre',     'SEM',   6, 1),
   ('Trimestre',    'TRIM',  3, 1),
   ('Anual',        'ANUAL', 12, 1);
+
+
 
 -----------------------------------------------------
 /*    TABLA DE COLORES PARA MATERIAS               */

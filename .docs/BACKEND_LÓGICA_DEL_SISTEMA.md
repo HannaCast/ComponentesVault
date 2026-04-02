@@ -216,18 +216,28 @@ Puede incluir configuracion JSON, por ejemplo:
 
 ## Auditoria
 
-La tabla `audit_logs` registra acciones sobre datos:
+La auditoria usa un enfoque mixto (BD + backend):
 
-- `CREATE`
-- `UPDATE`
-- `DELETE`
+- Triggers MySQL registran operaciones exitosas sobre tablas de negocio.
+- El backend setea variables de sesion (`@app_user_id`, `@app_username`, `@app_ip`, `@app_user_agent`, `@app_transaction_id`, `@app_action`).
+- Para acciones especiales (por ejemplo cambio de estado) se usa `CHANGE_STATUS` de forma acotada.
+- Cuando hay error de aplicacion en endpoints decorados, el backend inserta un log con `is_succesfull = 0` y `error_message`.
 
-Tambien guarda:
+Valores comunes de `action`:
 
-- Datos anteriores y nuevos.
-- Usuario.
-- Direccion IP.
-- Dispositivo o navegador.
+- `CREATE`, `UPDATE`, `DELETE` (flujo BD)
+- `INSERT`, `CHANGE_STATUS` (flujo app)
+
+Campos clave registrados:
+
+- `old_data`, `new_data`
+- `user_id`, `username`, `source`
+- `ip_address`, `user_agent`
+- `transaction_id`, `is_succesfull`, `error_message`
+
+Detalle tecnico:
+
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
 
 ---
 
@@ -281,6 +291,6 @@ Las aulas se gestionan mediante varias tablas. `classroom_types` define los tipo
 
 Las modalidades se almacenan en la tabla `modalities`, donde se definen tipos como presencial, en linea, mixta o fines de semana. Estas pueden incluir configuraciones adicionales en formato JSON, como los dias permitidos para clases y la cantidad de dias que requieren el uso de un aula.
 
-El sistema tambien incluye una tabla de auditoria llamada `audit_logs`, que registra las acciones realizadas sobre los datos, como inserciones, actualizaciones y eliminaciones, junto con informacion del usuario, la direccion IP y el dispositivo utilizado.
+El sistema tambien incluye una tabla de auditoria llamada `audit_logs`, la cual registra tanto operaciones exitosas (via triggers) como errores de aplicacion (via backend), incorporando informacion de usuario, IP, user-agent, accion, transaccion y mensaje de error cuando aplica.
 
 Finalmente, es importante considerar que las tablas marcadas en color naranja corresponden a catalogos o entidades cuya informacion rara vez cambia. Por ello, en la mayoria de los casos solo requieren operaciones de consulta (`GET`). De manera opcional, pueden permitir operaciones de creacion, actualizacion o eliminacion, pero unicamente para usuarios con rol de administrador. La unica excepcion es la tabla `roles`, la cual no debe modificarse bajo ninguna circunstancia.
