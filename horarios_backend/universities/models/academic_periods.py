@@ -1,12 +1,9 @@
 from django.db import models
-
+from universities.models.universities import Universities
 
 class AcademicPeriods(models.Model):
     name = models.CharField(max_length=50)
-    university = models.ForeignKey(
-        'universities.Universities',
-        on_delete=models.DO_NOTHING,
-    )
+    university = models.ForeignKey(Universities, models.DO_NOTHING)
     start_month = models.IntegerField()
     end_month = models.IntegerField()
     year = models.IntegerField(blank=True, null=True)
@@ -19,6 +16,6 @@ class AcademicPeriods(models.Model):
     updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = True
+        managed = False
         db_table = 'academic_periods'
 
