@@ -14,7 +14,6 @@ from subjects.serializers.subjects import SubjectWriteSerializer, SubjectDetailS
 class SubjectListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
-    @with_audit_context(table_name='subjects')
     def get(self, request):
         """ Lista de materias activas (para selects) """
         selected_university_id = request.selected_university_id
