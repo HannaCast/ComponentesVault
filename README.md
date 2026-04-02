@@ -15,7 +15,9 @@ Sistema web para gestionar y generar horarios academicos, con backend en Django 
 /
 |- .docs/
 |- scripts/
-|  |- horarios-estructura-bd.sql
+|  |- 1. horarios-estructura-bd.sql
+|  |- 2. horarios-usuarios-bd.sql
+|  |- 3. horarios-triggers.sql
 |  |- 4. horarios-inserciones.sql
 |  |- generate-rsa-keys.mjs
 |- horarios_backend/
@@ -46,7 +48,26 @@ Crea una base de datos vacia y asigna usuario/permiso acorde a tus credenciales 
 Ejemplo:
 
 ```sql
-CREATE DATABASE horarios_academicos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE cdi_horarios CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 1.1) Ejecutar scripts SQL (recomendado)
+
+El orden recomendado de ejecucion es:
+
+1. `scripts/1. horarios-estructura-bd.sql`
+2. `scripts/2. horarios-usuarios-bd.sql`
+3. `scripts/3. horarios-triggers.sql`
+4. `scripts/4. horarios-inserciones.sql` (opcional para datos semilla)
+
+Ejemplo con cliente MySQL:
+
+```bash
+mysql -u root -p < "scripts/1. horarios-estructura-bd.sql"
+mysql -u root -p < "scripts/2. horarios-usuarios-bd.sql"
+mysql -u root -p < "scripts/3. horarios-triggers.sql"
+# opcional
+mysql -u root -p < "scripts/4. horarios-inserciones.sql"
 ```
 
 ### 2) Crear los archivos `.env`
@@ -71,9 +92,9 @@ cp horarios_frontend/.env.example horarios_frontend/.env
 Configura, al menos:
 
 ```env
-DB_NAME=horarios_academicos
-DB_USER=tu_usuario_mysql
-DB_PASSWORD=tu_password_mysql
+DB_NAME=cdi_horarios
+DB_USER=api_user
+DB_PASSWORD=api_password
 DB_HOST=localhost
 DB_PORT=3306
 
@@ -193,11 +214,31 @@ Se usa Loguru con interceptor para redirigir logs de Django/Python.
   - `horarios_backend/logs/warning/`
   - `horarios_backend/logs/error/`
 
+## Auditoria de datos
+
+La auditoria de datos combina:
+
+- Triggers de MySQL para registrar operaciones exitosas sobre tablas de negocio.
+- Contexto desde backend (`core.audit_context`) para enviar usuario, ip, user-agent, transaction_id y acciones puntuales como `CHANGE_STATUS`.
+- Registro de fallos de aplicacion con `is_succesfull = 0` y `error_message` cuando hay excepcion o respuesta HTTP de error en endpoints decorados.
+
+Documentacion completa:
+
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
+
 ## Scripts disponibles
 
 - `scripts/generate-rsa-keys.mjs`: genera llaves RSA para cifrado de login/registro.
-- `scripts/1. horarios-estructura-bd.sql`: script SQL de estructura (opcional).
-- `scripts/4. horarios-inserciones.sql`: script SQL de inserciones (opcional).
+- `scripts/1. horarios-estructura-bd.sql`: estructura de BD (incluye tabla `audit_logs`).
+- `scripts/2. horarios-usuarios-bd.sql`: crea usuario `api_user` y permisos base.
+- `scripts/3. horarios-triggers.sql`: crea triggers de auditoria y de campos de autoria.
+- `scripts/4. horarios-inserciones.sql`: inserciones semilla (opcional).
+
+## Documentacion tecnica
+
+- `.docs/BACKEND_IMPLEMENTATION_GUIDE.md`
+- `.docs/BACKEND_LÓGICA_DEL_SISTEMA.md`
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
 
 ## Notas
 
