@@ -24,12 +24,14 @@ class AuditLogPaginatedView(APIView):
         'source',
         'is_succesfull',
     }
+    ACTION_FILTERS = frozenset({'CREATE', 'UPDATE', 'DELETE', 'INSERT', 'CHANGE_STATUS'})
 
     @extend_schema(
         summary='Lista paginada de bitacora',
         description=(
             'Retorna la bitacora de auditoria de forma paginada con soporte '
-            'de busqueda, filtro por entidad y ordenamiento.'
+            'de busqueda, filtro por entidad, filtro por tipo de operacion '
+            'y ordenamiento.'
         ),
         parameters=[
             OpenApiParameter(
@@ -58,6 +60,18 @@ class AuditLogPaginatedView(APIView):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description='Filtro por entidad (table_name)',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='action',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    'Filtro por accion de auditoria. '
+                    'INSERT suele representar insercion desde aplicacion y '
+                    'CREATE insercion directa en base de datos.'
+                ),
+                enum=['CREATE', 'UPDATE', 'DELETE', 'INSERT', 'CHANGE_STATUS'],
                 required=False,
             ),
             OpenApiParameter(
@@ -97,6 +111,7 @@ class AuditLogPaginatedView(APIView):
 
         search = request.query_params.get('search', '').strip()
         entity = request.query_params.get('entity', '').strip()
+        action = request.query_params.get('action', '').strip().upper()
         sort_by = request.query_params.get('sortBy', 'created_at')
         order = request.query_params.get('order', 'DESC').upper()
         offset = (page - 1) * limit
@@ -113,6 +128,10 @@ class AuditLogPaginatedView(APIView):
 
         if entity and entity.lower() not in {'all', 'todas las entidades'}:
             queryset = queryset.filter(table_name__iexact=entity)
+
+        if action and action not in {'ALL', 'TODAS LAS OPERACIONES'}:
+            if action in self.ACTION_FILTERS:
+                queryset = queryset.filter(action=action)
 
         if search:
             queryset = queryset.annotate(
