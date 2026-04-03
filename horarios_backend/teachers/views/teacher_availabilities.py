@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from core.audit_context import with_audit_action, with_audit_context
 from core.api_response import ApiResponse
 from teachers.models import TeacherAvailabilities
 from teachers.serializers import (
@@ -36,6 +37,7 @@ class TeacherAvailabilityListView(APIView):
         return ApiResponse.success(TeacherAvailabilityListSerializer(rows, many=True).data)
 
     @extend_schema(request=TeacherAvailabilityWriteSerializer)
+    @with_audit_context(table_name='teacher_availabilities')
     def post(self, request):
         """Crea un registro de disponibilidad."""
         serializer = TeacherAvailabilityWriteSerializer(data=request.data, context={'request': request})
@@ -138,6 +140,7 @@ class TeacherAvailabilityDetailView(APIView):
         return ApiResponse.success(TeacherAvailabilityDetailSerializer(row).data)
 
     @extend_schema(request=TeacherAvailabilityWriteSerializer)
+    @with_audit_context(table_name='teacher_availabilities')
     def put(self, request, pk):
         row = self.get_object(pk)
         if row is None:
@@ -153,6 +156,7 @@ class TeacherAvailabilityDetailView(APIView):
             )
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='teacher_availabilities')
     def delete(self, request, pk):
         row = self.get_object(pk)
         if row is None:
@@ -166,6 +170,7 @@ class TeacherAvailabilityDetailView(APIView):
 class TeacherAvailabilityToggleView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @with_audit_context(table_name='teacher_availabilities')
     def put(self, request, pk):
         try:
             row = TeacherAvailabilities.objects.get(pk=pk, is_deleted=0)
@@ -173,7 +178,8 @@ class TeacherAvailabilityToggleView(APIView):
             return ApiResponse.not_found()
 
         row.is_available = 0 if row.is_available == 1 else 1
-        row.save()
+        with with_audit_action('CHANGE_STATUS'):
+            row.save()
 
         estado = 'disponible' if row.is_available == 1 else 'no disponible'
         return ApiResponse.success(

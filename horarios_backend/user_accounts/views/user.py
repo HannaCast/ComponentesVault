@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from core.api_response import ApiResponse
+from core.audit_context import with_audit_context
 from user_accounts.models import UserConfiguration
 from user_accounts.serializers import (
     ConfigurationSerializer,
@@ -47,6 +48,7 @@ class SelectedUniversityConfigurationView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(request=SelectedUniversityUpdateSerializer)
+    @with_audit_context(table_name='user_configurations')
     def put(self, request):
         """Asigna o limpia la universidad seleccionada del usuario autenticado."""
         serializer = SelectedUniversityUpdateSerializer(data=request.data)

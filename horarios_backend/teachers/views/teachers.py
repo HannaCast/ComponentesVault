@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from core.audit_context import with_audit_action, with_audit_context
 from core.api_response import ApiResponse
 from teachers.models import Teachers
 from teachers.serializers import TeacherWriteSerializer, TeacherDetailSerializer, TeacherListSerializer, TeacherSelectSerializer
@@ -17,6 +18,7 @@ class TeacherListView(APIView):
         return ApiResponse.success(TeacherSelectSerializer(teachers, many=True).data)
 
     @extend_schema(request=TeacherWriteSerializer)
+    @with_audit_context(table_name='teachers')
     def post(self, request):
         """Crea un nuevo profesor"""
         serializer = TeacherWriteSerializer(data=request.data, context={'request': request})
@@ -143,6 +145,7 @@ class TeacherDetailView(APIView):
         return ApiResponse.success(TeacherDetailSerializer(teacher).data)
 
     @extend_schema(request=TeacherWriteSerializer)
+    @with_audit_context(table_name='teachers')
     def put(self, request, pk):
         """Actualiza uno o varios campos de un profesor (todos los campos son opcionales)"""
         teacher = self.get_object(pk)
@@ -156,6 +159,7 @@ class TeacherDetailView(APIView):
             return ApiResponse.success(TeacherDetailSerializer(teacher).data, message='Profesor actualizado exitosamente')
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='teachers')
     def delete(self, request, pk):
         """Eliminación lógica: marca is_deleted = 1"""
         teacher = self.get_object(pk)
@@ -170,6 +174,7 @@ class TeacherDetailView(APIView):
 class TeacherToggleStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @with_audit_context(table_name='teachers')
     def put(self, request, pk):
         """Alterna el status de un profesor entre activo (1) e inactivo (0)"""
         try:
@@ -178,7 +183,8 @@ class TeacherToggleStatusView(APIView):
             return ApiResponse.not_found()
 
         teacher.status = 0 if teacher.status == 1 else 1
-        teacher.save()
+        with with_audit_action('CHANGE_STATUS'):
+            teacher.save()
 
         estado = 'activado' if teacher.status == 1 else 'desactivado'
         return ApiResponse.success(
