@@ -126,6 +126,10 @@ export const AccountSettingsPage = () => {
   const handleConfirmPasswordChange = async () => {
     const result = await changePassword(formData);
 
+    if (result?.deduped) {
+      return;
+    }
+
     if (!result.success) {
       setConfirmModalOpen(false);
       setFormErrors((previous) => ({

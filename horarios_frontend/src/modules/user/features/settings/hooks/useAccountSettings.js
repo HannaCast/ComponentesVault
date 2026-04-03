@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { changeMyPassword, getMyAccountInfo } from '../api/settingsApi';
 
 const toFieldError = (value) => {
@@ -24,8 +25,19 @@ export const useAccountSettings = () => {
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState(null);
   const [changingPassword, setChangingPassword] = useState(false);
+  const { shouldRun: shouldRunProfileRequest } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunPasswordRequest } = useRequestDeduper({ windowMs: 300 });
 
   const fetchProfile = useCallback(async () => {
+    const requestSignature = buildRequestSignature(
+      { resource: 'settings-profile', action: 'get-my-account-info' },
+      ['resource', 'action']
+    );
+
+    if (!shouldRunProfileRequest(requestSignature)) {
+      return;
+    }
+
     try {
       setProfileLoading(true);
       setProfileError(null);
@@ -37,13 +49,27 @@ export const useAccountSettings = () => {
     } finally {
       setProfileLoading(false);
     }
-  }, []);
+  }, [shouldRunProfileRequest]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
   const changePassword = useCallback(async ({ oldPassword, newPassword, confirmNewPassword }) => {
+    const requestSignature = buildRequestSignature(
+      { resource: 'settings-password', action: 'change-password' },
+      ['resource', 'action']
+    );
+
+    if (!shouldRunPasswordRequest(requestSignature)) {
+      return {
+        success: false,
+        deduped: true,
+        message: '',
+        fieldErrors: {},
+      };
+    }
+
     try {
       setChangingPassword(true);
 
@@ -55,6 +81,7 @@ export const useAccountSettings = () => {
 
       return {
         success: true,
+        deduped: false,
         message: 'Contraseña actualizada exitosamente. Inicia sesión nuevamente.',
         fieldErrors: {},
       };
@@ -67,13 +94,14 @@ export const useAccountSettings = () => {
 
       return {
         success: false,
+        deduped: false,
         message: responseData?.message || 'No se pudo actualizar la contraseña.',
         fieldErrors,
       };
     } finally {
       setChangingPassword(false);
     }
-  }, []);
+  }, [shouldRunPasswordRequest]);
 
   return {
     profile,
