@@ -1,4 +1,5 @@
 from .configuration_serializer import ConfigurationSerializer
+from .change_password_serializer import ChangePasswordSerializer
 from .me_info_serializer import MeInfoSerializer
 from .selected_university_serializer import SelectedUniversitySerializer
 from .selected_university_update_serializer import SelectedUniversityUpdateSerializer

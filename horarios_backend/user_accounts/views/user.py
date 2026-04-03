@@ -1,11 +1,15 @@
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.api_response import ApiResponse
 from core.audit_context import with_audit_context
+from core.request_decryption import decrypt_request
 from user_accounts.models import UserConfiguration
 from user_accounts.serializers import (
+    ChangePasswordSerializer,
     ConfigurationSerializer,
     MeInfoSerializer,
     SelectedUniversityUpdateSerializer,
@@ -82,3 +86,41 @@ class SelectedUniversityConfigurationView(APIView):
             data=response_serializer.data,
             message='Universidad seleccionada actualizada exitosamente',
         )
+
+
+@extend_schema(tags=['Users'])
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=ChangePasswordSerializer)
+    @decrypt_request()
+    @with_audit_context(table_name='users')
+    @transaction.atomic
+    def put(self, request):
+        """Actualiza la contraseña del usuario autenticado validando la contraseña anterior."""
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'user': request.user},
+        )
+        if not serializer.is_valid():
+            return ApiResponse.error(errors=serializer.errors)
+
+        new_password = serializer.validated_data['new_password']
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password'])
+
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except Exception:
+                # Evita que un problema de blacklist bloquee el cambio de contraseña.
+                pass
+
+        response = ApiResponse.success(
+            message='Contraseña actualizada exitosamente. Inicia sesión nuevamente',
+            data={'force_reauth': True},
+        )
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/api/v1/auth/')
+        return response
