@@ -1,5 +1,5 @@
 from django.db import models
-from horarios_backend.universities.models.universities import Universities
+from universities.models.universities import Universities
 from teachers.models.teachers import Teachers
 
 class TeachersUniversities(models.Model):
