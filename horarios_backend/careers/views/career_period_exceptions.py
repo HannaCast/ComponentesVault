@@ -9,6 +9,7 @@ from careers.serializers.career_period_exceptions import (
     CareerPeriodExceptionListSerializer,
     CareerPeriodExceptionWriteSerializer,
 )
+from core.audit_context import with_audit_context
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 
@@ -31,6 +32,7 @@ class CareerPeriodExceptionListView(APIView):
         )
 
     @extend_schema(request=CareerPeriodExceptionWriteSerializer)
+    @with_audit_context(table_name='career_period_exceptions')
     @transaction.atomic
     def post(self, request):
         """Registrar excepción de periodo para una carrera."""
@@ -71,6 +73,7 @@ class CareerPeriodExceptionDetailView(APIView):
         )
 
     @extend_schema(request=CareerPeriodExceptionWriteSerializer)
+    @with_audit_context(table_name='career_period_exceptions')
     @transaction.atomic
     def put(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
@@ -93,6 +96,7 @@ class CareerPeriodExceptionDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='career_period_exceptions')
     @transaction.atomic
     def delete(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)

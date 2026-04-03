@@ -15,9 +15,15 @@ Sistema web para gestionar y generar horarios academicos, con backend en Django 
 /
 |- .docs/
 |- scripts/
-|  |- horarios-estructura-bd.sql
-|  |- 4. horarios-inserciones.sql
+|  |- .env.base_de_datos.example
+|  |- run-base-de-datos-sql.mjs
 |  |- generate-rsa-keys.mjs
+|  |- base_de_datos/
+|     |- 1. horarios-estructura-bd.sql
+|     |- 2. horarios-usuarios-bd.sql
+|     |- 3. horarios-triggers-tablas.sql
+|     |- 4. horarios-triggers-auditoria.sql
+|     |- 5. horarios-inserciones.sql
 |- horarios_backend/
 |  |- manage.py
 |  |- requirements.txt
@@ -46,7 +52,61 @@ Crea una base de datos vacia y asigna usuario/permiso acorde a tus credenciales 
 Ejemplo:
 
 ```sql
-CREATE DATABASE horarios_academicos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE cdi_horarios CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### 1.1) Ejecutar scripts SQL (recomendado)
+
+Tienes dos opciones: automatica (recomendada) y manual.
+
+#### Opcion A: automatica con script (recomendada)
+
+1. Copia el archivo example de credenciales a un archivo local:
+
+```powershell
+# Desde la raiz del repositorio
+Copy-Item scripts/.env.base_de_datos.example scripts/.env.base_de_datos
+```
+
+Si usas Linux/macOS:
+
+```bash
+cp scripts/.env.base_de_datos.example scripts/.env.base_de_datos
+```
+
+2. Edita `scripts/.env.base_de_datos` con tus credenciales MySQL.
+
+3. Ejecuta el runner:
+
+```bash
+node scripts/run-base-de-datos-sql.mjs
+```
+
+Notas importantes:
+
+- `scripts/.env.base_de_datos` esta ignorado por git (no se sube).
+- Si `DB_PASSWORD` esta vacio, el script te la pedira por consola.
+- El script funciona en Windows, Linux y macOS (requiere `mysql` CLI instalado o `MYSQL_BIN` configurado).
+
+#### Opcion B: manual (si prefieres ejecutar uno por uno)
+
+El orden recomendado de ejecucion es:
+
+1. `scripts/base_de_datos/1. horarios-estructura-bd.sql`
+2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
+3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
+5. `scripts/base_de_datos/5. horarios-inserciones.sql` (opcional para datos semilla)
+
+Ejemplo con cliente MySQL:
+
+```bash
+mysql -u root -p < "scripts/base_de_datos/1. horarios-estructura-bd.sql"
+mysql -u root -p < "scripts/base_de_datos/2. horarios-usuarios-bd.sql"
+mysql -u root -p < "scripts/base_de_datos/3. horarios-triggers-tablas.sql"
+mysql -u root -p < "scripts/base_de_datos/4. horarios-triggers-auditoria.sql"
+# opcional
+mysql -u root -p < "scripts/base_de_datos/5. horarios-inserciones.sql"
 ```
 
 ### 2) Crear los archivos `.env`
@@ -71,9 +131,9 @@ cp horarios_frontend/.env.example horarios_frontend/.env
 Configura, al menos:
 
 ```env
-DB_NAME=horarios_academicos
-DB_USER=tu_usuario_mysql
-DB_PASSWORD=tu_password_mysql
+DB_NAME=cdi_horarios
+DB_USER=api_user
+DB_PASSWORD=api_password
 DB_HOST=localhost
 DB_PORT=3306
 
@@ -193,11 +253,34 @@ Se usa Loguru con interceptor para redirigir logs de Django/Python.
   - `horarios_backend/logs/warning/`
   - `horarios_backend/logs/error/`
 
+## Auditoria de datos
+
+La auditoria de datos combina:
+
+- Triggers de MySQL para registrar operaciones exitosas sobre tablas de negocio.
+- Contexto desde backend (`core.audit_context`) para enviar usuario, ip, user-agent, transaction_id y acciones puntuales como `CHANGE_STATUS`.
+- Registro de fallos de aplicacion con `is_succesfull = 0` y `error_message` cuando hay excepcion o respuesta HTTP de error en endpoints decorados.
+
+Documentacion completa:
+
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
+
 ## Scripts disponibles
 
 - `scripts/generate-rsa-keys.mjs`: genera llaves RSA para cifrado de login/registro.
-- `scripts/1. horarios-estructura-bd.sql`: script SQL de estructura (opcional).
-- `scripts/4. horarios-inserciones.sql`: script SQL de inserciones (opcional).
+- `scripts/run-base-de-datos-sql.mjs`: ejecuta todos los SQL de `scripts/base_de_datos` en orden numerico.
+- `scripts/.env.base_de_datos.example`: plantilla de credenciales para el runner SQL.
+- `scripts/base_de_datos/1. horarios-estructura-bd.sql`: estructura de BD (incluye tabla `audit_logs`).
+- `scripts/base_de_datos/2. horarios-usuarios-bd.sql`: crea usuario `api_user` y permisos base.
+- `scripts/base_de_datos/3. horarios-triggers-tablas.sql`: triggers de timestamps/autoria por tabla.
+- `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`: triggers de auditoria (`audit_logs`).
+- `scripts/base_de_datos/5. horarios-inserciones.sql`: inserciones semilla (opcional).
+
+## Documentacion tecnica
+
+- `.docs/BACKEND_IMPLEMENTATION_GUIDE.md`
+- `.docs/BACKEND_LÓGICA_DEL_SISTEMA.md`
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
 
 ## Notas
 

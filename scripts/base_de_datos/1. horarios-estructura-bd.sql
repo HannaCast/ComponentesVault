@@ -223,15 +223,15 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`modalities` (
   `require_classroom` TINYINT NOT NULL DEFAULT 1,
   `status` TINYINT NOT NULL DEFAULT 1,
   `configurations` JSON NOT NULL,
-  `universitiy_id` INT NOT NULL,
+  `university_id` INT NOT NULL,
   `created_at` DATETIME NULL,
   `created_by` VARCHAR(100) NULL,
   `updated_at` DATETIME NULL,
   `updated_by` VARCHAR(100) NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_modalities_universities1_idx` (`universitiy_id` ASC) VISIBLE,
+  INDEX `fk_modalities_universities1_idx` (`university_id` ASC) VISIBLE,
   CONSTRAINT `fk_modalities_universities1`
-    FOREIGN KEY (`universitiy_id`)
+    FOREIGN KEY (`university_id`)
     REFERENCES `cdi_horarios`.`universities` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
@@ -474,13 +474,18 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `cdi_horarios`.`audit_logs` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `user_id` INT NULL,
+  `username` VARCHAR(100) NULL,
+  `source` VARCHAR(20) NULL,
+  `transaction_id` VARCHAR(36) NULL,
   `table_name` VARCHAR(100) NOT NULL,
   `record_id` INT NULL,
-  `action` ENUM("CREATE", "UPDATE", "DELETE") NOT NULL,
-  `former_data` JSON NOT NULL,
+  `action` ENUM("CREATE", "UPDATE", "DELETE", "INSERT", "CHANGE_STATUS") NOT NULL,
+  `old_data` JSON NOT NULL,
   `new_data` JSON NULL,
   `ip_address` VARCHAR(45) NULL,
   `user_agent` VARCHAR(255) NULL,
+  `is_succesfull` TINYINT NULL,
+  `error_message` TEXT NULL,
   `created_at` DATETIME NOT NULL,
   PRIMARY KEY (`id`))
 ENGINE = InnoDB;

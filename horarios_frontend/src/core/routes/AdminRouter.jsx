@@ -1,13 +1,11 @@
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import { AdminLayout } from '../../modules/admin/layout/AdminLayout';
-
-const AdminHomePage = () => <div>Panel Admin — próximamente</div>;
-const AdminBitacoraPage = () => <div>Bitácora — próximamente</div>;
+import { AdminAuditPage } from '../../modules/admin/features/audit/pages/AdminAuditPage';
 
 // Elemento de rutas admin para ser compuesto desde el router principal.
 export const adminRoutes = (
   <Route path="/admin" element={<AdminLayout />}>
-    <Route index element={<AdminHomePage />} />
-    <Route path="bitacora" element={<AdminBitacoraPage />} />
+    <Route index element={<Navigate to="bitacora" replace />} />
+    <Route path="bitacora" element={<AdminAuditPage />} />
   </Route>
 );

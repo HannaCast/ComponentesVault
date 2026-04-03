@@ -7,9 +7,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core.api_response import ApiResponse
+from core.audit_context import with_audit_context
 from core.permissions import IsAdmin
 from core.request_decryption import decrypt_request
-from user_accounts.serializers import LoginSerializer, RegisterSerializer
+from user_accounts.serializers import (
+    LoginSerializer, RegisterSerializer, ChangePasswordSerializer,
+)
+
 
 # Duracion de las cookies en segundos
 _ACCESS_COOKIE_MAX_AGE = int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds())
@@ -94,12 +98,49 @@ class RefreshView(APIView):
         except Exception:
             return ApiResponse.error(message='Sesion expirada, inicia sesion nuevamente')
 
+@extend_schema(tags=['Users'])
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=ChangePasswordSerializer)
+    @decrypt_request()
+    @with_audit_context(table_name='users')
+    @transaction.atomic
+    def put(self, request):
+        """Actualiza la contraseña del usuario autenticado validando la contraseña anterior."""
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'user': request.user},
+        )
+        if not serializer.is_valid():
+            return ApiResponse.error(errors=serializer.errors)
+
+        new_password = serializer.validated_data['new_password']
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password'])
+
+        refresh_token = request.COOKIES.get('refresh_token')
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except Exception:
+                # Evita que un problema de blacklist bloquee el cambio de contraseña.
+                pass
+
+        response = ApiResponse.success(
+            message='Contraseña actualizada exitosamente. Inicia sesión nuevamente',
+            data={'force_reauth': True},
+        )
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/api/v1/auth/')
+        return response
 
 @extend_schema(tags=['Auth'])
 class RegisterView(APIView):
     permission_classes = []
 
     @decrypt_request()
+    @with_audit_context(table_name='users')
     @transaction.atomic
     def post(self, request):
         """Registra un nuevo usuario con rol usuario."""
@@ -117,6 +158,7 @@ class RegisterView(APIView):
 class RegisterAdminView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
+    @with_audit_context(table_name='users')
     @transaction.atomic
     def post(self, request):
         """Registra un nuevo administrador. Solo admins autenticados."""
