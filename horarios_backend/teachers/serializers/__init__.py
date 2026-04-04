@@ -5,7 +5,12 @@ from .teacher_availabilities import (
     TeacherAvailabilityListSerializer,
 )
 from .teachers_subjects import (
-	TeacherSubjectDetailSerializer,
-	TeacherSubjectListSerializer,
-	TeacherSubjectWriteSerializer,
+    TeacherSubjectDetailSerializer,
+    TeacherSubjectListSerializer,
+    TeacherSubjectWriteSerializer,
+)
+from .teacher_universities import (
+    TeacherUniversityDetailSerializer,
+    TeacherUniversityListSerializer,
+    TeacherUniversityWriteSerializer,
 )
