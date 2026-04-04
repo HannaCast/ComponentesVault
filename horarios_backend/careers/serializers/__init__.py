@@ -16,4 +16,8 @@ from .career_subjects import (
     CareerSubjectListSerializer,
     CareerSubjectWriteSerializer,
 )
-from .groups import  GroupWriteSerializer, GroupDetailSerializer, GroupListSerializer
+from .groups import (
+    GroupDetailSerializer,
+    GroupListSerializer,
+    GroupWriteSerializer,
+)
