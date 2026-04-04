@@ -4,6 +4,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from core.audit_context import with_audit_action, with_audit_context
 from classrooms.models import Classrooms
 from classrooms.serializers import (
     ClassroomDetailSerializer,
@@ -33,6 +34,7 @@ class ClassroomListView(APIView):
         )
 
     @extend_schema(request=ClassroomWriteSerializer)
+    @with_audit_context(table_name='classrooms')
     @transaction.atomic
     def post(self, request):
         selected_university_id = request.selected_university_id
@@ -183,6 +185,7 @@ class ClassroomDetailView(APIView):
         return ApiResponse.success(ClassroomDetailSerializer(row).data)
 
     @extend_schema(request=ClassroomWriteSerializer)
+    @with_audit_context(table_name='classrooms')
     @transaction.atomic
     def put(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
@@ -198,6 +201,7 @@ class ClassroomDetailView(APIView):
             )
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='classrooms')
     @transaction.atomic
     def delete(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
@@ -214,6 +218,7 @@ class ClassroomDetailView(APIView):
 class ClassroomToggleStatusView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @with_audit_context(table_name='classrooms')
     @transaction.atomic
     def put(self, request, pk):
         try:
@@ -226,7 +231,8 @@ class ClassroomToggleStatusView(APIView):
             return ApiResponse.not_found()
 
         row.status = 0 if row.status == 1 else 1
-        row.save()
+        with with_audit_action('CHANGE_STATUS'):
+            row.save()
 
         estado = 'activada' if row.status == 1 else 'desactivada'
         return ApiResponse.success(

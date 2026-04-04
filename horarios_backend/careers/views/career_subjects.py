@@ -9,6 +9,7 @@ from careers.serializers.career_subjects import (
     CareerSubjectListSerializer,
     CareerSubjectWriteSerializer,
 )
+from core.audit_context import with_audit_context
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 
@@ -32,6 +33,7 @@ class CareerSubjectListView(APIView):
         )
 
     @extend_schema(request=CareerSubjectWriteSerializer)
+    @with_audit_context(table_name='career_subjects')
     @transaction.atomic
     def post(self, request):
         """Registrar materia dentro del plan de una carrera."""
@@ -73,6 +75,7 @@ class CareerSubjectDetailView(APIView):
         )
 
     @extend_schema(request=CareerSubjectWriteSerializer)
+    @with_audit_context(table_name='career_subjects')
     @transaction.atomic
     def put(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
@@ -95,6 +98,7 @@ class CareerSubjectDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='career_subjects')
     @transaction.atomic
     def delete(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)

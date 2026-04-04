@@ -1,40 +1,96 @@
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from django.db import transaction
+from django.db.models import OuterRef, Q, Subquery
+
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+from core.audit_context import with_audit_action, with_audit_context
 from core.api_response import ApiResponse
-from teachers.models import Teachers
-from teachers.serializers import TeacherWriteSerializer, TeacherDetailSerializer, TeacherListSerializer, TeacherSelectSerializer
+from core.permissions import RequireSelectedUniversity
+from teachers.models import Teachers, TeachersUniversities
+from teachers.serializers import (
+    TeacherDetailSerializer,
+    TeacherListSerializer,
+    TeacherSelectSerializer,
+    TeacherWriteSerializer,
+)
+
+
+def _teachers_queryset_for_university(university_id: int):
+    """Profesores con vínculo no eliminado a la universidad + anotación de status del vínculo."""
+    link_for_uni = TeachersUniversities.objects.filter(
+        teachers_id=OuterRef('pk'),
+        universities_id=university_id,
+        is_deleted=0,
+    )
+    return (
+        Teachers.objects.filter(
+            pk__in=TeachersUniversities.objects.filter(
+                universities_id=university_id,
+                is_deleted=0,
+            ).values('teachers_id'),
+            is_deleted=0,
+        )
+        .annotate(
+            university_link_status=Subquery(link_for_uni.values('status')[:1]),
+        )
+    )
 
 
 @extend_schema(tags=['Teachers'])
 class TeacherListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     def get(self, request):
-        """Lista los profesores activos y no eliminados (para selects/dropdowns)"""
-        teachers = Teachers.objects.filter(status=1, is_deleted=0)
-        return ApiResponse.success(TeacherSelectSerializer(teachers, many=True).data)
+        """Profesores activos globalmente y activos en la universidad (selects)."""
+        uid = request.selected_university_id
+        qs = (
+            _teachers_queryset_for_university(uid)
+            .filter(status=1, university_link_status=1)
+            .order_by('surname', 'name', 'id')
+        )
+        return ApiResponse.success(
+            TeacherSelectSerializer(qs, many=True).data
+        )
 
     @extend_schema(request=TeacherWriteSerializer)
+    @with_audit_context(table_name='teachers')
+    @transaction.atomic
     def post(self, request):
-        """Crea un nuevo profesor"""
-        serializer = TeacherWriteSerializer(data=request.data, context={'request': request})
+        """Crea profesor y vínculo teachers_universities para la universidad seleccionada."""
+        uid = request.selected_university_id
+        serializer = TeacherWriteSerializer(
+            data=request.data,
+            context={
+                'request': request,
+                'selected_university_id': uid,
+            },
+        )
         if serializer.is_valid():
             teacher = serializer.save()
-            return ApiResponse.created(TeacherDetailSerializer(teacher).data)
+            return ApiResponse.created(
+                TeacherDetailSerializer(
+                    teacher,
+                    context={'selected_university_id': uid},
+                ).data
+            )
         return ApiResponse.error(errors=serializer.errors)
 
 
 @extend_schema(tags=['Teachers'])
 class TeacherPaginatedView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     SORT_FIELDS = {'id', 'name', 'surname', 'last_name'}
 
     @extend_schema(
         summary='Lista paginada de profesores',
-        description='Retorna los profesores de forma paginada con soporte de búsqueda, filtro por status y ordenamiento.',
+        description=(
+            'Profesores vinculados a la universidad seleccionada. '
+            'El filtro status aplica al vínculo (teachers_universities), no solo al registro global.'
+        ),
         parameters=[
             OpenApiParameter(
                 name='page',
@@ -54,14 +110,18 @@ class TeacherPaginatedView(APIView):
                 name='search',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Término de búsqueda en nombre, apellido paterno (surname) o apellido materno (last_name)',
+                description='Búsqueda en nombre, apellido paterno o materno',
                 required=False,
             ),
             OpenApiParameter(
                 name='status',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Filtro por estado: true (activos) / false (inactivos). Sin valor: retorna todos los no eliminados.',
+                description=(
+                    'Filtro por estado del vínculo con la universidad: '
+                    'true (activo en esta universidad) / false (inactivo). '
+                    'Sin valor: todos los vinculados no eliminados.'
+                ),
                 enum=['true', 'false'],
                 required=False,
             ),
@@ -69,7 +129,7 @@ class TeacherPaginatedView(APIView):
                 name='sortBy',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Campo de ordenamiento: id, name, surname, last_name (por defecto: id)',
+                description='id, name, surname, last_name (por defecto: id)',
                 default='id',
                 required=False,
             ),
@@ -77,7 +137,7 @@ class TeacherPaginatedView(APIView):
                 name='order',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Dirección de ordenamiento: ASC, DESC (por defecto: ASC)',
+                description='ASC, DESC (por defecto: ASC)',
                 enum=['ASC', 'DESC'],
                 default='ASC',
                 required=False,
@@ -85,7 +145,7 @@ class TeacherPaginatedView(APIView):
         ],
     )
     def get(self, request):
-        """Lista paginada de profesores con búsqueda, filtro por status y ordenamiento"""
+        uid = request.selected_university_id
         page = max(1, int(request.query_params.get('page', 1)))
         limit = max(1, int(request.query_params.get('limit', 10)))
         search = request.query_params.get('search', '').strip()
@@ -99,13 +159,13 @@ class TeacherPaginatedView(APIView):
 
         order_field = sort_by if order == 'ASC' else f'-{sort_by}'
 
-        queryset = Teachers.objects.filter(is_deleted=0)
+        queryset = _teachers_queryset_for_university(uid)
 
         if status_param is not None:
-            queryset = queryset.filter(status=1 if status_param.lower() == 'true' else 0)
+            want = 1 if status_param.lower() == 'true' else 0
+            queryset = queryset.filter(university_link_status=want)
 
         if search:
-            from django.db.models import Q
             queryset = queryset.filter(
                 Q(name__icontains=search)
                 | Q(surname__icontains=search)
@@ -114,7 +174,7 @@ class TeacherPaginatedView(APIView):
 
         queryset = queryset.order_by(order_field)
         total = queryset.count()
-        teachers = queryset[offset:offset + limit]
+        teachers = queryset[offset : offset + limit]
 
         return ApiResponse.paginated(
             data=TeacherListSerializer(teachers, many=True).data,
@@ -126,62 +186,112 @@ class TeacherPaginatedView(APIView):
 
 @extend_schema(tags=['Teachers'])
 class TeacherDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
-    def get_object(self, pk):
-        """Busca un profesor no eliminado por su ID, retorna None si no existe o fue eliminado"""
-        try:
-            return Teachers.objects.get(pk=pk, is_deleted=0)
-        except Teachers.DoesNotExist:
-            return None
+    def get_teacher_for_university(self, pk, university_id):
+        return (
+            Teachers.objects.filter(
+                pk=pk,
+                is_deleted=0,
+                pk__in=TeachersUniversities.objects.filter(
+                    universities_id=university_id,
+                    is_deleted=0,
+                ).values('teachers_id'),
+            )
+            .first()
+        )
 
+    @extend_schema(responses=TeacherDetailSerializer)
     def get(self, request, pk):
-        """Obtiene un profesor por ID"""
-        teacher = self.get_object(pk)
+        uid = request.selected_university_id
+        teacher = self.get_teacher_for_university(pk, uid)
         if teacher is None:
             return ApiResponse.not_found()
-        return ApiResponse.success(TeacherDetailSerializer(teacher).data)
+        return ApiResponse.success(
+            TeacherDetailSerializer(
+                teacher,
+                context={'selected_university_id': uid},
+            ).data
+        )
 
     @extend_schema(request=TeacherWriteSerializer)
+    @with_audit_context(table_name='teachers')
+    @transaction.atomic
     def put(self, request, pk):
-        """Actualiza uno o varios campos de un profesor (todos los campos son opcionales)"""
-        teacher = self.get_object(pk)
+        uid = request.selected_university_id
+        teacher = self.get_teacher_for_university(pk, uid)
         if teacher is None:
             return ApiResponse.not_found()
+
         serializer = TeacherWriteSerializer(
-            teacher, data=request.data, partial=True, context={'request': request}
+            teacher,
+            data=request.data,
+            partial=True,
+            context={'request': request, 'selected_university_id': uid},
         )
         if serializer.is_valid():
             teacher = serializer.save()
-            return ApiResponse.success(TeacherDetailSerializer(teacher).data, message='Profesor actualizado exitosamente')
+            return ApiResponse.success(
+                TeacherDetailSerializer(
+                    teacher,
+                    context={'selected_university_id': uid},
+                ).data,
+                message='Profesor actualizado exitosamente',
+            )
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='teachers_universities')
+    @transaction.atomic
     def delete(self, request, pk):
-        """Eliminación lógica: marca is_deleted = 1"""
-        teacher = self.get_object(pk)
-        if teacher is None:
+        """Baja del profesor en esta universidad (vínculo lógico), no borra la persona global."""
+        uid = request.selected_university_id
+        link = (
+            TeachersUniversities.objects.filter(
+                teachers_id=pk,
+                universities_id=uid,
+                is_deleted=0,
+            ).first()
+        )
+        if link is None:
             return ApiResponse.not_found()
-        teacher.is_deleted = 1
-        teacher.save()
-        return ApiResponse.deleted('Profesor eliminado exitosamente')
+        link.is_deleted = 1
+        link.save(update_fields=['is_deleted'])
+        return ApiResponse.deleted(
+            'Profesor desvinculado de la universidad correctamente'
+        )
 
 
 @extend_schema(tags=['Teachers'])
 class TeacherToggleStatusView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @with_audit_context(table_name='teachers_universities')
+    @transaction.atomic
     def put(self, request, pk):
-        """Alterna el status de un profesor entre activo (1) e inactivo (0)"""
-        try:
-            teacher = Teachers.objects.get(pk=pk, is_deleted=0)
-        except Teachers.DoesNotExist:
+        """Activa/inactiva al profesor en la universidad seleccionada (teachers_universities.status)."""
+        uid = request.selected_university_id
+        link = (
+            TeachersUniversities.objects.filter(
+                teachers_id=pk,
+                universities_id=uid,
+                is_deleted=0,
+            ).first()
+        )
+        if link is None:
             return ApiResponse.not_found()
 
-        teacher.status = 0 if teacher.status == 1 else 1
-        teacher.save()
+        link.status = 0 if link.status == 1 else 1
+        with with_audit_action('CHANGE_STATUS'):
+            link.save(update_fields=['status'])
 
-        estado = 'activado' if teacher.status == 1 else 'desactivado'
+        estado = 'activado en la universidad' if link.status == 1 else 'desactivado en la universidad'
+        teacher = Teachers.objects.filter(pk=pk, is_deleted=0).first()
+        if teacher is None:
+            return ApiResponse.not_found()
         return ApiResponse.success(
-            data=TeacherDetailSerializer(teacher).data,
-            message=f'Profesor {estado} exitosamente',
+            data=TeacherDetailSerializer(
+                teacher,
+                context={'selected_university_id': uid},
+            ).data,
+            message=f'Profesor {estado} correctamente',
         )

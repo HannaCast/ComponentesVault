@@ -4,6 +4,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from core.audit_context import with_audit_action, with_audit_context
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 from careers.models import Careers
@@ -29,6 +30,7 @@ class CareerListView(APIView):
         )
 
     @extend_schema(request=CareerWriteSerializer)
+    @with_audit_context(table_name='careers')
     @transaction.atomic
     def post(self, request):
         """Crear carrera."""
@@ -181,6 +183,7 @@ class CareerDetailView(APIView):
         )
 
     @extend_schema(request=CareerWriteSerializer)
+    @with_audit_context(table_name='careers')
     @transaction.atomic
     def put(self, request, pk):
         career = self.get_object(pk, request.selected_university_id)
@@ -203,6 +206,7 @@ class CareerDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='careers')
     @transaction.atomic
     def delete(self, request, pk):
         career = self.get_object(pk, request.selected_university_id)
@@ -219,6 +223,7 @@ class CareerDetailView(APIView):
 class CareerToggleStatusView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @with_audit_context(table_name='careers')
     @transaction.atomic
     def put(self, request, pk):
         try:
@@ -231,7 +236,8 @@ class CareerToggleStatusView(APIView):
             return ApiResponse.not_found()
 
         career.status = 0 if career.status == 1 else 1
-        career.save()
+        with with_audit_action('CHANGE_STATUS'):
+            career.save()
 
         estado = 'activada' if career.status == 1 else 'desactivada'
 

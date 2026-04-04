@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from core.api_response import ApiResponse
+from core.audit_context import with_audit_action, with_audit_context
 from core.permissions import IsAdmin, require_permissions
 from subjects.models import Colors
 from subjects.serializers import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer, ColorSelectSerializer
@@ -20,6 +21,7 @@ class ColorListView(APIView):
 
     @require_permissions(IsAdmin)
     @extend_schema(request=ColorWriteSerializer)
+    @with_audit_context(table_name='colors')
     @transaction.atomic
     def post(self, request):
         """ Crea un nuevo color """
@@ -148,6 +150,7 @@ class ColorDetailView(APIView):
 
     @require_permissions(IsAdmin)
     @extend_schema(request=ColorWriteSerializer)
+    @with_audit_context(table_name='colors')
     @transaction.atomic
     def put(self, request, pk):
         """ Actualiza uno o varios campos de un color (todos los campos son opcionales) """
@@ -161,6 +164,7 @@ class ColorDetailView(APIView):
         return ApiResponse.error(errors=serializer.errors)
 
     @require_permissions(IsAdmin)
+    @with_audit_context(table_name='colors')
     @transaction.atomic
     def delete(self, request, pk):
         """ Eliminación lógica: marca is_deleted = 1 """
@@ -177,6 +181,7 @@ class ColorToggleStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     @require_permissions(IsAdmin)
+    @with_audit_context(table_name='colors')
     @transaction.atomic
     def put(self, request, pk):
         """ Alterna el status de un color entre activo (1) e inactivo (0) """
@@ -186,7 +191,8 @@ class ColorToggleStatusView(APIView):
             return ApiResponse.not_found()
 
         color.status = 0 if color.status == 1 else 1
-        color.save()
+        with with_audit_action('CHANGE_STATUS'):
+            color.save()
 
         estado = 'activado' if color.status == 1 else 'desactivado'
         return ApiResponse.success(

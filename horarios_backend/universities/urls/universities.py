@@ -1,4 +1,5 @@
 from django.urls import path
+
 from universities.views import UniversityCreate, UniversityList, UniversityDetail
 
 urlpatterns = [

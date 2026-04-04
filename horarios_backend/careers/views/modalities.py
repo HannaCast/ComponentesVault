@@ -4,6 +4,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.db.models import Q
 from core.api_response import ApiResponse
+from core.audit_context import with_audit_action, with_audit_context
 from core.permissions import RequireSelectedUniversity
 from careers.models import Modalities
 from django.db import transaction
@@ -26,6 +27,7 @@ class ModalitiesListView(APIView):
         )
 
     @extend_schema(request=ModalitiesWriteSerializer)
+    @with_audit_context(table_name='modalities')
     @transaction.atomic
     def post(self, request):
         """ Crear modalidad """
@@ -161,6 +163,7 @@ class ModalitiesDetailView(APIView):
         )
 
     @extend_schema(request=ModalitiesWriteSerializer)
+    @with_audit_context(table_name='modalities')
     @transaction.atomic
     def put(self, request, pk):
         modality = self.get_object(pk)
@@ -179,6 +182,7 @@ class ModalitiesDetailView(APIView):
             )
 
         return ApiResponse.error(errors=serializer.errors)
+    @with_audit_context(table_name='modalities')
     @transaction.atomic
     def delete(self, request, pk):
         modality = self.get_object(pk)
@@ -193,6 +197,7 @@ class ModalitiesDetailView(APIView):
 class ModalitiesToggleStatusView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @with_audit_context(table_name='modalities')
     @transaction.atomic
     def put(self, request, pk):
         try:
@@ -201,7 +206,8 @@ class ModalitiesToggleStatusView(APIView):
             return ApiResponse.not_found()
 
         modality.status = 0 if modality.status == 1 else 1
-        modality.save()
+        with with_audit_action('CHANGE_STATUS'):
+            modality.save()
 
         estado = 'activada' if modality.status == 1 else 'desactivada'
 

@@ -1,17 +1,88 @@
 USE cdi_horarios;
 
------------------------------------------------------
+-- -----------------------------------------------------
+/*  TABLAS DE ROLES, USUARIOS Y CONFIGURACION BASE  */
+-- -----------------------------------------------------
+
+INSERT INTO roles (name) VALUES
+  ('admin'),
+  ('usuario');
+
+INSERT INTO users (name, surname, last_name, email, password, status, role_id) VALUES
+  (
+    'Admin',
+    'Sistema',
+    'Horarios',
+    'admin@gmail.com',
+    'bcrypt_sha256$$2b$12$Bnk3UjyRKuiD4JxccE4gZ.gE37pdF6swpTHtAhVzsEPIwNuoXtv6O',
+    1,
+    1
+  ),
+  (
+    'Usuario',
+    'Sistema',
+    'Horarios',
+    'usuario@gmail.com',
+    'bcrypt_sha256$$2b$12$sg6nN/Ltj.kxwSd29afbXOf2fhyDYcnWBS5q04wPAWSqE/S2lw.i2',
+    1,
+    2
+  );
+
+INSERT INTO user_configurations (user_id, selected_university_id, theme, accent, status) VALUES
+  (1, NULL, 'light', 'blue', 1),
+  (2, NULL, 'light', 'blue', 1);
+
+-- -----------------------------------------------------
+/*      UNIVERSIDAD BASE UTEZ (MIGRACION INICIAL)   */
+-- -----------------------------------------------------
+
+INSERT INTO universities (
+  name,
+  short_name,
+  institution_code,
+  image_id,
+  user_id,
+  start_time,
+  end_time,
+  period_type_id,
+  uses_period_groups,
+  status,
+  is_deleted
+) VALUES (
+  'Universidad Tecnologica Emiliano Zapata del Estado de Morelos',
+  'UTEZ',
+  'UTEZ',
+  1,
+  2,
+  '07:00:00',
+  '22:00:00',
+  1,
+  1,
+  1,
+  0
+);
+
+UPDATE user_configurations
+SET selected_university_id = 1,
+    status = 1
+WHERE user_id = 2;
+
+
+
+-- -----------------------------------------------------
 /*         TABLA DE TIPOS DE PERÍODO ACADÉMICO      */
------------------------------------------------------
+-- -----------------------------------------------------
 INSERT INTO period_types (name, code, months_duration, status) VALUES
   ('Cuatrimestre', 'CUAT',  4, 1),
   ('Semestre',     'SEM',   6, 1),
   ('Trimestre',    'TRIM',  3, 1),
   ('Anual',        'ANUAL', 12, 1);
 
------------------------------------------------------
+
+
+-- -----------------------------------------------------
 /*    TABLA DE COLORES PARA MATERIAS               */
------------------------------------------------------
+-- -----------------------------------------------------
 INSERT INTO colors (name, hex, contrast_hex, status, is_deleted
 ) VALUES
   ('Blanco',      'FFFFFF', '111827', 1, 0),
@@ -28,18 +99,18 @@ INSERT INTO colors (name, hex, contrast_hex, status, is_deleted
 
 
 
-------------------------------------------------------
+-- ------------------------------------------------------
 /*    TABLA DE MODALIDADES DE CLASES               */
-------------------------------------------------------
+-- ------------------------------------------------------
 
 INSERT INTO modalities (name, require_classroom, status, configurations, university_id) VALUES 
 ('Presencial', 1, 1, '{"allowed_days": [1, 2, 3, 4, 5], "classroom_days_per_week": 5}', 1), 
 ('En línea', 0, 1, '{"allowed_days": [1, 2, 3, 4, 5], "classroom_days_per_week": 0}', 1), 
 ('Mixta', 1, 1, '{"allowed_days": [1, 2, 3, 4, 5], "classroom_days_per_week": 3}', 1);
 
------------------------------------------------------
+-- -----------------------------------------------------
 /*            TABLA DE PERIODOS ACADÉMICOS          */
------------------------------------------------------
+-- -----------------------------------------------------
 -- Nota: `academic_periods.university_id` tiene FK a `universities.id`.
 -- Este seed inserta filas solo si existe la universidad con id=1.
 INSERT INTO academic_periods
@@ -58,9 +129,9 @@ WHERE u.id = 1;
 
 
 
------------------------------------------------------
+-- -----------------------------------------------------
 /*               TABLA DE CARRERAS                 */
------------------------------------------------------
+-- -----------------------------------------------------
 INSERT INTO careers (name, university_id, short_name, code, modality_id, total_periods, status, is_deleted) VALUES
 ('Licenciatura en Administración',                    1, 'LA',    'LA-001',  1, 9, 1, 0),
 ('Licenciatura en Contaduría',                        1, 'LC',    'LC-001',  1, 9, 1, 0),
@@ -76,9 +147,9 @@ INSERT INTO careers (name, university_id, short_name, code, modality_id, total_p
 ('Ingeniería en Nanotecnología',                      1, 'IN',    'IN-001',   1, 9, 1, 0);
 
 
------------------------------------------------------
+-- -----------------------------------------------------
 /*               TABLA DE PROFESORES               */
------------------------------------------------------
+-- -----------------------------------------------------
 INSERT INTO teachers (name, surname, last_name, require_classroom, status, is_deleted) VALUES
 ('Carlos',    'García',     'Vega',      1, 1, 0),
 ('María',     'Martínez',   'Castillo',  0, 1, 0),
@@ -102,9 +173,9 @@ INSERT INTO teachers (name, surname, last_name, require_classroom, status, is_de
 ('María',     'Sánchez',    NULL,        0, 1, 0);
 
 
------------------------------------------------------
+-- -----------------------------------------------------
 /*           TABLA DE TIPOS DE AULA                 */
------------------------------------------------------
+-- -----------------------------------------------------
 
 INSERT INTO classroom_types (name, description, status, is_deleted) VALUES
 ('CompuAula',   NULL, 1, 0),
@@ -112,9 +183,9 @@ INSERT INTO classroom_types (name, description, status, is_deleted) VALUES
 ('Laboratoria', NULL, 1, 0);
 
 
------------------------------------------------------
+-- -----------------------------------------------------
 /*               TABLA DE AULAS (CLASSROOMS)        */
------------------------------------------------------
+-- -----------------------------------------------------
 
 INSERT INTO classrooms (name, classroom_type_id, code, floor, building, building_code, universities_id, is_restricted, status, is_deleted) VALUES
   ('Aula 101',        2, 'A-101', 1, 'Edificio A', 'A', 1, 0, 1, 0),

@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from core.audit_context import with_audit_context
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 from teachers.models import TeachersSubjects
@@ -32,6 +33,7 @@ class TeacherSubjectListView(APIView):
         )
 
     @extend_schema(request=TeacherSubjectWriteSerializer)
+    @with_audit_context(table_name='teachers_subjects')
     @transaction.atomic
     def post(self, request):
         selected_university_id = request.selected_university_id
@@ -73,6 +75,7 @@ class TeacherSubjectDetailView(APIView):
         )
 
     @extend_schema(request=TeacherSubjectWriteSerializer)
+    @with_audit_context(table_name='teachers_subjects')
     @transaction.atomic
     def put(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
@@ -95,6 +98,7 @@ class TeacherSubjectDetailView(APIView):
 
         return ApiResponse.error(errors=serializer.errors)
 
+    @with_audit_context(table_name='teachers_subjects')
     @transaction.atomic
     def delete(self, request, pk):
         row = self.get_object(pk, request.selected_university_id)
