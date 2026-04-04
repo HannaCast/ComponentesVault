@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from teachers.models import Teachers
-from teachers.utils import get_teacher_university_link
+
+from teachers.models import Teachers, TeachersUniversities
 
 
 class TeacherDetailSerializer(serializers.ModelSerializer):
@@ -37,5 +37,11 @@ class TeacherDetailSerializer(serializers.ModelSerializer):
         uid = self.context.get('selected_university_id')
         if not uid:
             return None
-        link = get_teacher_university_link(obj.pk, uid)
+        link = (
+            TeachersUniversities.objects.filter(
+                teachers_id=obj.pk,
+                universities_id=uid,
+                is_deleted=0,
+            ).first()
+        )
         return link.status if link else None
