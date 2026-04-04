@@ -21,4 +21,9 @@ from .career_subjects import (
     CareerSubjectDetailView,
     CareerSubjectListView,
 )
-from .groups import  GroupCreate, GroupList, GroupDetail
+from .groups import (
+    GroupDetailView,
+    GroupListView,
+    GroupPaginatedView,
+    GroupToggleStatusView,
+)
