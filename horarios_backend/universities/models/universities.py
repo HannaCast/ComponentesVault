@@ -7,6 +7,7 @@ class Universities(models.Model):
     image = models.ImageField(upload_to='universities/', blank=True, null=True)
     user = models.ForeignKey('user_accounts.User', on_delete=models.DO_NOTHING)
     start_time = models.TimeField()
+    uses_period_groups = models.BooleanField(default=False)
     end_time = models.TimeField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
