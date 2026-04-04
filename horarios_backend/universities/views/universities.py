@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
+from drf_spectacular.openapi import OpenApiTypes
 from core.api_response import ApiResponse
 from universities.models import Universities
 from universities.serializers import UniversityWriteSerializer
@@ -13,27 +14,32 @@ class UniversityCreate(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
+    @extend_schema(
+        request=UniversityWriteSerializer,
+        responses=UniversityWriteSerializer,
+        description="Crear una nueva universidad",
+        summary="Crear universidad"
+    )
+    def post(self, request):
+        """Crear una universidad"""
 
-def post(self, request):
-    """Crear una universidad"""
+        serializer = UniversityWriteSerializer(data=request.data)
 
-    serializer = UniversityWriteSerializer(data=request.data)
+        if serializer.is_valid():
+            university = serializer.save(
+                user=request.user,
+                created_at=timezone.now(),
+                created_by=request.user.get_username()
+            )
 
-    if serializer.is_valid():
-        university = serializer.save(
-            user=request.user,
-            created_at=timezone.now(),
-            created_by=request.user.get_username()
-        )
+            return ApiResponse.created(
+                UniversityWriteSerializer(university).data
+            )
 
-        return ApiResponse.created(
-            UniversityWriteSerializer(university).data
-        )
-
-    return ApiResponse.error(errors=serializer.errors)
+        return ApiResponse.error(errors=serializer.errors)
 
 
-@extend_schema(tags=['Universities'], responses=UniversityWriteSerializer(many=True))
+@extend_schema(tags=['Universities'])
 class UniversityList(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -50,6 +56,7 @@ class UniversityList(APIView):
 @extend_schema(tags=['Universities'])
 class UniversityDetail(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
 
     def get_object(self, university_id):
         try:
@@ -77,15 +84,10 @@ class UniversityDetail(APIView):
             UniversityWriteSerializer(university).data
         )
 
-  
-    class UniversityDetail(APIView):
-     permission_classes = [IsAuthenticated]
-     parser_classes = (MultiPartParser, FormParser)
     @extend_schema(
         request=UniversityWriteSerializer,
         responses=UniversityWriteSerializer
     )
-    
     def put(self, request, university_id):
         """Actualizar universidad"""
         university = self.get_object(university_id)
@@ -106,7 +108,6 @@ class UniversityDetail(APIView):
             return ApiResponse.success(serializer.data)
 
         return ApiResponse.error(errors=serializer.errors)
-
 
     @extend_schema(responses=None)
     def delete(self, request, university_id):

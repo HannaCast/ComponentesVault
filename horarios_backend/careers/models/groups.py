@@ -1,7 +1,7 @@
 from django.db import models
 from universities.models.academic_periods import AcademicPeriods
-from universities.models.universities import Universities
 from careers.models.careers import Careers
+from universities.models.universities import Universities
 from universities.models.shifts import Shifts
 
 class Groups(models.Model):

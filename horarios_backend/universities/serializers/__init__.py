@@ -5,3 +5,4 @@ from .academic_periods import (
     AcademicPeriodListSerializer,
     AcademicPeriodWriteSerializer,
 )
+from .shifts import ShiftWriteSerializer, ShiftDetailSerializer, ShiftListSerializer
