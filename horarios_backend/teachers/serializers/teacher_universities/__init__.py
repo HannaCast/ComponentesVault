@@ -1,0 +1,3 @@
+from .teacher_university_detail_serializer import TeacherUniversityDetailSerializer
+from .teacher_university_list_serializer import TeacherUniversityListSerializer
+from .teacher_university_write_serializer import TeacherUniversityWriteSerializer
