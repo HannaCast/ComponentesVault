@@ -1,123 +1,117 @@
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from django.utils import timezone
+from django.db import transaction
 
+from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+from core.audit_context import with_audit_context
 from core.api_response import ApiResponse
+from core.permissions import RequireSelectedUniversity
 from universities.models.shifts import Shifts
-from universities.serializers.shifts import ShiftWriteSerializer, ShiftListSerializer, ShiftDetailSerializer
+from universities.serializers.shifts import (
+    ShiftDetailSerializer,
+    ShiftListSerializer,
+    ShiftWriteSerializer,
+)
 
 
 @extend_schema(tags=['Shifts'])
-class ShiftList(APIView):
-    permission_classes = [IsAuthenticated]
+class ShiftListView(APIView):
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     @extend_schema(
         responses=ShiftListSerializer(many=True),
-        summary="Listar turnos"
+        summary='Listar turnos',
     )
     def get(self, request):
-        shifts = Shifts.objects.filter(status=1, is_deleted=0)
-        return ApiResponse.success(ShiftListSerializer(shifts, many=True).data)
+        """Turnos activos de la universidad seleccionada."""
+        selected_university_id = request.selected_university_id
 
-
-@extend_schema(tags=['Shifts'])
-class ShiftCreate(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        request=ShiftWriteSerializer,
-        responses=ShiftDetailSerializer,
-        summary="Crear turno",
-        parameters=[
-            OpenApiParameter(
-                name='X-University-Id',
-                location=OpenApiParameter.HEADER,
-                description='ID de la universidad',
-                required=True,
-                type=int
+        shifts = (
+            Shifts.objects.filter(
+                status=1,
+                is_deleted=0,
+                university_id=selected_university_id,
             )
-        ]
-    )
+            .order_by('order', 'id')
+        )
+
+        return ApiResponse.success(
+            ShiftListSerializer(shifts, many=True).data
+        )
+
+    @extend_schema(request=ShiftWriteSerializer)
+    @with_audit_context(table_name='shifts')
+    @transaction.atomic
     def post(self, request):
+        """Crear turno."""
+        selected_university_id = request.selected_university_id
+
         serializer = ShiftWriteSerializer(
             data=request.data,
-            context={'selected_university_id': request.headers.get('X-University-Id')}
+            context={'selected_university_id': selected_university_id},
         )
 
         if serializer.is_valid():
-            shift = serializer.save(
-                created_at=timezone.now(),
-                created_by=request.user.get_username(),
-            )
+            shift = serializer.save()
             return ApiResponse.created(ShiftDetailSerializer(shift).data)
 
         return ApiResponse.error(errors=serializer.errors)
 
 
 @extend_schema(tags=['Shifts'])
-class ShiftDetail(APIView):
-    permission_classes = [IsAuthenticated]
+class ShiftDetailView(APIView):
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
-    def get_object(self, shift_id):
+    def get_object(self, pk, university_id):
         try:
-            return Shifts.objects.get(id=shift_id, is_deleted=0)
+            return Shifts.objects.select_related('university').get(
+                pk=pk,
+                is_deleted=0,
+                university_id=university_id,
+            )
         except Shifts.DoesNotExist:
             return None
 
-    @extend_schema(
-        responses=ShiftDetailSerializer,
-        summary="Obtener turno"
-    )
-    def get(self, request, shift_id):
-        shift = self.get_object(shift_id)
-        if not shift:
-            return ApiResponse.error(message="Turno no encontrado", status_code=404)
+    @extend_schema(responses=ShiftDetailSerializer, summary='Obtener turno')
+    def get(self, request, pk):
+        shift = self.get_object(pk, request.selected_university_id)
+        if shift is None:
+            return ApiResponse.not_found()
         return ApiResponse.success(ShiftDetailSerializer(shift).data)
 
-    @extend_schema(
-        request=ShiftWriteSerializer,
-        responses=ShiftDetailSerializer,
-        summary="Actualizar turno",
-        parameters=[
-            OpenApiParameter(
-                name='X-University-Id',
-                location=OpenApiParameter.HEADER,
-                description='ID de la universidad',
-                required=True,
-                type=int
-            )
-        ]
-    )
-    def put(self, request, shift_id):
-        shift = self.get_object(shift_id)
-        if not shift:
-            return ApiResponse.error(message="Turno no encontrado", status_code=404)
+    @extend_schema(request=ShiftWriteSerializer)
+    @with_audit_context(table_name='shifts')
+    @transaction.atomic
+    def put(self, request, pk):
+        shift = self.get_object(pk, request.selected_university_id)
+        if shift is None:
+            return ApiResponse.not_found()
 
         serializer = ShiftWriteSerializer(
             shift,
             data=request.data,
-            context={'selected_university_id': request.headers.get('X-University-Id')}
+            partial=True,
+            context={'selected_university_id': request.selected_university_id},
         )
 
         if serializer.is_valid():
-            serializer.save(
-                updated_at=timezone.now(),
-                updated_by=request.user.get_username()
+            shift = serializer.save()
+            return ApiResponse.success(
+                ShiftDetailSerializer(shift).data,
+                message='Turno actualizado correctamente',
             )
-            return ApiResponse.success(ShiftDetailSerializer(shift).data)
 
         return ApiResponse.error(errors=serializer.errors)
 
-    @extend_schema(
-        responses=None,
-        summary="Eliminar turno"
-    )
-    def delete(self, request, shift_id):
-        shift = self.get_object(shift_id)
-        if not shift:
-            return ApiResponse.error(message="Turno no encontrado", status_code=404)
+    @with_audit_context(table_name='shifts')
+    @transaction.atomic
+    def delete(self, request, pk):
+        shift = self.get_object(pk, request.selected_university_id)
+        if shift is None:
+            return ApiResponse.not_found()
 
         shift.is_deleted = 1
         shift.save()
-        return ApiResponse.success(message="Turno eliminado correctamente")
+
+        return ApiResponse.deleted('Turno eliminado correctamente')
