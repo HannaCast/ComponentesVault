@@ -28,4 +28,7 @@ urlpatterns = [
     # RUTAS DE AUDITORIA
     path('api/', include('audit.urls')),
 
+    # RUTAS DE GENERADOR DE HORARIOS
+    path('api/', include('schedule_generator.urls')),
+
 ]

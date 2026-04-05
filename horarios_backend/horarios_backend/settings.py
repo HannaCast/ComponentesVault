@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'teachers',
     'classrooms',
     'audit',
+    'schedule_generator',
 ]
 
 MIDDLEWARE = [
