@@ -8,6 +8,32 @@ import {
   createTeacher,
 } from '../api/teachersApi';
 
+/** Mensaje legible desde ApiResponse.error (message / errores de campo). */
+function extractApiErrorMessage(err) {
+  const d = err?.response?.data;
+  if (!d || typeof d !== 'object') {
+    return err?.message || '';
+  }
+  if (typeof d.message === 'string' && d.message.trim()) {
+    return d.message.trim();
+  }
+  if (typeof d.detail === 'string' && d.detail.trim()) {
+    return d.detail.trim();
+  }
+  const fieldErrors = d.data;
+  if (fieldErrors && typeof fieldErrors === 'object') {
+    for (const val of Object.values(fieldErrors)) {
+      if (Array.isArray(val) && val[0]) {
+        return String(val[0]);
+      }
+      if (typeof val === 'string' && val) {
+        return val;
+      }
+    }
+  }
+  return '';
+}
+
 export const useTeachers = () => {
   const [teachersPage, setTeachersPage] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -28,16 +54,21 @@ export const useTeachers = () => {
   ];
 
   const fetchTeachers = useCallback(
-    async ({
-      page = 1,
-      limit = 10,
-      search = '',
-      estado = 'todos',
-      asc = true,
-    } = {}) => {
+    async (
+      {
+        page = 1,
+        limit = 10,
+        search = '',
+        estado = 'todos',
+        asc = true,
+      } = {},
+      { silent = false } = {},
+    ) => {
       try {
         setLoading(true);
-        setError(null);
+        if (!silent) {
+          setError(null);
+        }
 
         let status;
         if (estado === 'activos') {
@@ -60,9 +91,13 @@ export const useTeachers = () => {
         setTeachersPage(Array.isArray(response.data?.data) ? response.data.data : []);
         setTotalItems(Number(response.data?.meta?.total) || 0);
         lastQueryRef.current = { page, limit, search, estado, asc };
+        return true;
       } catch (err) {
         console.error('Error al cargar profesores:', err);
-        setError('No se pudieron cargar los profesores. Intenta de nuevo.');
+        if (!silent) {
+          setError('No se pudieron cargar los profesores. Intenta de nuevo.');
+        }
+        return false;
       } finally {
         setLoading(false);
       }
@@ -114,12 +149,20 @@ export const useTeachers = () => {
       setTeacherLoading(true);
       setError(null);
       await createTeacher(data);
-      await fetchTeachers(lastQueryRef.current);
-      return true;
+      const refreshed = await fetchTeachers(lastQueryRef.current, { silent: true });
+      if (!refreshed) {
+        return {
+          success: true,
+          softWarning:
+            'El profesor se creó, pero no se pudo actualizar la lista. Recarga la página.',
+        };
+      }
+      return { success: true };
     } catch (err) {
       console.error('Error al crear profesor:', err);
-      setError('No se pudo crear el profesor.');
-      return false;
+      const msg = extractApiErrorMessage(err) || 'No se pudo crear el profesor.';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setTeacherLoading(false);
     }
@@ -130,12 +173,20 @@ export const useTeachers = () => {
       setTeacherLoading(true);
       setError(null);
       await updateTeacher(id, data);
-      await fetchTeachers(lastQueryRef.current);
-      return true;
+      const refreshed = await fetchTeachers(lastQueryRef.current, { silent: true });
+      if (!refreshed) {
+        return {
+          success: true,
+          softWarning:
+            'Los cambios se guardaron, pero no se pudo actualizar la lista. Recarga la página.',
+        };
+      }
+      return { success: true };
     } catch (err) {
       console.error('Error al actualizar profesor:', err);
-      setError('No se pudo actualizar el profesor.');
-      return false;
+      const msg = extractApiErrorMessage(err) || 'No se pudo actualizar el profesor.';
+      setError(msg);
+      return { success: false, message: msg };
     } finally {
       setTeacherLoading(false);
     }
