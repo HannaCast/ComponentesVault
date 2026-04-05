@@ -2,7 +2,7 @@ import json
 
 from careers.models.career_period_exceptions import CareerPeriodExceptions
 from careers.models.groups import Groups
-from schedule_generator.graph.models import GroupContext
+from schedule_generator.generation_logic.graph.models import GroupContext
 
 
 def _normalize_allowed_days(allowed_days) -> list[int]:

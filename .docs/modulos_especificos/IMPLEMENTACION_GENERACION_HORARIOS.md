@@ -1213,82 +1213,103 @@ def _build_unassigned_reason(node) -> str:
 
 ---
 
-## 10. View y URL (`views.py` / `urls.py`)
+## 10. Estructura actual del módulo (modular)
 
-### `views.py`
+El módulo ya no está en archivos planos (`services.py`, `views.py`, `urls.py`).
+Ahora usa la misma convención por capas que otros módulos (`subjects`, `classrooms`, etc.):
 
-```python
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from dataclasses import asdict
-
-from .services import generate_schedule
-
-
-class ScheduleGeneratorView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        """
-        POST /api/schedule-generator/preview/
-
-        Body (opcional — si no se manda, se toma de user_configurations):
-            { "university_id": 1 }
-        """
-        # Obtener university_id del body o del contexto del usuario
-        university_id = request.data.get("university_id")
-
-        if not university_id:
-            # Tomar de user_configurations según el usuario autenticado
-            from core.models import UserConfiguration  # ajustar import
-            config = UserConfiguration.objects.filter(
-                user_id=request.user.id, status=1
-            ).first()
-            if not config or not config.selected_university_id:
-                return Response(
-                    {"error": "NO_UNIVERSITY_SELECTED",
-                     "message": "No hay universidad seleccionada en la configuración del usuario."},
-                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                )
-            university_id = config.selected_university_id
-
-        try:
-            result = generate_schedule(university_id)
-            return Response(asdict(result), status=status.HTTP_200_OK)
-
-        except ValueError as e:
-            error_code = str(e)
-            messages = {
-                "NO_ACTIVE_GROUPS": "No se encontraron grupos activos para esta universidad.",
-                "NO_ACTIVE_PERIOD": "No hay periodo académico activo configurado.",
-            }
-            return Response(
-                {"error": error_code, "message": messages.get(error_code, error_code)},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-```
-
-### `urls.py`
-
-```python
-from django.urls import path
-from .views import ScheduleGeneratorView
-
-urlpatterns = [
-    path("preview/", ScheduleGeneratorView.as_view(), name="schedule-generator-preview"),
-]
-```
-
-Agregar en el `urls.py` principal del proyecto:
-```python
-path("api/schedule-generator/", include("schedule_generator.urls")),
+```text
+schedule_generator/
+├── generation_logic/
+│   ├── constraints/
+│   ├── formatter/
+│   ├── graph/
+│   └── loaders/
+├── models/
+│   ├── __init__.py
+│   └── schedule_versions.py
+├── serializers/
+│   ├── __init__.py
+│   └── schedule_versions/
+│       ├── __init__.py
+│       ├── schedule_version_detail_serializer.py
+│       ├── schedule_version_generate_serializer.py
+│       ├── schedule_version_list_serializer.py
+│       ├── schedule_version_update_draft_serializer.py
+│       └── schedule_version_update_label_serializer.py
+├── services/
+│   ├── __init__.py
+│   ├── schedule_generation_service.py
+│   └── schedule_versions_service.py
+├── views/
+│   ├── __init__.py
+│   └── schedule_versions.py
+├── urls/
+│   ├── __init__.py
+│   └── schedules.py
+├── migrations/
+│   └── 0001_initial.py
+└── ...
 ```
 
 ---
 
-## 11. Casos especiales a manejar explícitamente
+## 11. Endpoints implementados para versionado
+
+Todas las rutas están bajo `api/` y usan `RequireSelectedUniversity`.
+
+| Método | Endpoint | Propósito |
+|------|------|------|
+| `POST` | `/api/v1/university/schedules/generate/` | Genera horario y crea/actualiza el borrador de la universidad seleccionada. |
+| `PUT` | `/api/v1/university/schedules/drafts/{pk}/` | Modifica datos del borrador (`label`, `parameters`, `data`, contadores, `academic_period_id`) sin tocar `is_confirmed`. |
+| `PUT` | `/api/v1/university/schedules/{pk}/confirm/` | Confirma versión (`is_confirmed=1`, `confirmed_at=now`) y libera draft de la universidad en configuración de usuario. |
+| `DELETE` | `/api/v1/university/schedules/drafts/{pk}/` | Eliminación lógica de borrador no confirmado (`is_deleted=1`). |
+| `PUT` | `/api/v1/university/schedules/{pk}/label/` | Actualiza únicamente el label. |
+| `GET` | `/api/v1/university/schedules/paginated/` | Historial paginado (no eliminadas, orden reciente -> antiguo). |
+| `GET` | `/api/v1/university/schedules/{pk}/` | `findById` restringido a universidad seleccionada y sin campos internos (`is_deleted`, `created_by`, `updated_by`). |
+
+Ruta legada que se conserva para pruebas del algoritmo sin persistencia:
+
+| Método | Endpoint | Propósito |
+|------|------|------|
+| `POST` | `/api/schedule-generator/preview/` | Ejecuta solo preview en memoria (no guarda versión). |
+
+---
+
+## 12. Reglas de negocio de versionado
+
+1. Solo existe un borrador activo por universidad.
+2. `POST /generate/` actualiza el borrador si ya existe; si no existe, lo crea.
+3. Si por datos heredados hay múltiples borradores activos, se conserva el más reciente y los demás se marcan como eliminados.
+4. Confirmar o eliminar borrador sincroniza `user_configurations.schedule_generation.draft_schedule_university_ids` removiendo la universidad.
+5. Generar/actualizar borrador agrega la universidad a `draft_schedule_university_ids`.
+6. `selected_university_id` es independiente de `draft_schedule_university_ids` fuera del flujo explícito de borrador.
+7. El detalle público de versión no expone campos internos de auditoría ni borrado lógico.
+8. Los campos de auditoría (`created_*`, `updated_*`) no se actualizan desde backend; quedan a cargo de triggers de base de datos.
+
+---
+
+## 13. Modelo persistente `schedule_versions`
+
+Se agrega la tabla de persistencia con campos de negocio:
+
+- `label`
+- `university_id`
+- `academic_period_id`
+- `parameters` (JSON)
+- `data` (JSON)
+- `assigned_count`
+- `unassigned_count`
+- `is_confirmed`
+- `confirmed_at`
+- `is_deleted`
+- `created_at`, `created_by`, `updated_at`, `updated_by`
+
+Migración: `schedule_generator/migrations/0001_initial.py`.
+
+---
+
+## 14. Casos especiales a manejar explícitamente
 
 | Caso | Cómo manejarlo |
 |------|----------------|
@@ -1305,46 +1326,18 @@ path("api/schedule-generator/", include("schedule_generator.urls")),
 
 ---
 
-## 12. Orden de implementación recomendado
+## 15. Alcance actual y fuera de alcance
 
-```
-Sprint 1 — Tipos y cargadores
-  [ ] graph/models.py          (dataclasses)
-  [ ] loaders/university_context.py
-  [ ] loaders/groups_loader.py
-  [ ] loaders/subjects_loader.py
-  [ ] loaders/teachers_loader.py
-  [ ] loaders/classrooms_loader.py
-  [ ] loaders/slots_builder.py
+Implementado en esta fase:
 
-Sprint 2 — Grafo y algoritmo
-  [ ] graph/schedule_graph.py
-  [ ] graph/node_builder.py
-  [ ] graph/edge_builder.py
-  [ ] constraints/hard_constraints.py
-  [ ] constraints/soft_constraints.py
-  [ ] graph/dsatur.py
+- ✅ Generación de horario con DSatur y restricciones.
+- ✅ Persistencia de versiones (`schedule_versions`) con ciclo de borrador/confirmación.
+- ✅ Historial paginado y consulta por id restringida por universidad.
+- ✅ Sincronización de borradores por universidad en `user_configurations.schedule_generation`.
 
-Sprint 3 — Integración y API
-  [ ] formatter/schedule_formatter.py
-  [ ] services.py
-  [ ] views.py  +  urls.py
-  [ ] Registrar app en settings.py
+Fuera de alcance por ahora:
 
-Sprint 4 — Validación
-  [ ] Probar con uses_period_groups = False
-  [ ] Probar con uses_period_groups = True
-  [ ] Verificar todos los casos especiales (sección 11)
-  [ ] Revisar summary.unassigned_detail para detectar datos faltantes en BD
-```
-
----
-
-## 13. Lo que este módulo NO hace (fuera de alcance en esta fase)
-
-- ❌ Guardar el horario generado en base de datos
-- ❌ Editar manualmente el horario generado
-- ❌ Publicar o notificar el horario
-- ❌ Gestión de conflictos entre dos generaciones distintas
-- ❌ Soporte para modalidad de fines de semana con bloques extendidos
-- ❌ Validación de cupos por aula (no existe campo `capacity` en el schema actual)
+- ❌ Editor visual/manual del horario confirmado.
+- ❌ Publicación/notificación automática del horario.
+- ❌ Motor de resolución incremental entre dos versiones confirmadas.
+- ❌ Validación por capacidad de aula (no existe `capacity` en el esquema actual).

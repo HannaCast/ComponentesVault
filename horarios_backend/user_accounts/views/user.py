@@ -70,6 +70,9 @@ class SelectedUniversityConfigurationView(APIView):
             defaults={
                 'theme': 'light',
                 'accent': 'blue',
+                'schedule_generation': {
+                    'draft_schedule_university_ids': [],
+                },
                 'status': 1,
             },
         )

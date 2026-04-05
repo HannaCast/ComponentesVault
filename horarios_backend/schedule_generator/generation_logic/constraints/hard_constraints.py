@@ -1,4 +1,8 @@
-from schedule_generator.graph.models import ClassroomCandidate, TeacherContext, TimeSlot
+from schedule_generator.generation_logic.graph.models import (
+    ClassroomCandidate,
+    TeacherContext,
+    TimeSlot,
+)
 
 
 def _overlaps(slot_start, slot_end, block_start, block_end) -> bool:

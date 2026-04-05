@@ -20,6 +20,7 @@ class UserConfiguration(models.Model):
         max_length=10,
         help_text='Color de acento de la interfaz: red, green, blue, purple, etc.',
     )
+    schedule_generation = models.JSONField()
     status = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)

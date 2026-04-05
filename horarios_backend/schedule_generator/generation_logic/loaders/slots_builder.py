@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, time
 
-from schedule_generator.graph.models import TimeSlot
+from schedule_generator.generation_logic.graph.models import TimeSlot
 
 # Se construye rejilla de slots por dia dentro de un turno, con duracion y dias configurables.
 def build_time_slots(

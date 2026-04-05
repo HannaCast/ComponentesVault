@@ -1,6 +1,9 @@
 from collections import defaultdict
 
-from schedule_generator.graph.models import TeacherAvailabilityBlock, TeacherContext
+from schedule_generator.generation_logic.graph.models import (
+    TeacherAvailabilityBlock,
+    TeacherContext,
+)
 from teachers.models.teacher_availabilities import TeacherAvailabilities
 from teachers.models.teacher_universities import TeachersUniversities
 from teachers.models.teachers import Teachers

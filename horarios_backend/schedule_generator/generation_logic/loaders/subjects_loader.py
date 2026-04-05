@@ -1,5 +1,5 @@
 from careers.models.career_subjects import CareerSubjects
-from schedule_generator.graph.models import SubjectContext
+from schedule_generator.generation_logic.graph.models import SubjectContext
 
 # Se carga materias activas de una carrera/periodo con su metadata visual.
 def load_subjects_for_group(career_id: int, period_number: int) -> list[SubjectContext]:

@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from schedule_generator.graph.models import ScheduleAssignment, ScheduleNode, UnassignedNode
+from schedule_generator.generation_logic.graph.models import (
+    ScheduleAssignment,
+    ScheduleNode,
+    UnassignedNode,
+)
 
 
 @dataclass(slots=True)

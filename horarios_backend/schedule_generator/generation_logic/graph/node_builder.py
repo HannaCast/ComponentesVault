@@ -1,4 +1,4 @@
-from schedule_generator.graph.models import (
+from schedule_generator.generation_logic.graph.models import (
     GroupContext,
     ScheduleNode,
     SubjectContext,

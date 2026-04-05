@@ -18,5 +18,6 @@ class ConfigurationSerializer(serializers.ModelSerializer):
             'selected_university',
             'theme',
             'accent',
+            'schedule_generation',
             'status',
         ]

@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from classrooms.models import ClassroomCareers, Classrooms
-from schedule_generator.graph.models import ClassroomCandidate
+from schedule_generator.generation_logic.graph.models import ClassroomCandidate
 
 # Se carga aulas activas y sus restricciones por carrera.
 def load_classrooms_for_university(university_id: int) -> list[ClassroomCandidate]:

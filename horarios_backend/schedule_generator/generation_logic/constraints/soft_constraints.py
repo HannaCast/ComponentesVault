@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from schedule_generator.graph.models import TimeSlot
+from schedule_generator.generation_logic.graph.models import TimeSlot
 
 # Calcula penalizacion blanda: menor valor implica mejor opcion.
 def compute_slot_penalty(

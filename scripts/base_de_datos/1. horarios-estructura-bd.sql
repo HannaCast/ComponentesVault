@@ -609,6 +609,7 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`user_configurations` (
   `selected_university_id` INT NULL,
   `theme` VARCHAR(10) NOT NULL DEFAULT 'light' COMMENT 'El tema de la aplicación, ya sea oscuro (dark) o blanco (light)',
   `accent` VARCHAR(10) NOT NULL DEFAULT 'blue' COMMENT 'el color de la interfaz, ejemplo, rojo, verde, azul',
+  `schedule_generation` JSON NOT NULL,
   `status` TINYINT NOT NULL DEFAULT 1,
   `created_at` DATETIME NULL,
   `created_by` VARCHAR(100) NULL,

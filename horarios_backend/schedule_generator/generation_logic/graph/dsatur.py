@@ -1,8 +1,11 @@
 from collections import defaultdict
 
-from schedule_generator.constraints.hard_constraints import can_use_classroom, can_use_teacher
-from schedule_generator.constraints.soft_constraints import compute_slot_penalty
-from schedule_generator.graph.models import (
+from schedule_generator.generation_logic.constraints.hard_constraints import (
+    can_use_classroom,
+    can_use_teacher,
+)
+from schedule_generator.generation_logic.constraints.soft_constraints import compute_slot_penalty
+from schedule_generator.generation_logic.graph.models import (
     ClassroomCandidate,
     DSaturResult,
     ScheduleAssignment,

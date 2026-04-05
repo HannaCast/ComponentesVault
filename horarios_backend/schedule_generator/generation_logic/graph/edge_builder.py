@@ -1,7 +1,10 @@
 from collections import defaultdict
 
-from schedule_generator.graph.models import ScheduleNode
-from schedule_generator.graph.schedule_graph import build_empty_adjacency, connect_all_pairs
+from schedule_generator.generation_logic.graph.models import ScheduleNode
+from schedule_generator.generation_logic.graph.schedule_graph import (
+    build_empty_adjacency,
+    connect_all_pairs,
+)
 
 # Construye aristas de conflicto por grupo y por profesor candidato.
 def build_schedule_adjacency(nodes: list[ScheduleNode]) -> dict[str, set[str]]:
