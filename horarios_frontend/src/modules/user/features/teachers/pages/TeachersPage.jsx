@@ -267,10 +267,15 @@ export const TeachersPage = () => {
         result = await handleUpdateTeacher(selectedTeacher.id, pendingData);
       }
 
-      if (result) {
+      if (result?.success) {
         const action = pendingMode === 'create' ? 'creado' : 'actualizado';
         toast.success(`Profesor ${action} exitosamente`);
+        if (result.softWarning) {
+          toast.error(result.softWarning, { id: 'teachers-list-refresh-warning' });
+        }
         handleCloseDrawer();
+      } else if (result && result.success === false) {
+        toast.error(result.message || 'No se pudo guardar el profesor.');
       }
     } catch (err) {
       console.error('Error en formulario:', err);
