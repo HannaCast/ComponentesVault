@@ -1,8 +1,9 @@
-from django.db import transaction
-from django.db.models import OuterRef, Q, Subquery
+from django.db import IntegrityError, transaction
+from django.db.models import Max, OuterRef, Q, Subquery
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -11,10 +12,18 @@ from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
 from teachers.models import Teachers, TeachersUniversities
 from teachers.serializers import (
+    TeacherAvailabilityInputSerializer,
+    TeacherCompositePayloadSerializer,
     TeacherDetailSerializer,
+    TeacherFullDetailSerializer,
     TeacherListSerializer,
     TeacherSelectSerializer,
+    TeacherSubjectRefSerializer,
     TeacherWriteSerializer,
+)
+from teachers.services.teacher_bundle import (
+    replace_teacher_availabilities,
+    replace_teacher_subjects,
 )
 
 
@@ -39,6 +48,24 @@ def _teachers_queryset_for_university(university_id: int):
     )
 
 
+def _ensure_teacher_university_link(teacher: Teachers, university_id: int) -> None:
+    """Crea el vínculo en teachers_universities (la lista paginada solo incluye profesores vinculados)."""
+    if TeachersUniversities.objects.filter(
+        teachers_id=teacher.pk,
+        universities_id=university_id,
+        is_deleted=0,
+    ).exists():
+        return
+    next_id = (TeachersUniversities.objects.aggregate(m=Max('id'))['m'] or 0) + 1
+    TeachersUniversities.objects.create(
+        id=next_id,
+        teachers=teacher,
+        universities_id=university_id,
+        status=1,
+        is_deleted=0,
+    )
+
+
 @extend_schema(tags=['Teachers'])
 class TeacherListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
@@ -55,28 +82,54 @@ class TeacherListView(APIView):
             TeacherSelectSerializer(qs, many=True).data
         )
 
-    @extend_schema(request=TeacherWriteSerializer)
+    @extend_schema(
+        request=TeacherCompositePayloadSerializer,
+        responses=TeacherFullDetailSerializer,
+    )
     @with_audit_context(table_name='teachers')
     @transaction.atomic
     def post(self, request):
-        """Crea profesor y vínculo teachers_universities para la universidad seleccionada."""
+        """Crea profesor + vínculo universidad + disponibilidades + materias (una transacción)."""
         uid = request.selected_university_id
-        serializer = TeacherWriteSerializer(
-            data=request.data,
+        payload = TeacherCompositePayloadSerializer(data=request.data)
+        if not payload.is_valid():
+            return ApiResponse.error(errors=payload.errors)
+
+        vd = payload.validated_data
+        tw = TeacherWriteSerializer(
+            data={
+                'name': vd['name'],
+                'surname': vd['surname'],
+                'last_name': vd.get('last_name'),
+                'require_classroom': 1 if vd['require_classroom'] else 0,
+            },
             context={
                 'request': request,
                 'selected_university_id': uid,
             },
         )
-        if serializer.is_valid():
-            teacher = serializer.save()
-            return ApiResponse.created(
-                TeacherDetailSerializer(
-                    teacher,
-                    context={'selected_university_id': uid},
-                ).data
+        if not tw.is_valid():
+            return ApiResponse.error(errors=tw.errors)
+
+        try:
+            teacher = tw.save()
+            _ensure_teacher_university_link(teacher, uid)
+            replace_teacher_availabilities(teacher, vd['availabilities'])
+            replace_teacher_subjects(teacher, uid, vd['subjects'])
+        except IntegrityError:
+            return ApiResponse.error(
+                message='No se pudo registrar el profesor o sus relaciones.',
+                status_code=400,
             )
-        return ApiResponse.error(errors=serializer.errors)
+        except serializers.ValidationError as exc:
+            return ApiResponse.error(errors=exc.detail)
+
+        return ApiResponse.created(
+            TeacherFullDetailSerializer(
+                teacher,
+                context={'selected_university_id': uid},
+            ).data
+        )
 
 
 @extend_schema(tags=['Teachers'])
@@ -201,20 +254,23 @@ class TeacherDetailView(APIView):
             .first()
         )
 
-    @extend_schema(responses=TeacherDetailSerializer)
+    @extend_schema(responses=TeacherFullDetailSerializer)
     def get(self, request, pk):
         uid = request.selected_university_id
         teacher = self.get_teacher_for_university(pk, uid)
         if teacher is None:
             return ApiResponse.not_found()
         return ApiResponse.success(
-            TeacherDetailSerializer(
+            TeacherFullDetailSerializer(
                 teacher,
                 context={'selected_university_id': uid},
             ).data
         )
 
-    @extend_schema(request=TeacherWriteSerializer)
+    @extend_schema(
+        request=TeacherCompositePayloadSerializer,
+        responses=TeacherFullDetailSerializer,
+    )
     @with_audit_context(table_name='teachers')
     @transaction.atomic
     def put(self, request, pk):
@@ -223,22 +279,63 @@ class TeacherDetailView(APIView):
         if teacher is None:
             return ApiResponse.not_found()
 
-        serializer = TeacherWriteSerializer(
-            teacher,
-            data=request.data,
-            partial=True,
-            context={'request': request, 'selected_university_id': uid},
-        )
-        if serializer.is_valid():
-            teacher = serializer.save()
-            return ApiResponse.success(
-                TeacherDetailSerializer(
-                    teacher,
-                    context={'selected_university_id': uid},
-                ).data,
-                message='Profesor actualizado exitosamente',
+        sub = {
+            k: request.data[k]
+            for k in ('name', 'surname', 'last_name', 'require_classroom')
+            if k in request.data
+        }
+        if 'require_classroom' in sub and isinstance(sub['require_classroom'], bool):
+            sub['require_classroom'] = 1 if sub['require_classroom'] else 0
+
+        if sub:
+            tw = TeacherWriteSerializer(
+                teacher,
+                data=sub,
+                partial=True,
+                context={'request': request, 'selected_university_id': uid},
             )
-        return ApiResponse.error(errors=serializer.errors)
+            if not tw.is_valid():
+                return ApiResponse.error(errors=tw.errors)
+            teacher = tw.save()
+
+        if 'availabilities' in request.data:
+            raw_av = request.data['availabilities']
+            if raw_av is None:
+                raw_av = []
+            if not isinstance(raw_av, list):
+                return ApiResponse.error(
+                    message='availabilities debe ser una lista.',
+                    status_code=400,
+                )
+            av_ser = TeacherAvailabilityInputSerializer(data=raw_av, many=True)
+            if not av_ser.is_valid():
+                return ApiResponse.error(errors={'availabilities': av_ser.errors})
+            replace_teacher_availabilities(teacher, av_ser.validated_data)
+
+        if 'subjects' in request.data:
+            raw_sj = request.data['subjects']
+            if raw_sj is None:
+                raw_sj = []
+            if not isinstance(raw_sj, list):
+                return ApiResponse.error(
+                    message='subjects debe ser una lista.',
+                    status_code=400,
+                )
+            sj_ser = TeacherSubjectRefSerializer(data=raw_sj, many=True)
+            if not sj_ser.is_valid():
+                return ApiResponse.error(errors={'subjects': sj_ser.errors})
+            try:
+                replace_teacher_subjects(teacher, uid, sj_ser.validated_data)
+            except serializers.ValidationError as exc:
+                return ApiResponse.error(errors=exc.detail)
+
+        return ApiResponse.success(
+            TeacherFullDetailSerializer(
+                teacher,
+                context={'selected_university_id': uid},
+            ).data,
+            message='Profesor actualizado exitosamente',
+        )
 
     @with_audit_context(table_name='teachers_universities')
     @transaction.atomic
