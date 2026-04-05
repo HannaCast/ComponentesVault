@@ -35,7 +35,7 @@ class AuditLogs(models.Model):
     transaction_id = models.CharField(max_length=36, blank=True, null=True)
     table_name = models.CharField(max_length=100)
     record_id = models.IntegerField(blank=True, null=True)
-    action = models.CharField(max_length=6)
+    action = models.CharField(max_length=13)
     old_data = models.JSONField()
     new_data = models.JSONField(blank=True, null=True)
     ip_address = models.CharField(max_length=45, blank=True, null=True)
@@ -209,7 +209,7 @@ class Modalities(models.Model):
     require_classroom = models.IntegerField()
     status = models.IntegerField()
     configurations = models.JSONField()
-    universitiy = models.ForeignKey('Universities', models.DO_NOTHING)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
@@ -245,6 +245,27 @@ class Roles(models.Model):
     class Meta:
         managed = False
         db_table = 'roles'
+
+
+class ScheduleVersions(models.Model):
+    label = models.CharField(max_length=100)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    academic_period = models.ForeignKey(AcademicPeriods, models.DO_NOTHING, blank=True, null=True)
+    parameters = models.JSONField()
+    data = models.JSONField()
+    assigned_count = models.IntegerField()
+    unassigned_count = models.IntegerField()
+    is_confirmed = models.IntegerField()
+    confirmed_at = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'schedule_versions'
 
 
 class Shifts(models.Model):
@@ -354,7 +375,7 @@ class Universities(models.Model):
     name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=10, blank=True, null=True)
     institution_code = models.CharField(max_length=45, blank=True, null=True)
-    image = models.ForeignKey(Images, models.DO_NOTHING)
+    image = models.ForeignKey(Images, models.DO_NOTHING, blank=True, null=True)
     user = models.ForeignKey('Users', models.DO_NOTHING)
     start_time = models.TimeField()
     end_time = models.TimeField()

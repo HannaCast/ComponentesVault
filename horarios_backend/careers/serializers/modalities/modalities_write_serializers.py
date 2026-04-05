@@ -94,3 +94,4 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
         validated_data['university_id'] = selected_university_id
         validated_data['status'] = 1
         return Modalities.objects.create(**validated_data)
+    

@@ -38,7 +38,7 @@ export const getCareers = () =>
 
 // Obtener profesores activos para asociarlos a una materia
 export const getTeachers = () =>
-  apiToken.get('/api/v1/teachers/');
+  apiToken.get('/api/v1/university/teachers/');
 
 // Crear una nueva materia
 export const createSubject = (data) => 

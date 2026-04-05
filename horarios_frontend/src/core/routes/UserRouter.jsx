@@ -1,6 +1,7 @@
 import { Route } from 'react-router-dom';
 import { UserLayout } from '../../modules/user/layout/UserLayout';
 import { SubjectsPage } from '../../modules/user/features/subjects/pages/SubjectsPage';
+import { TeachersPage } from '../../modules/user/features/teachers/pages/TeachersPage';
 import { AccountSettingsPage } from '../../modules/user/features/settings/pages/AccountSettingsPage';
 
 const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
@@ -17,7 +18,7 @@ export const userRoutes = (
     <Route path="universidad/materias/crear" element={<UserPlaceholderPage />} />
     <Route path="universidad/materias/editar/:id" element={<UserPlaceholderPage />} />
     <Route path="universidad/grupos" element={<UserPlaceholderPage />} />
-    <Route path="universidad/profesores" element={<UserPlaceholderPage />} />
+    <Route path="universidad/profesores" element={<TeachersPage />} />
     <Route path="universidad/aulas" element={<UserPlaceholderPage />} />
     <Route path="ajustes" element={<AccountSettingsPage />} />
   </Route>

@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`universities` (
   `name` VARCHAR(100) NOT NULL,
   `short_name` VARCHAR(10) NULL,
   `institution_code` VARCHAR(45) NULL,
-  `image_id` INT NOT NULL,
+  `image_id` INT NULL,
   `user_id` INT NOT NULL,
   `start_time` TIME NOT NULL,
   `end_time` TIME NOT NULL,
@@ -625,6 +625,41 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`user_configurations` (
   CONSTRAINT `fk_user_configurations_universities1`
     FOREIGN KEY (`selected_university_id`)
     REFERENCES `cdi_horarios`.`universities` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `cdi_horarios`.`schedule_versions`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`schedule_versions` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `label` VARCHAR(100) NOT NULL,
+  `university_id` INT NOT NULL,
+  `academic_period_id` INT NULL,
+  `parameters` JSON NOT NULL,
+  `data` JSON NOT NULL,
+  `assigned_count` INT NOT NULL,
+  `unassigned_count` INT NOT NULL,
+  `is_confirmed` TINYINT NOT NULL DEFAULT 0,
+  `confirmed_at` DATETIME NULL,
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `created_by` VARCHAR(100) NULL,
+  `updated_at` DATETIME NULL,
+  `updated_by` VARCHAR(100) NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_schedule_versions_universities1_idx` (`university_id` ASC) VISIBLE,
+  INDEX `fk_schedule_versions_academic_periods1_idx` (`academic_period_id` ASC) VISIBLE,
+  CONSTRAINT `fk_schedule_versions_universities1`
+    FOREIGN KEY (`university_id`)
+    REFERENCES `cdi_horarios`.`universities` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_schedule_versions_academic_periods1`
+    FOREIGN KEY (`academic_period_id`)
+    REFERENCES `cdi_horarios`.`academic_periods` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
