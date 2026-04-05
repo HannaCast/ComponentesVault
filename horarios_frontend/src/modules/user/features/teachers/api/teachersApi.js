@@ -23,16 +23,17 @@ export const getTeachersPaginated = ({
     params.status = status;
   }
 
-  return apiToken.get('/api/v1/teachers/paginated/', { params });
+  return apiToken.get('/api/v1/university/teachers/paginated/', { params });
 };
 
-export const getTeacher = (id) => apiToken.get(`/api/v1/teachers/${id}/`);
+export const getTeacher = (id) => apiToken.get(`/api/v1/university/teachers/${id}/`);
 
-export const createTeacher = (data) => apiToken.post('/api/v1/teachers/', data);
+export const createTeacher = (data) => apiToken.post('/api/v1/university/teachers/', data);
 
-export const updateTeacher = (id, data) => apiToken.put(`/api/v1/teachers/${id}/`, data);
+export const updateTeacher = (id, data) =>
+  apiToken.put(`/api/v1/university/teachers/${id}/`, data);
 
 export const toggleTeacherStatus = (id) =>
-  apiToken.put(`/api/v1/teachers/${id}/toggle-status/`);
+  apiToken.put(`/api/v1/university/teachers/${id}/toggle-status/`);
 
-export const deleteTeacher = (id) => apiToken.delete(`/api/v1/teachers/${id}/`);
+export const deleteTeacher = (id) => apiToken.delete(`/api/v1/university/teachers/${id}/`);
