@@ -98,7 +98,7 @@ class UniversityDetail(APIView):
                 status_code=404
             )
 
-        serializer = UniversityWriteSerializer(university, data=request.data)
+        serializer = UniversityWriteSerializer(university, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save(
