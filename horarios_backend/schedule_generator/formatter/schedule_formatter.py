@@ -27,6 +27,7 @@ def _to_css_hex(value: str) -> str:
 # Transforma resultado interno del algoritmo al payload final de API.
 def format_generated_schedule(
     university_id: int,
+    uses_period_groups: bool,
     nodes: list[ScheduleNode],
     assignments: list[ScheduleAssignment],
     unassigned: list[UnassignedNode],
@@ -111,7 +112,7 @@ def format_generated_schedule(
     return ScheduleGenerationPayload(
         university_id=university_id,
         generated_at=datetime.now(timezone.utc).isoformat(),
-        uses_period_groups=False,
+        uses_period_groups=uses_period_groups,
         groups=groups_payload,
         unassigned=unassigned_payload,
         summary={

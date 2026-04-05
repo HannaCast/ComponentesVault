@@ -21,7 +21,6 @@ class ScheduleGeneratorView(APIView):
             # El servicio aplica todo el pipeline de carga -> grafo -> DSatur -> formatter.
             result = generate_schedule(
                 university_id=selected_university_id,
-                force_uses_period_groups_false=True,
             )
             return ApiResponse.success(
                 data=asdict(result),

@@ -16,16 +16,12 @@ from schedule_generator.loaders import (
 
 def generate_schedule(
     university_id: int,
-    force_uses_period_groups_false: bool = True,
 ):
     """Orquesta la generacion completa de horarios para una universidad."""
     # 1) Contexto base de la universidad (horario institucional y periodo activo).
     university_context = load_university_context(university_id)
 
     uses_period_groups = bool(university_context.get('uses_period_groups', False))
-    # Fase inicial: forzamos comportamiento equivalente a uses_period_groups = false.
-    if force_uses_period_groups_false:
-        uses_period_groups = False
 
     # 2) Cargar grupos candidatos que entran al proceso.
     groups = load_active_groups(
@@ -106,6 +102,7 @@ def generate_schedule(
     # 9) Formatear salida API amigable para frontend/consumo externo.
     return format_generated_schedule(
         university_id=university_id,
+        uses_period_groups=uses_period_groups,
         nodes=nodes,
         assignments=solved.assignments,
         unassigned=solved.unassigned,

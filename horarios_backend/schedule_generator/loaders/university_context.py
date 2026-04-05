@@ -23,7 +23,7 @@ def load_university_context(university_id: int) -> dict:
         'university_id': university_id,
         'start_time': university.start_time,
         'end_time': university.end_time,
-        # En esta fase no segmentamos por periodos academicos de grupos.
-        'uses_period_groups': False,
+        # Toma el comportamiento real configurado en la universidad.
+        'uses_period_groups': bool(university.uses_period_groups),
         'active_period_id': active_period_id,
     }
