@@ -1,10 +1,12 @@
 from django.db import models
 
+from universities.models.images import Images
+
 class Universities(models.Model):
     name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=10, blank=True, null=True)
     institution_code = models.CharField(max_length=45, blank=True, null=True)
-    image = models.ImageField(upload_to='universities/', blank=True, null=True)
+    image = models.ForeignKey(Images, models.DO_NOTHING, null=True, blank=True)
     user = models.ForeignKey('user_accounts.User', on_delete=models.DO_NOTHING)
     start_time = models.TimeField()
     uses_period_groups = models.IntegerField(default=0)
