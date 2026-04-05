@@ -100,7 +100,8 @@ def put(self, request, pk):
 2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
 3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
 4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-5. `scripts/base_de_datos/5. horarios-inserciones.sql` (opcional)
+5. `scripts/base_de_datos/5. horarios-catalogos-base.sql`
+6. `scripts/base_de_datos/6. horarios-datos-prueba.sql` (opcional)
 
 ## Revision rapida de los SQL actuales
 
@@ -122,6 +123,14 @@ Estado general: funcionales para el modelo de auditoria actual, con observacione
    - Correcto: registra operaciones exitosas y contexto de app/database.
    - Incluye auditoria para `schedule_versions` (INSERT/UPDATE/DELETE).
    - Consideracion: los triggers no llenan `error_message` por si solos; los errores de app los registra backend.
+
+5. `scripts/base_de_datos/5. horarios-catalogos-base.sql`
+   - Correcto: concentra catalogos del sistema (roles, period_types, colors y classroom_types).
+   - Enfoque: datos estables para cualquier entorno.
+
+6. `scripts/base_de_datos/6. horarios-datos-prueba.sql`
+   - Correcto: agrupa toda la data semilla para pruebas funcionales.
+   - Nota: no inserta registros en `schedule_versions`.
 
 ## Validacion sugerida
 

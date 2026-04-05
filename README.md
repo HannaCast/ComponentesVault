@@ -23,7 +23,8 @@ Sistema web para gestionar y generar horarios academicos, con backend en Django 
 |     |- 2. horarios-usuarios-bd.sql
 |     |- 3. horarios-triggers-tablas.sql
 |     |- 4. horarios-triggers-auditoria.sql
-|     |- 5. horarios-inserciones.sql
+|     |- 5. horarios-catalogos-base.sql
+|     |- 6. horarios-datos-prueba.sql
 |- horarios_backend/
 |  |- manage.py
 |  |- requirements.txt
@@ -96,7 +97,8 @@ El orden recomendado de ejecucion es:
 2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
 3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
 4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-5. `scripts/base_de_datos/5. horarios-inserciones.sql` (opcional para datos semilla)
+5. `scripts/base_de_datos/5. horarios-catalogos-base.sql` (catalogos del sistema)
+6. `scripts/base_de_datos/6. horarios-datos-prueba.sql` (opcional para pruebas)
 
 Ejemplo con cliente MySQL:
 
@@ -105,8 +107,9 @@ mysql -u root -p < "scripts/base_de_datos/1. horarios-estructura-bd.sql"
 mysql -u root -p < "scripts/base_de_datos/2. horarios-usuarios-bd.sql"
 mysql -u root -p < "scripts/base_de_datos/3. horarios-triggers-tablas.sql"
 mysql -u root -p < "scripts/base_de_datos/4. horarios-triggers-auditoria.sql"
+mysql -u root -p < "scripts/base_de_datos/5. horarios-catalogos-base.sql"
 # opcional
-mysql -u root -p < "scripts/base_de_datos/5. horarios-inserciones.sql"
+mysql -u root -p < "scripts/base_de_datos/6. horarios-datos-prueba.sql"
 ```
 
 ### 2) Crear los archivos `.env`
@@ -274,7 +277,8 @@ Documentacion completa:
 - `scripts/base_de_datos/2. horarios-usuarios-bd.sql`: crea usuario `api_user` y permisos base.
 - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`: triggers de timestamps/autoria por tabla.
 - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`: triggers de auditoria (`audit_logs`).
-- `scripts/base_de_datos/5. horarios-inserciones.sql`: inserciones semilla (opcional).
+- `scripts/base_de_datos/5. horarios-catalogos-base.sql`: catalogos base del sistema.
+- `scripts/base_de_datos/6. horarios-datos-prueba.sql`: inserciones de datos de prueba (opcional).
 
 ## Documentacion tecnica
 
