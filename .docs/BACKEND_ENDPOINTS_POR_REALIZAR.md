@@ -426,14 +426,18 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 
 ---
 
-## 10. Generacion de Horario
+## 10. Generacion y Versionamiento de Horario
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `POST` | `/api/v1/university/schedules/generate/` | Dispara la generacion del horario para la universidad seleccionada. |
-| `GET` | `/api/v1/university/schedules/` | Lista todos los horarios generados (sin paginar). |
-| `GET` | `/api/v1/university/schedules/paginated/` | Lista paginada de horarios generados. |
-| `GET` | `/api/v1/university/schedules/{pk}/` | Detalle de un horario generado. |
+| `POST` | `/api/v1/university/schedules/generate/` | Genera horario y crea/actualiza el borrador activo de la universidad seleccionada. |
+| `PUT` | `/api/v1/university/schedules/drafts/{pk}/` | Actualiza campos de un borrador no confirmado. |
+| `DELETE` | `/api/v1/university/schedules/drafts/{pk}/` | Elimina logicamente un borrador no confirmado. |
+| `PUT` | `/api/v1/university/schedules/{pk}/confirm/` | Confirma una version de horario. |
+| `PUT` | `/api/v1/university/schedules/{pk}/label/` | Actualiza solo el label de la version. |
+| `GET` | `/api/v1/university/schedules/paginated/` | Lista paginada del historial de versiones por universidad seleccionada. |
+| `GET` | `/api/v1/university/schedules/{pk}/` | Detalle de una version de horario. |
+| `POST` | `/api/schedule-generator/preview/` | Genera preview en memoria sin persistir version. |
 
 ---
 

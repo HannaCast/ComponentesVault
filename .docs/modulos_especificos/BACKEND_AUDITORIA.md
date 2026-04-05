@@ -10,14 +10,17 @@ Documentar como funciona la auditoria de datos en backend con enfoque mixto:
 ## Componentes
 
 1. Tabla `audit_logs` en MySQL.
-2. Triggers SQL en `scripts/3. horarios-triggers.sql`.
+2. Triggers SQL en:
+   - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+   - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
 3. Contexto de sesion en backend con `core.audit_context`.
 
 Archivos clave:
 
-- `scripts/1. horarios-estructura-bd.sql`
-- `scripts/2. horarios-usuarios-bd.sql`
-- `scripts/3. horarios-triggers.sql`
+- `scripts/base_de_datos/1. horarios-estructura-bd.sql`
+- `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
+- `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+- `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
 - `horarios_backend/core/audit_context.py`
 - `horarios_backend/subjects/views/subjects.py`
 
@@ -93,26 +96,31 @@ def put(self, request, pk):
 
 ## Orden recomendado de scripts SQL
 
-1. `scripts/1. horarios-estructura-bd.sql`
-2. `scripts/2. horarios-usuarios-bd.sql`
-3. `scripts/3. horarios-triggers.sql`
-4. `scripts/4. horarios-inserciones.sql` (opcional)
+1. `scripts/base_de_datos/1. horarios-estructura-bd.sql`
+2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
+3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
+5. `scripts/base_de_datos/5. horarios-inserciones.sql` (opcional)
 
 ## Revision rapida de los SQL actuales
 
 Estado general: funcionales para el modelo de auditoria actual, con observaciones:
 
-1. `scripts/1. horarios-estructura-bd.sql`
+1. `scripts/base_de_datos/1. horarios-estructura-bd.sql`
    - Correcto: tabla `audit_logs` con `is_succesfull` y `error_message`.
    - Ajustado: `action` ahora incluye `INSERT` y `CHANGE_STATUS`.
 
-2. `scripts/2. horarios-usuarios-bd.sql`
+2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
    - Correcto: crea usuario y permisos base para app.
    - Ajustado: `CREATE USER IF NOT EXISTS` para ejecucion idempotente.
    - Recomendacion: en ambientes productivos, usar password segura y host restringido.
 
-3. `scripts/3. horarios-triggers.sql`
+3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+   - Correcto: registra timestamps y autoria por triggers BEFORE INSERT/UPDATE.
+
+4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
    - Correcto: registra operaciones exitosas y contexto de app/database.
+   - Incluye auditoria para `schedule_versions` (INSERT/UPDATE/DELETE).
    - Consideracion: los triggers no llenan `error_message` por si solos; los errores de app los registra backend.
 
 ## Validacion sugerida

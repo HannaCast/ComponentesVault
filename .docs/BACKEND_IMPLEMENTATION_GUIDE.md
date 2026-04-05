@@ -28,6 +28,7 @@ horarios_backend/              ← raíz del proyecto Django
     careers/                     ← app: carreras y grupos (por implementar)
     teachers/                    ← app: profesores (por implementar)
     classrooms/                  ← app: salones (por implementar)
+    schedule_generator/          ← app: generacion y versionamiento de horarios
     audit/                       ← app: logs de auditoria (modelo y soporte de auditoria)
 ```
 
@@ -78,6 +79,7 @@ INSTALLED_APPS = [
     'careers',        # agregar
     'teachers',       # agregar
     'classrooms',     # agregar
+    'schedule_generator',
     'audit',          # agregar
 ]
 ```
@@ -92,6 +94,7 @@ urlpatterns = [
     path('api/', include('careers.urls')),
     path('api/', include('teachers.urls')),
     path('api/', include('classrooms.urls')),
+    path('api/', include('schedule_generator.urls')),
 ]
 ```
 

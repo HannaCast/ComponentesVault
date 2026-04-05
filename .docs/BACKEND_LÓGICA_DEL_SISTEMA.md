@@ -23,12 +23,18 @@ Cada usuario tiene un rol asignado, el cual determina sus permisos.
 
 La tabla `user_configurations` contiene `selected_university_id`, que indica la universidad activa del usuario.
 
+Tambien contiene el campo JSON `schedule_generation`, usado por el backend para guardar estado de borradores por universidad:
+
+- `draft_schedule_university_ids`: lista de universidades donde el usuario tiene un borrador activo de horario.
+
 A partir de ese campo:
 
 - Todos los listados paginados deben devolver informacion de la universidad seleccionada.
 - Todas las creaciones deben asociarse automaticamente a esa universidad.
 
 Ejemplo: al crear una carrera, queda ligada a la universidad seleccionada.
+
+En el modulo de horarios, la universidad seleccionada define el alcance de versionamiento para la tabla `schedule_versions`.
 
 ---
 

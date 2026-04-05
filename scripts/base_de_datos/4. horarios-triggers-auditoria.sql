@@ -1391,4 +1391,90 @@ BEGIN
     NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
 END$$
 
+
+-- ============================================================
+--  schedule_versions
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trg_audit_schedule_versions_after_insert$$
+CREATE TRIGGER trg_audit_schedule_versions_after_insert
+AFTER INSERT ON `schedule_versions` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'INSERT'),'CREATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'schedule_versions',NEW.id,v_action,JSON_OBJECT(),
+    JSON_SET(
+      JSON_OBJECT(
+        'id',NEW.id,'label',NEW.label,'university_id',NEW.university_id,'academic_period_id',NEW.academic_period_id,
+        'assigned_count',NEW.assigned_count,'unassigned_count',NEW.unassigned_count,
+        'is_confirmed',NEW.is_confirmed,'confirmed_at',NEW.confirmed_at,'is_deleted',NEW.is_deleted,
+        'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by
+      ),
+      '$.parameters', NEW.parameters,
+      '$.data', NEW.data
+    ),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_schedule_versions_after_update$$
+CREATE TRIGGER trg_audit_schedule_versions_after_update
+AFTER UPDATE ON `schedule_versions` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'UPDATE'),'UPDATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'schedule_versions',NEW.id,v_action,
+    JSON_SET(
+      JSON_OBJECT(
+        'id',OLD.id,'label',OLD.label,'university_id',OLD.university_id,'academic_period_id',OLD.academic_period_id,
+        'assigned_count',OLD.assigned_count,'unassigned_count',OLD.unassigned_count,
+        'is_confirmed',OLD.is_confirmed,'confirmed_at',OLD.confirmed_at,'is_deleted',OLD.is_deleted,
+        'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by
+      ),
+      '$.parameters', OLD.parameters,
+      '$.data', OLD.data
+    ),
+    JSON_SET(
+      JSON_OBJECT(
+        'id',NEW.id,'label',NEW.label,'university_id',NEW.university_id,'academic_period_id',NEW.academic_period_id,
+        'assigned_count',NEW.assigned_count,'unassigned_count',NEW.unassigned_count,
+        'is_confirmed',NEW.is_confirmed,'confirmed_at',NEW.confirmed_at,'is_deleted',NEW.is_deleted,
+        'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by
+      ),
+      '$.parameters', NEW.parameters,
+      '$.data', NEW.data
+    ),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_schedule_versions_after_delete$$
+CREATE TRIGGER trg_audit_schedule_versions_after_delete
+AFTER DELETE ON `schedule_versions` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'schedule_versions',OLD.id,'DELETE',
+    JSON_SET(
+      JSON_OBJECT(
+        'id',OLD.id,'label',OLD.label,'university_id',OLD.university_id,'academic_period_id',OLD.academic_period_id,
+        'assigned_count',OLD.assigned_count,'unassigned_count',OLD.unassigned_count,
+        'is_confirmed',OLD.is_confirmed,'confirmed_at',OLD.confirmed_at,'is_deleted',OLD.is_deleted,
+        'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by
+      ),
+      '$.parameters', OLD.parameters,
+      '$.data', OLD.data
+    ),
+    NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
 DELIMITER ;

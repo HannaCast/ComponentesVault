@@ -484,4 +484,25 @@ BEGIN
   SET NEW.updated_by = COALESCE(@app_username, USER());
 END$$
 
+-- ------------------------------------------------------------
+--  schedule_versions
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_schedule_versions_before_insert$$
+CREATE TRIGGER trg_schedule_versions_before_insert
+BEFORE INSERT ON `schedule_versions` FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.created_by = COALESCE(@app_username, USER());
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+DROP TRIGGER IF EXISTS trg_schedule_versions_before_update$$
+CREATE TRIGGER trg_schedule_versions_before_update
+BEFORE UPDATE ON `schedule_versions` FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
 DELIMITER ;
