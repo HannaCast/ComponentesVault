@@ -97,6 +97,12 @@ def _default_draft_label(now_dt) -> str:
     return f"Borrador {now_dt.strftime('%Y-%m-%d %H:%M')}"
 
 
+def _build_parameters_payload(parameters: dict | None, *, uses_period_groups: bool) -> dict:
+    payload = dict(parameters) if isinstance(parameters, dict) else {}
+    payload['uses_period_groups'] = bool(uses_period_groups)
+    return payload
+
+
 def _resolve_academic_period(academic_period_id: int | None, university_id: int):
     if academic_period_id is None:
         return None
@@ -118,7 +124,6 @@ def generate_or_update_draft_schedule_version(
     *,
     university_id: int,
     user,
-    label: str | None = None,
     parameters: dict | None = None,
     is_confirmed_default: int = 0,
     is_deleted_default: int = 0,
@@ -139,8 +144,10 @@ def generate_or_update_draft_schedule_version(
     context_active_period_id = university_context.get('active_period_id')
     academic_period = _resolve_academic_period(context_active_period_id, university_id)
 
-    parameters_payload = dict(parameters) if isinstance(parameters, dict) else {}
-    parameters_payload['uses_period_groups'] = bool(result_payload.get('uses_period_groups', False))
+    parameters_payload = _build_parameters_payload(
+        parameters,
+        uses_period_groups=bool(result_payload.get('uses_period_groups', False)),
+    )
 
     draft_queryset = (
         ScheduleVersions.objects
@@ -157,7 +164,7 @@ def generate_or_update_draft_schedule_version(
 
     if draft is None:
         draft = ScheduleVersions.objects.create(
-            label=label.strip() if isinstance(label, str) and label.strip() else _default_draft_label(now_dt),
+            label=_default_draft_label(now_dt),
             university_id=university_id,
             academic_period=academic_period,
             parameters=parameters_payload,
@@ -175,9 +182,6 @@ def generate_or_update_draft_schedule_version(
                 is_deleted=1,
             )
 
-        if isinstance(label, str) and label.strip():
-            draft.label = label.strip()
-
         draft.academic_period = academic_period
         draft.parameters = parameters_payload
         draft.data = result_payload
@@ -185,7 +189,6 @@ def generate_or_update_draft_schedule_version(
         draft.unassigned_count = unassigned_count
         draft.save(
             update_fields=[
-                'label',
                 'academic_period',
                 'parameters',
                 'data',
@@ -232,7 +235,10 @@ def update_draft_schedule_version(
         update_fields.append('academic_period')
 
     if 'parameters' in updates:
-        draft.parameters = updates['parameters']
+        draft.parameters = _build_parameters_payload(
+            updates['parameters'],
+            uses_period_groups=bool(draft.university.uses_period_groups),
+        )
         update_fields.append('parameters')
 
     if 'data' in updates:

@@ -430,14 +430,20 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `POST` | `/api/v1/university/schedules/generate/` | Genera horario y crea/actualiza el borrador activo de la universidad seleccionada. |
-| `PUT` | `/api/v1/university/schedules/drafts/{pk}/` | Actualiza campos de un borrador no confirmado. |
+| `POST` | `/api/v1/university/schedules/generate/` | Genera horario y crea/actualiza el borrador activo de la universidad seleccionada (conserva label en regeneracion). |
+| `PUT` | `/api/v1/university/schedules/drafts/{pk}/` | Actualiza campos de un borrador no confirmado (incluye label cuando se requiere cambio junto con otros campos). |
 | `DELETE` | `/api/v1/university/schedules/drafts/{pk}/` | Elimina logicamente un borrador no confirmado. |
 | `PUT` | `/api/v1/university/schedules/{pk}/confirm/` | Confirma una version de horario. |
-| `PUT` | `/api/v1/university/schedules/{pk}/label/` | Actualiza solo el label de la version. |
+| `PUT` | `/api/v1/university/schedules/{pk}/label/` | Ruta dedicada para actualizar exclusivamente el label de la version. |
 | `GET` | `/api/v1/university/schedules/paginated/` | Lista paginada del historial de versiones por universidad seleccionada. |
 | `GET` | `/api/v1/university/schedules/{pk}/` | Detalle de una version de horario. |
 | `POST` | `/api/schedule-generator/preview/` | Genera preview en memoria sin persistir version. |
+
+Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
+
+- En la primera generacion, el backend asigna label por defecto con formato `Borrador YYYY-MM-DD HH:MM`.
+- En regeneracion de borrador existente, el endpoint conserva el label actual.
+- `parameters.uses_period_groups` siempre se define desde backend segun la configuracion institucional.
 
 ---
 

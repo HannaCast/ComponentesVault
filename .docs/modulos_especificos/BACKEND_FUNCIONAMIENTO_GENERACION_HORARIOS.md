@@ -83,6 +83,9 @@ Que hace:
 
 - Ejecuta toda la generacion.
 - Guarda resultado en schedule_versions (create o update de borrador activo).
+- Si no existe borrador, crea uno nuevo con label por defecto: Borrador YYYY-MM-DD HH:MM.
+- Si ya existe borrador, regenera contenido del borrador y conserva su label actual.
+- En parameters, el campo uses_period_groups siempre se fuerza desde backend.
 
 ### 5.2 Actualizar borrador existente
 
@@ -205,14 +208,14 @@ Regla importante:
 
 Campos:
 
-- label: opcional, max 100, no vacio si se envia.
+- label: opcional, max 100, admite null/vacio por compatibilidad de payload.
 - parameters: JSON object opcional (default dict).
 - is_confirmed: HiddenField default 0.
 - is_deleted: HiddenField default 0.
 
 Validaciones:
 
-- label se trimmea y no puede quedar vacio.
+- label no se usa para nombrar en generate/regenerate.
 - parameters debe ser objeto JSON.
 
 ### 8.2 ScheduleVersionUpdateDraftSerializer
@@ -402,7 +405,7 @@ Este servicio hace dos cosas en una sola transaccion:
 
 - Toma assigned_count y unassigned_count desde summary.
 - Resuelve academic_period a partir del active_period_id del contexto institucional.
-- Construye parameters y agrega uses_period_groups.
+- Construye parameters y sobrescribe uses_period_groups con el valor institucional del backend.
 
 ### 10.2 Regla de un borrador activo por universidad
 
@@ -419,9 +422,14 @@ Comportamiento:
 
 ### 10.3 Label por defecto
 
-Si no se envia label valido:
+En la creacion inicial del borrador:
 
 - Se usa formato: Borrador YYYY-MM-DD HH:MM
+
+En regeneraciones sobre borrador existente:
+
+- Se conserva el label actual del borrador.
+- El generate no renombra aunque el payload traiga label.
 
 ### 10.4 Tracking en user_configurations
 
@@ -612,7 +620,9 @@ Responsabilidad:
 3. Confirmar version libera el tracking de borrador para esa universidad.
 4. Eliminar borrador es logico, no fisico.
 5. Backend no escribe campos created_*/updated_* en schedule_versions.
-6. Si no hay datos minimos para agendar, se devuelve error de negocio explicito.
+6. En generate/regenerate, el label del borrador se crea por default y despues se conserva.
+7. En parameters, uses_period_groups siempre lo determina backend segun la universidad seleccionada.
+8. Si no hay datos minimos para agendar, se devuelve error de negocio explicito.
 
 ## 20) Guia de depuracion para personas nuevas
 

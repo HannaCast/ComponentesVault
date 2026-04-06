@@ -92,7 +92,6 @@ class ScheduleVersionGenerateView(APIView):
             schedule_version = generate_or_update_draft_schedule_version(
                 university_id=request.selected_university_id,
                 user=request.user,
-                label=serializer.validated_data.get('label'),
                 parameters=serializer.validated_data.get('parameters'),
                 is_confirmed_default=serializer.validated_data.get('is_confirmed', 0),
                 is_deleted_default=serializer.validated_data.get('is_deleted', 0),
