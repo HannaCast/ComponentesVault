@@ -17,18 +17,18 @@ export const UserLayout = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--bg-base)]">
-      <Header onMenuClick={openMobileMenu} />
+    <div className="app-shell h-screen flex flex-col bg-[var(--bg-base)]">
+      <Header className="app-shell-header" onMenuClick={openMobileMenu} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar className="hidden lg:block" />
-        <main className="flex-1 overflow-y-auto bg-[var(--bg-surface)]">
-          <div className="p-6">
+        <Sidebar className="app-shell-sidebar hidden lg:block" />
+        <main className="app-shell-main flex-1 overflow-y-auto bg-[var(--bg-surface)]">
+          <div className="app-shell-content p-6">
             <Outlet />
           </div>
         </main>
       </div>
 
-      <Dialog open={isMobileMenuOpen} onClose={closeMobileMenu} className="relative z-50 lg:hidden">
+      <Dialog open={isMobileMenuOpen} onClose={closeMobileMenu} className="no-print relative z-50 lg:hidden">
         <DialogBackdrop
           transition
           className="fixed inset-0 transition-opacity duration-300 ease-in-out data-closed:opacity-0"

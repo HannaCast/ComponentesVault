@@ -64,7 +64,7 @@ export const ScheduleVersionDetailPage = () => {
       return;
     }
 
-    loadVersionDetail(parsedVersionId, { force: true });
+    loadVersionDetail(parsedVersionId);
   }, [loadVersionDetail, navigate, versionId]);
 
   useEffect(() => {
@@ -93,6 +93,27 @@ export const ScheduleVersionDetailPage = () => {
     toast.error(historyError, { id: 'schedule-generator-detail-error' });
     setHistoryError(null);
   }, [historyError, setHistoryError]);
+
+  useEffect(() => {
+    const originalTitle = document.title;
+
+    const handleBeforePrint = () => {
+      document.title = '';
+    };
+
+    const handleAfterPrint = () => {
+      document.title = originalTitle;
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+      document.title = originalTitle;
+    };
+  }, []);
 
   const handleToggleViewConfig = (key, value) => {
     setViewConfig((prev) => ({
@@ -131,7 +152,7 @@ export const ScheduleVersionDetailPage = () => {
     <div className="space-y-6">
       <SurfacePanel className="overflow-hidden" padding="p-0">
         <div
-          className="flex flex-col gap-4 border-b px-5 py-4 lg:flex-row lg:items-start lg:justify-between"
+          className="no-print flex flex-col gap-4 border-b px-5 py-4 lg:flex-row lg:items-start lg:justify-between"
           style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}
         >
           <div>
@@ -152,7 +173,7 @@ export const ScheduleVersionDetailPage = () => {
           />
         </div>
 
-        <div className="px-5 py-4">
+        <div className="print-schedule-content px-5 py-4">
           <ScheduleGeneratedPanel
             loading={selectedVersionLoading}
             scheduleVersion={selectedVersion}

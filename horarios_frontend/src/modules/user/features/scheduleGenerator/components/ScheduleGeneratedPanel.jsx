@@ -164,6 +164,169 @@ const buildUnassignedReasons = (unassigned) => {
     .sort((a, b) => b.count - a.count);
 };
 
+const getScheduleWindowLabel = (gridModel) => (
+  gridModel.slots.length
+    ? `${gridModel.slots[0].startTime} - ${gridModel.slots[gridModel.slots.length - 1].endTime}`
+    : 'Sin bloques programados'
+);
+
+const GroupScheduleView = ({
+  group,
+  scheduleVersion,
+  userUniversityName,
+  viewConfig,
+  palette,
+  className = '',
+  rowHeightClass = 'h-20',
+}) => {
+  const gridModel = buildGridModel(group);
+  const teachersSummary = buildTeachersSummary(group);
+  const scheduleWindowLabel = getScheduleWindowLabel(gridModel);
+
+  return (
+    <div
+      className={`space-y-4 rounded-xl border p-4 ${className}`.trim()}
+      style={{
+        backgroundColor: palette.pageBg,
+        borderColor: palette.border,
+        color: palette.textPrimary,
+      }}
+    >
+      {viewConfig?.includeHeader ? (
+        <div className="space-y-2 border-b pb-3" style={{ borderColor: palette.border }}>
+          <h4 className="text-center text-xl font-bold uppercase" style={{ color: palette.textPrimary }}>
+            {String(userUniversityName || 'Universidad seleccionada')}
+          </h4>
+          <p className="text-center text-sm font-semibold uppercase" style={{ color: palette.textPrimary }}>
+            Horario de grupo
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+            <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
+              <span className="font-semibold">Carrera:</span> {group?.career_id || '-'}
+            </div>
+            <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
+              <span className="font-semibold">Periodo:</span> {formatAcademicPeriod(scheduleVersion?.academic_period)}
+            </div>
+            <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
+              <span className="font-semibold">Turno:</span> {scheduleWindowLabel}
+            </div>
+            <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
+              <span className="font-semibold">Grupo:</span> {group?.group_name || '-'}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="overflow-x-auto rounded-lg border" style={{ borderColor: palette.border }}>
+        <table className="min-w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th
+                className="border px-3 py-2 text-center font-semibold"
+                style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
+              >
+                Hora
+              </th>
+              {gridModel.dayColumns.map((day) => (
+                <th
+                  key={day}
+                  className="border px-3 py-2 text-center font-semibold"
+                  style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
+                >
+                  {DAY_LABELS[day] || `Dia ${day}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {gridModel.slots.map((slot) => {
+              const slotRangeLabel = `${slot.startTime} - ${slot.endTime}`;
+
+              return (
+                <tr key={slot.key}>
+                  <td
+                    className="border px-3 py-2 text-center font-medium"
+                    style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
+                  >
+                    {slotRangeLabel}
+                  </td>
+
+                  {gridModel.dayColumns.map((day) => {
+                    const block = gridModel.cellMap.get(`${slot.key}:${day}`);
+                    const subjectColor = block?.color?.hex || '#E5E7EB';
+                    const contrastColor = block?.color?.contrast_hex || palette.textPrimary;
+                    const useColoredBlock = Boolean(viewConfig?.useSubjectColors && block);
+
+                    return (
+                      <td
+                        key={`${slot.key}:${day}`}
+                        className="border align-top"
+                        style={{
+                          borderColor: palette.border,
+                          backgroundColor: useColoredBlock ? subjectColor : palette.emptyCellBg,
+                          color: useColoredBlock ? contrastColor : palette.textPrimary,
+                        }}
+                      >
+                        {block ? (
+                          <div className="space-y-1 p-2">
+                            <p className="text-sm font-semibold">{block?.subject?.name || 'Materia'}</p>
+
+                            {viewConfig?.showTeacherNames ? (
+                              <p className="text-xs">{block?.teacher?.name || 'Sin profesor'}</p>
+                            ) : null}
+
+                            <p className="text-xs">{block?.classroom?.name || 'Sin aula'}</p>
+                          </div>
+                        ) : (
+                          <div className={rowHeightClass} />
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {!viewConfig?.showTeacherNames ? (
+        <div className="rounded-lg border" style={{ borderColor: palette.border }}>
+          <div
+            className="grid grid-cols-2 border-b px-3 py-2 text-sm font-semibold"
+            style={{
+              borderColor: palette.border,
+              backgroundColor: palette.tableHeaderBg,
+              color: palette.textPrimary,
+            }}
+          >
+            <span>Asignatura</span>
+            <span>Profesores</span>
+          </div>
+
+          {teachersSummary.length ? (
+            teachersSummary.map((row) => (
+              <div
+                key={row.subjectName}
+                className="grid grid-cols-2 border-b px-3 py-2 text-sm last:border-b-0"
+                style={{ borderColor: palette.border, color: palette.textSecondary }}
+              >
+                <span>{row.subjectName}</span>
+                <span>{row.teachers.length ? row.teachers.join(', ') : 'Sin profesor asignado'}</span>
+              </div>
+            ))
+          ) : (
+            <div className="px-3 py-3 text-sm" style={{ color: palette.textSecondary }}>
+              No hay profesores para mostrar en el resumen.
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const ScheduleGeneratedPanel = ({
   loading,
   scheduleVersion,
@@ -197,8 +360,6 @@ export const ScheduleGeneratedPanel = ({
 
   const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
 
-  const gridModel = buildGridModel(currentGroup);
-  const teachersSummary = buildTeachersSummary(currentGroup);
   const unassignedReasons = buildUnassignedReasons(unassigned);
 
   const isConfirmed = Number(scheduleVersion?.is_confirmed) === 1;
@@ -206,17 +367,13 @@ export const ScheduleGeneratedPanel = ({
 
   const palette = getPalette(viewConfig?.forceWhiteBackground);
 
-  const scheduleWindowLabel = gridModel.slots.length
-    ? `${gridModel.slots[0].startTime} - ${gridModel.slots[gridModel.slots.length - 1].endTime}`
-    : 'Sin bloques programados';
-
   const groupsScheduled = Number(summary?.groups_scheduled) || groups.length;
   const assignedCount = Number(scheduleVersion?.assigned_count) || Number(summary?.total_blocks_assigned) || 0;
   const unassignedCount = Number(scheduleVersion?.unassigned_count) || Number(summary?.total_blocks_unassigned) || 0;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="screen-only grid grid-cols-1 gap-3 md:grid-cols-3">
         <SurfacePanel className="h-full" padding="p-4">
           <p className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>Bloques asignados</p>
           <p className="mt-2 text-4xl font-bold" style={{ color: '#047857' }}>{assignedCount}</p>
@@ -233,8 +390,8 @@ export const ScheduleGeneratedPanel = ({
         </SurfacePanel>
       </div>
 
-      <SurfacePanel className="space-y-4" padding="p-4">
-        <div className="flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-start lg:justify-between" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+      <SurfacePanel className="space-y-4 print-schedule-wrapper" padding="p-4">
+        <div className="screen-only flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-start lg:justify-between" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
           <div>
             <h3 className="text-2xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>Horario semanal</h3>
             <p className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
@@ -280,7 +437,7 @@ export const ScheduleGeneratedPanel = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <div className="screen-only grid grid-cols-1 gap-2 md:grid-cols-2">
           <Checkbox
             checked={Boolean(viewConfig?.showTeacherNames)}
             onChange={(event) => onToggleViewConfig?.('showTeacherNames', event.target.checked)}
@@ -307,7 +464,7 @@ export const ScheduleGeneratedPanel = ({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="screen-only flex flex-wrap items-center gap-2">
           {groups.map((group) => {
             const groupId = Number(group?.group_id);
             const isSelected = Number(currentGroup?.group_id) === groupId;
@@ -330,158 +487,47 @@ export const ScheduleGeneratedPanel = ({
           })}
         </div>
 
-        {currentGroup ? (
-          <div
-            className="space-y-4 rounded-xl border p-4"
-            style={{
-              backgroundColor: palette.pageBg,
-              borderColor: palette.border,
-              color: palette.textPrimary,
-            }}
-          >
-            {viewConfig?.includeHeader ? (
-              <div className="space-y-2 border-b pb-3" style={{ borderColor: palette.border }}>
-                <h4 className="text-center text-xl font-bold uppercase" style={{ color: palette.textPrimary }}>
-                  {String(userUniversityName || 'Universidad seleccionada')}
-                </h4>
-                <p className="text-center text-sm font-semibold uppercase" style={{ color: palette.textPrimary }}>
-                  Horario de grupo
-                </p>
+        <div className="screen-only">
+          {currentGroup ? (
+            <GroupScheduleView
+              group={currentGroup}
+              scheduleVersion={scheduleVersion}
+              userUniversityName={userUniversityName}
+              viewConfig={viewConfig}
+              palette={palette}
+            />
+          ) : (
+            <SurfacePanel>
+              <p className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                La version seleccionada no contiene grupos programados.
+              </p>
+            </SurfacePanel>
+          )}
+        </div>
 
-                <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
-                  <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-                    <span className="font-semibold">Carrera:</span> {currentGroup?.career_id || '-'}
-                  </div>
-                  <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-                    <span className="font-semibold">Periodo:</span> {formatAcademicPeriod(scheduleVersion?.academic_period)}
-                  </div>
-                  <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-                    <span className="font-semibold">Turno:</span> {scheduleWindowLabel}
-                  </div>
-                  <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-                    <span className="font-semibold">Grupo:</span> {currentGroup?.group_name || '-'}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="overflow-x-auto rounded-lg border" style={{ borderColor: palette.border }}>
-              <table className="min-w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th
-                      className="border px-3 py-2 text-center font-semibold"
-                      style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
-                    >
-                      Hora
-                    </th>
-                    {gridModel.dayColumns.map((day) => (
-                      <th
-                        key={day}
-                        className="border px-3 py-2 text-center font-semibold"
-                        style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
-                      >
-                        {DAY_LABELS[day] || `Dia ${day}`}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {gridModel.slots.map((slot) => {
-                    const slotRangeLabel = `${slot.startTime} - ${slot.endTime}`;
-
-                    return (
-                      <tr key={slot.key}>
-                        <td
-                          className="border px-3 py-2 text-center font-medium"
-                          style={{ borderColor: palette.border, backgroundColor: palette.tableHeaderBg }}
-                        >
-                          {slotRangeLabel}
-                        </td>
-
-                        {gridModel.dayColumns.map((day) => {
-                          const block = gridModel.cellMap.get(`${slot.key}:${day}`);
-                          const subjectColor = block?.color?.hex || '#E5E7EB';
-                          const contrastColor = block?.color?.contrast_hex || palette.textPrimary;
-
-                          const useColoredBlock = Boolean(viewConfig?.useSubjectColors && block);
-
-                          return (
-                            <td
-                              key={`${slot.key}:${day}`}
-                              className="border align-top"
-                              style={{
-                                borderColor: palette.border,
-                                backgroundColor: useColoredBlock ? subjectColor : palette.emptyCellBg,
-                                color: useColoredBlock ? contrastColor : palette.textPrimary,
-                              }}
-                            >
-                              {block ? (
-                                <div className="space-y-1 p-2">
-                                  <p className="text-sm font-semibold">{block?.subject?.name || 'Materia'}</p>
-
-                                  {viewConfig?.showTeacherNames ? (
-                                    <p className="text-xs">{block?.teacher?.name || 'Sin profesor'}</p>
-                                  ) : null}
-
-                                  <p className="text-xs">{block?.classroom?.name || 'Sin aula'}</p>
-                                </div>
-                              ) : (
-                                <div className="h-20" />
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {!viewConfig?.showTeacherNames ? (
-              <div className="rounded-lg border" style={{ borderColor: palette.border }}>
-                <div
-                  className="grid grid-cols-2 border-b px-3 py-2 text-sm font-semibold"
-                  style={{
-                    borderColor: palette.border,
-                    backgroundColor: palette.tableHeaderBg,
-                    color: palette.textPrimary,
-                  }}
-                >
-                  <span>Asignatura</span>
-                  <span>Profesores</span>
-                </div>
-
-                {teachersSummary.length ? (
-                  teachersSummary.map((row) => (
-                    <div
-                      key={row.subjectName}
-                      className="grid grid-cols-2 border-b px-3 py-2 text-sm last:border-b-0"
-                      style={{ borderColor: palette.border, color: palette.textSecondary }}
-                    >
-                      <span>{row.subjectName}</span>
-                      <span>{row.teachers.length ? row.teachers.join(', ') : 'Sin profesor asignado'}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-3 py-3 text-sm" style={{ color: palette.textSecondary }}>
-                    No hay profesores para mostrar en el resumen.
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <SurfacePanel>
+        <div className="print-only space-y-4">
+          {groups.length ? (
+            groups.map((group, index) => (
+              <GroupScheduleView
+                key={`${group?.group_id || index}`}
+                group={group}
+                scheduleVersion={scheduleVersion}
+                userUniversityName={userUniversityName}
+                viewConfig={viewConfig}
+                palette={palette}
+                className={`print-schedule-page ${index < groups.length - 1 ? 'print-break-after' : ''} print-avoid-break`}
+                rowHeightClass="h-14"
+              />
+            ))
+          ) : (
             <p className="text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-              La version seleccionada no contiene grupos programados.
+              Esta version no contiene grupos para impresion.
             </p>
-          </SurfacePanel>
-        )}
+          )}
+        </div>
 
         {unassignedReasons.length ? (
-          <SurfacePanel className="space-y-2" padding="p-4">
+          <SurfacePanel className="space-y-2 print-avoid-break" padding="p-4">
             <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
               Bloques sin asignar por razon
             </h4>
