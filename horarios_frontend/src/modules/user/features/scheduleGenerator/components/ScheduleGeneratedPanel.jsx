@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
-import { Check, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Download, SlidersHorizontal } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Checkbox from '@shared/components/inputs/Checkbox';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
@@ -32,6 +33,41 @@ const formatMinutesToTime = (totalMinutes) => {
   const hours = Math.floor(safeMinutes / 60);
   const minutes = safeMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const parseTimeParts = (timeText) => {
+  const [hoursText = '', minutesText = ''] = String(timeText || '').trim().split(':');
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
+    return null;
+  }
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  return { hours, minutes };
+};
+
+const formatTimeForDisplay = (timeText, use12HourFormat = false) => {
+  const parts = parseTimeParts(timeText);
+  const fallback = String(timeText || '').trim();
+
+  if (!parts) {
+    return fallback;
+  }
+
+  const { hours, minutes } = parts;
+
+  if (!use12HourFormat) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+  const meridiem = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${meridiem}`;
 };
 
 const formatAcademicPeriod = (academicPeriod) => {
@@ -272,22 +308,27 @@ const getGroupCareerLabel = (group) => {
   return String(group?.career_id || '-');
 };
 
-const getScheduleWindowLabel = (group, gridModel, adjustToShiftWindow = true) => {
+const getScheduleWindowLabel = (
+  group,
+  gridModel,
+  adjustToShiftWindow = true,
+  use12HourFormat = false,
+) => {
   const shiftName = String(group?.shift?.name || '').trim();
   const shiftStart = String(group?.shift?.start_time || '').trim();
   const shiftEnd = String(group?.shift?.end_time || '').trim();
   const gridTimeRange = gridModel.slots.length
-    ? `${gridModel.slots[0].startTime} - ${gridModel.slots[gridModel.slots.length - 1].endTime}`
+    ? `${formatTimeForDisplay(gridModel.slots[0].startTime, use12HourFormat)} - ${formatTimeForDisplay(gridModel.slots[gridModel.slots.length - 1].endTime, use12HourFormat)}`
     : '';
 
   let timeRange = 'Sin bloques programados';
 
   if (adjustToShiftWindow && shiftStart && shiftEnd) {
-    timeRange = `${shiftStart} - ${shiftEnd}`;
+    timeRange = `${formatTimeForDisplay(shiftStart, use12HourFormat)} - ${formatTimeForDisplay(shiftEnd, use12HourFormat)}`;
   } else if (gridTimeRange) {
     timeRange = gridTimeRange;
   } else if (shiftStart && shiftEnd) {
-    timeRange = `${shiftStart} - ${shiftEnd}`;
+    timeRange = `${formatTimeForDisplay(shiftStart, use12HourFormat)} - ${formatTimeForDisplay(shiftEnd, use12HourFormat)}`;
   }
 
   if (shiftName && timeRange !== 'Sin bloques programados') {
@@ -311,9 +352,15 @@ const GroupScheduleView = ({
   rowHeightClass = 'h-20',
 }) => {
   const adjustToShiftWindow = viewConfig?.adjustToShiftWindow !== false;
+  const use12HourFormat = Boolean(viewConfig?.use12HourFormat);
   const gridModel = buildGridModel(group, { adjustToShiftWindow });
   const teachersSummary = buildTeachersSummary(group);
-  const scheduleWindowLabel = getScheduleWindowLabel(group, gridModel, adjustToShiftWindow);
+  const scheduleWindowLabel = getScheduleWindowLabel(
+    group,
+    gridModel,
+    adjustToShiftWindow,
+    use12HourFormat,
+  );
   const periodToDisplay = group?.academic_period || scheduleVersion?.data?.active_academic_period || scheduleVersion?.academic_period;
 
   return (
@@ -374,7 +421,7 @@ const GroupScheduleView = ({
           </thead>
           <tbody>
             {gridModel.slots.map((slot) => {
-              const slotRangeLabel = `${slot.startTime} - ${slot.endTime}`;
+              const slotRangeLabel = `${formatTimeForDisplay(slot.startTime, use12HourFormat)} - ${formatTimeForDisplay(slot.endTime, use12HourFormat)}`;
 
               return (
                 <tr key={slot.key}>
@@ -472,6 +519,8 @@ export const ScheduleGeneratedPanel = ({
   viewConfig,
   onToggleViewConfig,
 }) => {
+  const [showViewSettings, setShowViewSettings] = useState(false);
+
   if (loading) {
     return <LoadingStatePanel message="Cargando version seleccionada..." />;
   }
@@ -570,38 +619,56 @@ export const ScheduleGeneratedPanel = ({
           </div>
         </div>
 
-        <div className="screen-only grid grid-cols-1 gap-2 md:grid-cols-2">
-          <Checkbox
-            checked={Boolean(viewConfig?.showTeacherNames)}
-            onChange={(event) => onToggleViewConfig?.('showTeacherNames', event.target.checked)}
-            label="Incluir nombres de profesores"
-            helperText="Desactivado: se muestran abajo en tabla resumen."
-          />
-          <Checkbox
-            checked={Boolean(viewConfig?.includeHeader)}
-            onChange={(event) => onToggleViewConfig?.('includeHeader', event.target.checked)}
-            label="Incluir encabezado institucional"
-            helperText="Muestra datos de universidad, periodo y grupo en la parte superior."
-          />
-          <Checkbox
-            checked={Boolean(viewConfig?.useSubjectColors)}
-            onChange={(event) => onToggleViewConfig?.('useSubjectColors', event.target.checked)}
-            label="Usar colores de materias"
-            helperText="Aplica el color configurado de cada materia dentro de su bloque."
-          />
-          <Checkbox
-            checked={Boolean(viewConfig?.forceWhiteBackground)}
-            onChange={(event) => onToggleViewConfig?.('forceWhiteBackground', event.target.checked)}
-            label="Fondo blanco del horario"
-            helperText="Ignora el tema actual de la aplicacion para esta vista."
-          />
-          <Checkbox
-            checked={viewConfig?.adjustToShiftWindow !== false}
-            onChange={(event) => onToggleViewConfig?.('adjustToShiftWindow', event.target.checked)}
-            label="Ajustar rejilla al turno"
-            helperText="Activo: completa el rango del turno. Inactivo: muestra solo horarios con bloques asignados."
+        <div className="screen-only">
+          <ActionButton
+            icon={SlidersHorizontal}
+            label={showViewSettings ? 'Ocultar configuraciones de vista' : 'Mostrar configuraciones de vista'}
+            variant="secondary"
+            fullWidth={false}
+            onClick={() => setShowViewSettings((prev) => !prev)}
           />
         </div>
+
+        {showViewSettings ? (
+          <div className="screen-only grid grid-cols-1 gap-2 md:grid-cols-2">
+            <Checkbox
+              checked={Boolean(viewConfig?.showTeacherNames)}
+              onChange={(event) => onToggleViewConfig?.('showTeacherNames', event.target.checked)}
+              label="Incluir nombres de profesores"
+              helperText="Desactivado: se muestran abajo en tabla resumen."
+            />
+            <Checkbox
+              checked={Boolean(viewConfig?.includeHeader)}
+              onChange={(event) => onToggleViewConfig?.('includeHeader', event.target.checked)}
+              label="Incluir encabezado institucional"
+              helperText="Muestra datos de universidad, periodo y grupo en la parte superior."
+            />
+            <Checkbox
+              checked={Boolean(viewConfig?.useSubjectColors)}
+              onChange={(event) => onToggleViewConfig?.('useSubjectColors', event.target.checked)}
+              label="Usar colores de materias"
+              helperText="Aplica el color configurado de cada materia dentro de su bloque."
+            />
+            <Checkbox
+              checked={Boolean(viewConfig?.forceWhiteBackground)}
+              onChange={(event) => onToggleViewConfig?.('forceWhiteBackground', event.target.checked)}
+              label="Fondo blanco del horario"
+              helperText="Ignora el tema actual de la aplicacion para esta vista."
+            />
+            <Checkbox
+              checked={viewConfig?.adjustToShiftWindow !== false}
+              onChange={(event) => onToggleViewConfig?.('adjustToShiftWindow', event.target.checked)}
+              label="Ajustar rejilla al turno"
+              helperText="Activo: completa el rango del turno. Inactivo: muestra solo horarios con bloques asignados."
+            />
+            <Checkbox
+              checked={Boolean(viewConfig?.use12HourFormat)}
+              onChange={(event) => onToggleViewConfig?.('use12HourFormat', event.target.checked)}
+              label="Usar formato de 12 horas"
+              helperText="Activo: 1:00 PM. Inactivo: 13:00 (24 horas)."
+            />
+          </div>
+        ) : null}
 
         <div className="screen-only flex flex-wrap items-center gap-2">
           {groups.map((group) => {
@@ -711,6 +778,7 @@ ScheduleGeneratedPanel.propTypes = {
     useSubjectColors: PropTypes.bool,
     forceWhiteBackground: PropTypes.bool,
     adjustToShiftWindow: PropTypes.bool,
+    use12HourFormat: PropTypes.bool,
   }),
   onToggleViewConfig: PropTypes.func,
 };

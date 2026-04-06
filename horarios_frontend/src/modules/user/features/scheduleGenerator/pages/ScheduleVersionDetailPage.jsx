@@ -16,6 +16,7 @@ const DEFAULT_VIEW_CONFIG = {
   useSubjectColors: false,
   forceWhiteBackground: false,
   adjustToShiftWindow: true,
+  use12HourFormat: false,
 };
 
 const getSelectedUniversityName = (selectedUniversity) => {
