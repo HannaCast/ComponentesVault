@@ -380,9 +380,18 @@ Salida:
 - university_id
 - generated_at (UTC ISO)
 - uses_period_groups
+- active_academic_period (objeto o null)
 - groups[] con blocks[]
 - unassigned[]
 - summary
+
+Metadatos enriquecidos por grupo dentro de groups[]:
+
+- career_id (compatibilidad)
+- career: { id, name, short_name, code }
+- shift: { id, name, start_time, end_time }
+- academic_period: { id, name, year, order } (o null)
+- allowed_days: dias habilitados para representar la rejilla en frontend
 
 Resumen summary:
 
@@ -406,6 +415,7 @@ Este servicio hace dos cosas en una sola transaccion:
 - Toma assigned_count y unassigned_count desde summary.
 - Resuelve academic_period a partir del active_period_id del contexto institucional.
 - Construye parameters y sobrescribe uses_period_groups con el valor institucional del backend.
+- En data persiste metadata enriquecida de cada grupo (career, shift, academic_period, allowed_days).
 
 ### 10.2 Regla de un borrador activo por universidad
 
@@ -539,6 +549,12 @@ List serializer devuelve:
 - confirmed_at
 - created_at
 - updated_at
+
+Detalle del campo data (payload generado):
+
+- active_academic_period: periodo activo institucional (cuando exista)
+- groups[]: cada grupo incluye metadata de carrera y turno, ademas de blocks[]
+- El intervalo de tiempo del turno queda disponible en groups[].shift.start_time/end_time para que frontend pueda renderizar slots vacios dentro del rango del turno.
 
 ## 17) Errores de negocio y su origen
 

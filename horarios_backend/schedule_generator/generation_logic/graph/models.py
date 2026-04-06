@@ -39,6 +39,15 @@ class GroupContext:
     modality_require_classroom: bool
     allowed_days: list[int]
     classroom_days_per_week: int
+    career_name: str | None = None
+    career_short_name: str | None = None
+    career_code: str | None = None
+    shift_id: int | None = None
+    shift_name: str | None = None
+    academic_period_id: int | None = None
+    academic_period_name: str | None = None
+    academic_period_year: int | None = None
+    academic_period_order: int | None = None
 
 
 @dataclass(slots=True)

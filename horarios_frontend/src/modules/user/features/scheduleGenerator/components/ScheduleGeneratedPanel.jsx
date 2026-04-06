@@ -27,15 +27,43 @@ const parseTimeToMinutes = (timeText) => {
   return (hours * 60) + minutes;
 };
 
+const formatMinutesToTime = (totalMinutes) => {
+  const safeMinutes = Math.max(0, Number(totalMinutes) || 0);
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
 const formatAcademicPeriod = (academicPeriod) => {
   if (!academicPeriod) {
     return 'Sin periodo';
   }
 
-  const periodName = academicPeriod?.name ? String(academicPeriod.name) : '';
-  const periodYear = academicPeriod?.year ? String(academicPeriod.year) : '';
+  const periodName = academicPeriod?.name ? String(academicPeriod.name).trim() : '';
+  const periodYear = academicPeriod?.year ? String(academicPeriod.year).trim() : '';
+
+  if (periodName && periodYear && periodName.toLowerCase().includes(periodYear.toLowerCase())) {
+    return periodName;
+  }
 
   return `${periodName} ${periodYear}`.trim() || 'Sin periodo';
+};
+
+const formatUniversityTitle = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return 'Universidad seleccionada';
+  }
+
+  const universityName = raw.replace(/\s*\([^)]*\)\s*$/u, '').trim();
+  const abbreviationMatch = raw.match(/\(([^)]+)\)\s*$/u);
+  const abbreviation = abbreviationMatch ? String(abbreviationMatch[1]).trim() : '';
+
+  if (universityName && abbreviation) {
+    return `${universityName} (${abbreviation})`;
+  }
+
+  return raw;
 };
 
 const formatDateTime = (value) => {
@@ -77,8 +105,59 @@ const getPalette = (forceWhiteBackground) => {
   };
 };
 
-const buildGridModel = (group) => {
+const normalizeAllowedDays = (allowedDays) => {
+  if (!Array.isArray(allowedDays)) {
+    return [];
+  }
+
+  const normalized = allowedDays
+    .map((day) => Number(day))
+    .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7);
+
+  return Array.from(new Set(normalized)).sort((a, b) => a - b);
+};
+
+const buildSlotsFromShiftWindow = (group) => {
+  const shiftStart = String(group?.shift?.start_time || '').trim();
+  const shiftEnd = String(group?.shift?.end_time || '').trim();
+
+  if (!shiftStart.includes(':') || !shiftEnd.includes(':')) {
+    return [];
+  }
+
+  const startMinutes = parseTimeToMinutes(shiftStart);
+  const endMinutes = parseTimeToMinutes(shiftEnd);
+  const slotDurationMinutes = 60;
+
+  if (endMinutes <= startMinutes) {
+    return [];
+  }
+
+  const slots = [];
+  for (
+    let currentStart = startMinutes;
+    currentStart + slotDurationMinutes <= endMinutes;
+    currentStart += slotDurationMinutes
+  ) {
+    const currentEnd = currentStart + slotDurationMinutes;
+    const startTime = formatMinutesToTime(currentStart);
+    const endTime = formatMinutesToTime(currentEnd);
+    const key = `${startTime}-${endTime}`;
+
+    slots.push({
+      key,
+      startTime,
+      endTime,
+    });
+  }
+
+  return slots;
+};
+
+const buildGridModel = (group, options = {}) => {
+  const { adjustToShiftWindow = true } = options;
   const blocks = Array.isArray(group?.blocks) ? group.blocks : [];
+  const allowedDays = normalizeAllowedDays(group?.allowed_days);
 
   const daySet = new Set();
   const slotMap = new Map();
@@ -107,7 +186,16 @@ const buildGridModel = (group) => {
     cellMap.set(`${slotKey}:${day}`, block);
   });
 
-  const dayColumns = Array.from(daySet).sort((a, b) => a - b);
+  if (adjustToShiftWindow) {
+    const shiftSlots = buildSlotsFromShiftWindow(group);
+    shiftSlots.forEach((slot) => {
+      if (!slotMap.has(slot.key)) {
+        slotMap.set(slot.key, slot);
+      }
+    });
+  }
+
+  const dayColumns = Array.from(new Set([...allowedDays, ...Array.from(daySet)])).sort((a, b) => a - b);
   const slots = Array.from(slotMap.values()).sort((a, b) => {
     const startA = parseTimeToMinutes(a.startTime);
     const startB = parseTimeToMinutes(b.startTime);
@@ -164,11 +252,54 @@ const buildUnassignedReasons = (unassigned) => {
     .sort((a, b) => b.count - a.count);
 };
 
-const getScheduleWindowLabel = (gridModel) => (
-  gridModel.slots.length
+const getGroupCareerLabel = (group) => {
+  const careerName = String(group?.career?.name || '').trim();
+  const careerShortName = String(group?.career?.short_name || '').trim();
+  const careerCode = String(group?.career?.code || '').trim();
+
+  if (careerName && careerShortName) {
+    return `${careerName} (${careerShortName})`;
+  }
+
+  if (careerName && careerCode) {
+    return `${careerName} (${careerCode})`;
+  }
+
+  if (careerName) {
+    return careerName;
+  }
+
+  return String(group?.career_id || '-');
+};
+
+const getScheduleWindowLabel = (group, gridModel, adjustToShiftWindow = true) => {
+  const shiftName = String(group?.shift?.name || '').trim();
+  const shiftStart = String(group?.shift?.start_time || '').trim();
+  const shiftEnd = String(group?.shift?.end_time || '').trim();
+  const gridTimeRange = gridModel.slots.length
     ? `${gridModel.slots[0].startTime} - ${gridModel.slots[gridModel.slots.length - 1].endTime}`
-    : 'Sin bloques programados'
-);
+    : '';
+
+  let timeRange = 'Sin bloques programados';
+
+  if (adjustToShiftWindow && shiftStart && shiftEnd) {
+    timeRange = `${shiftStart} - ${shiftEnd}`;
+  } else if (gridTimeRange) {
+    timeRange = gridTimeRange;
+  } else if (shiftStart && shiftEnd) {
+    timeRange = `${shiftStart} - ${shiftEnd}`;
+  }
+
+  if (shiftName && timeRange !== 'Sin bloques programados') {
+    return `${shiftName} (${timeRange})`;
+  }
+
+  if (shiftName) {
+    return shiftName;
+  }
+
+  return timeRange;
+};
 
 const GroupScheduleView = ({
   group,
@@ -179,9 +310,11 @@ const GroupScheduleView = ({
   className = '',
   rowHeightClass = 'h-20',
 }) => {
-  const gridModel = buildGridModel(group);
+  const adjustToShiftWindow = viewConfig?.adjustToShiftWindow !== false;
+  const gridModel = buildGridModel(group, { adjustToShiftWindow });
   const teachersSummary = buildTeachersSummary(group);
-  const scheduleWindowLabel = getScheduleWindowLabel(gridModel);
+  const scheduleWindowLabel = getScheduleWindowLabel(group, gridModel, adjustToShiftWindow);
+  const periodToDisplay = group?.academic_period || scheduleVersion?.data?.active_academic_period || scheduleVersion?.academic_period;
 
   return (
     <div
@@ -195,7 +328,7 @@ const GroupScheduleView = ({
       {viewConfig?.includeHeader ? (
         <div className="space-y-2 border-b pb-3" style={{ borderColor: palette.border }}>
           <h4 className="text-center text-xl font-bold uppercase" style={{ color: palette.textPrimary }}>
-            {String(userUniversityName || 'Universidad seleccionada')}
+            {formatUniversityTitle(userUniversityName)}
           </h4>
           <p className="text-center text-sm font-semibold uppercase" style={{ color: palette.textPrimary }}>
             Horario de grupo
@@ -203,10 +336,10 @@ const GroupScheduleView = ({
 
           <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
             <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-              <span className="font-semibold">Carrera:</span> {group?.career_id || '-'}
+              <span className="font-semibold">Carrera:</span> {getGroupCareerLabel(group)}
             </div>
             <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
-              <span className="font-semibold">Periodo:</span> {formatAcademicPeriod(scheduleVersion?.academic_period)}
+              <span className="font-semibold">Periodo:</span> {formatAcademicPeriod(periodToDisplay)}
             </div>
             <div className="rounded border px-2 py-1" style={{ borderColor: palette.border }}>
               <span className="font-semibold">Turno:</span> {scheduleWindowLabel}
@@ -462,6 +595,12 @@ export const ScheduleGeneratedPanel = ({
             label="Fondo blanco del horario"
             helperText="Ignora el tema actual de la aplicacion para esta vista."
           />
+          <Checkbox
+            checked={viewConfig?.adjustToShiftWindow !== false}
+            onChange={(event) => onToggleViewConfig?.('adjustToShiftWindow', event.target.checked)}
+            label="Ajustar rejilla al turno"
+            helperText="Activo: completa el rango del turno. Inactivo: muestra solo horarios con bloques asignados."
+          />
         </div>
 
         <div className="screen-only flex flex-wrap items-center gap-2">
@@ -571,6 +710,7 @@ ScheduleGeneratedPanel.propTypes = {
     includeHeader: PropTypes.bool,
     useSubjectColors: PropTypes.bool,
     forceWhiteBackground: PropTypes.bool,
+    adjustToShiftWindow: PropTypes.bool,
   }),
   onToggleViewConfig: PropTypes.func,
 };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
@@ -15,6 +15,7 @@ const DEFAULT_VIEW_CONFIG = {
   includeHeader: false,
   useSubjectColors: false,
   forceWhiteBackground: false,
+  adjustToShiftWindow: true,
 };
 
 const getSelectedUniversityName = (selectedUniversity) => {
@@ -26,7 +27,14 @@ const getSelectedUniversityName = (selectedUniversity) => {
     return selectedUniversity;
   }
 
-  return selectedUniversity.short_name || selectedUniversity.name || 'Universidad seleccionada';
+  const fullName = String(selectedUniversity.name || '').trim();
+  const shortName = String(selectedUniversity.short_name || '').trim();
+
+  if (fullName && shortName && fullName.toLowerCase() !== shortName.toLowerCase()) {
+    return `${fullName} (${shortName})`;
+  }
+
+  return fullName || shortName || 'Universidad seleccionada';
 };
 
 export const ScheduleVersionDetailPage = () => {
@@ -39,6 +47,7 @@ export const ScheduleVersionDetailPage = () => {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [viewConfig, setViewConfig] = useState(DEFAULT_VIEW_CONFIG);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [regenerateModalOpen, setRegenerateModalOpen] = useState(false);
 
   const {
     selectedVersion,
@@ -47,6 +56,7 @@ export const ScheduleVersionDetailPage = () => {
     setHistoryError,
     pendingAction,
     loadVersionDetail,
+    generateScheduleVersion,
     confirmVersionById,
   } = useScheduleGenerator();
 
@@ -140,9 +150,30 @@ export const ScheduleVersionDetailPage = () => {
     setConfirmModalOpen(false);
   };
 
+  const handleRegenerateSchedule = async () => {
+    const result = await generateScheduleVersion();
+    if (!result?.success) {
+      if (!result?.deduped) {
+        toast.error(result?.message || 'No se pudo generar nuevamente el borrador.');
+      }
+      return;
+    }
+
+    const generatedVersionId = Number(result?.data?.id);
+    if (Number.isFinite(generatedVersionId) && generatedVersionId > 0 && generatedVersionId !== Number(versionId)) {
+      navigate(`/usuario/universidad/generar-horario/ver/${generatedVersionId}`, { replace: true });
+    }
+
+    toast.success(result?.message || 'Borrador regenerado correctamente.');
+    setRegenerateModalOpen(false);
+  };
+
   const handleExportPdf = () => {
     toast('Exportacion PDF pendiente de implementacion.');
   };
+
+  const isDraftVersion = Boolean(selectedVersion) && Number(selectedVersion?.is_confirmed) !== 1;
+  const isRegenerating = pendingAction?.type === 'generate';
 
   if (!selectedUniversity) {
     return <SelectedUniversityAlert />;
@@ -164,13 +195,28 @@ export const ScheduleVersionDetailPage = () => {
             </p>
           </div>
 
-          <ActionButton
-            icon={ArrowLeft}
-            label="Volver al historial"
-            variant="secondary"
-            fullWidth={false}
-            onClick={() => navigate('/usuario/universidad/generar-horario')}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {isDraftVersion ? (
+              <ActionButton
+                icon={Sparkles}
+                label="Generar nuevamente"
+                variant="outline"
+                fullWidth={false}
+                onClick={() => setRegenerateModalOpen(true)}
+                loading={isRegenerating}
+                loadingLabel="Generando..."
+                disabled={Boolean(pendingAction?.type) && !isRegenerating}
+              />
+            ) : null}
+
+            <ActionButton
+              icon={ArrowLeft}
+              label="Volver al historial"
+              variant="secondary"
+              fullWidth={false}
+              onClick={() => navigate('/usuario/universidad/generar-horario')}
+            />
+          </div>
         </div>
 
         <div className="print-schedule-content px-5 py-4">
@@ -196,6 +242,16 @@ export const ScheduleVersionDetailPage = () => {
         title="Confirmar version"
         message={`¿Deseas confirmar la version "${selectedVersion?.label || 'Seleccionada'}"?`}
         confirmLabel="Confirmar"
+        closeOnConfirm={false}
+      />
+
+      <ConfirmModal
+        isOpen={regenerateModalOpen}
+        onClose={() => setRegenerateModalOpen(false)}
+        onConfirm={handleRegenerateSchedule}
+        title="Generar nuevamente"
+        message="Al volver a generar se perderan todas las configuraciones actuales del borrador. ¿Deseas continuar?"
+        confirmLabel="Generar nuevamente"
         closeOnConfirm={false}
       />
     </div>

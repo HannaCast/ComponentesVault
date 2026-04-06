@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
+import { getScheduleVersionsPaginated } from '../api/scheduleGeneratorApi';
 import { ScheduleVersionHistoryPanel } from '../components/ScheduleVersionHistoryPanel';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
 
@@ -22,7 +23,14 @@ const getSelectedUniversityName = (selectedUniversity) => {
     return selectedUniversity;
   }
 
-  return selectedUniversity.short_name || selectedUniversity.name || 'Universidad seleccionada';
+  const fullName = String(selectedUniversity.name || '').trim();
+  const shortName = String(selectedUniversity.short_name || '').trim();
+
+  if (fullName && shortName && fullName.toLowerCase() !== shortName.toLowerCase()) {
+    return `${fullName} (${shortName})`;
+  }
+
+  return fullName || shortName || 'Universidad seleccionada';
 };
 
 const getContextLabel = (selectedUniversityName) => `Contexto: ${selectedUniversityName}`;
@@ -35,6 +43,8 @@ export const ScheduleGeneratorPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasActiveDraft, setHasActiveDraft] = useState(false);
+  const [draftAvailabilityLoading, setDraftAvailabilityLoading] = useState(true);
 
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, version: null });
@@ -73,6 +83,32 @@ export const ScheduleGeneratorPage = () => {
   const totalPages = Math.max(1, Number(historyMeta?.totalPages) || 1);
   const totalItems = Number(historyMeta?.total) || 0;
 
+  const refreshDraftAvailability = useCallback(async () => {
+    if (!selectedUniversity) {
+      setHasActiveDraft(false);
+      setDraftAvailabilityLoading(false);
+      return;
+    }
+
+    setDraftAvailabilityLoading(true);
+
+    try {
+      const response = await getScheduleVersionsPaginated({
+        page: 1,
+        limit: 1,
+        confirmed: 0,
+      });
+
+      const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const hasDraft = rows.some((row) => Number(row?.is_confirmed) === 0);
+      setHasActiveDraft(hasDraft);
+    } catch (error) {
+      console.error('Error al validar borrador activo:', error);
+    } finally {
+      setDraftAvailabilityLoading(false);
+    }
+  }, [selectedUniversity]);
+
   const handleViewVersion = (versionId) => {
     navigate(`/usuario/universidad/generar-horario/ver/${versionId}`);
   };
@@ -92,6 +128,8 @@ export const ScheduleGeneratorPage = () => {
     setSearchInput('');
     setSearchTerm('');
     setCurrentPage(1);
+    setHasActiveDraft(true);
+    refreshDraftAvailability();
   };
 
   const handleConfirmVersion = async () => {
@@ -110,6 +148,7 @@ export const ScheduleGeneratorPage = () => {
 
     toast.success(result?.message || 'Version confirmada correctamente.');
     setConfirmModal({ isOpen: false, version: null });
+    refreshDraftAvailability();
   };
 
   const handleDeleteDraft = async () => {
@@ -128,6 +167,7 @@ export const ScheduleGeneratorPage = () => {
 
     toast.success('Borrador eliminado correctamente.');
     setDeleteModal({ isOpen: false, version: null });
+    refreshDraftAvailability();
   };
 
   const handleRenameVersion = async (version, nextLabel) => {
@@ -181,6 +221,10 @@ export const ScheduleGeneratorPage = () => {
   }, [currentPage, fetchHistory, searchTerm, selectedUniversity, shouldRun]);
 
   useEffect(() => {
+    refreshDraftAvailability();
+  }, [refreshDraftAvailability]);
+
+  useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
@@ -216,16 +260,18 @@ export const ScheduleGeneratorPage = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-            <ActionButton
-              icon={Sparkles}
-              label="Generar horario"
-              variant="outline"
-              fullWidth={false}
-              onClick={() => setGenerateModalOpen(true)}
-              loading={pendingAction?.type === 'generate'}
-              loadingLabel="Generando..."
-              disabled={isMutating && pendingAction?.type !== 'generate'}
-            />
+            {!draftAvailabilityLoading && !hasActiveDraft ? (
+              <ActionButton
+                icon={Sparkles}
+                label="Generar horario"
+                variant="outline"
+                fullWidth={false}
+                onClick={() => setGenerateModalOpen(true)}
+                loading={pendingAction?.type === 'generate'}
+                loadingLabel="Generando..."
+                disabled={isMutating && pendingAction?.type !== 'generate'}
+              />
+            ) : null}
           </div>
         </div>
 

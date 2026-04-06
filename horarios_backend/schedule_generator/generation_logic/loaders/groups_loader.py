@@ -38,6 +38,7 @@ def load_active_groups(
         'shift',
         'career',
         'career__modality',
+        'academic_period',
     ).filter(
         university_id=university_id,
         status=1,
@@ -94,6 +95,15 @@ def load_active_groups(
                 modality_require_classroom=bool(modality.require_classroom),
                 allowed_days=allowed_days,
                 classroom_days_per_week=classroom_days_per_week,
+                career_name=group.career.name,
+                career_short_name=group.career.short_name,
+                career_code=group.career.code,
+                shift_id=group.shift_id,
+                shift_name=group.shift.name,
+                academic_period_id=group.academic_period_id,
+                academic_period_name=(group.academic_period.name if group.academic_period else None),
+                academic_period_year=(group.academic_period.year if group.academic_period else None),
+                academic_period_order=(group.academic_period.order if group.academic_period else None),
             )
         )
 

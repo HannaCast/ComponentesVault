@@ -89,6 +89,8 @@ def generate_schedule(university_id: int):
     return format_generated_schedule(
         university_id=university_id,
         uses_period_groups=uses_period_groups,
+        active_academic_period=university_context.get('active_period'),
+        groups_context=groups,
         nodes=nodes,
         assignments=solved.assignments,
         unassigned=solved.unassigned,

@@ -444,6 +444,9 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 - En la primera generacion, el backend asigna label por defecto con formato `Borrador YYYY-MM-DD HH:MM`.
 - En regeneracion de borrador existente, el endpoint conserva el label actual.
 - `parameters.uses_period_groups` siempre se define desde backend segun la configuracion institucional.
+- `data.active_academic_period` guarda el periodo activo institucional (si existe).
+- Cada elemento de `data.groups[]` incluye metadata enriquecida: `career`, `shift`, `academic_period`, `allowed_days`.
+- Para representar correctamente la rejilla en frontend, usar `data.groups[].shift.start_time/end_time` como ventana del turno y completar slots vacios del intervalo aunque no vengan bloques asignados para todos.
 
 ---
 

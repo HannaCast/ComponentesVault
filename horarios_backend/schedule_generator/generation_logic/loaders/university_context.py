@@ -13,11 +13,20 @@ def load_university_context(university_id: int) -> dict:
     if university is None:
         raise ValueError('UNIVERSITY_NOT_FOUND')
 
-    active_period_id = AcademicPeriods.objects.filter(
+    active_period = AcademicPeriods.objects.filter(
         university_id=university_id,
         is_active=1,
         is_deleted=0,
-    ).values_list('id', flat=True).first()
+    ).values(
+        'id',
+        'name',
+        'year',
+        'order',
+        'start_month',
+        'end_month',
+    ).first()
+
+    active_period_id = active_period.get('id') if active_period else None
 
     return {
         'university_id': university_id,
@@ -26,4 +35,5 @@ def load_university_context(university_id: int) -> dict:
         # Toma el comportamiento real configurado en la universidad.
         'uses_period_groups': bool(university.uses_period_groups),
         'active_period_id': active_period_id,
+        'active_period': active_period,
     }

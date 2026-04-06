@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from schedule_generator.generation_logic.graph.models import (
+    GroupContext,
     ScheduleAssignment,
     ScheduleNode,
     UnassignedNode,
@@ -13,6 +14,7 @@ class ScheduleGenerationPayload:
     university_id: int
     generated_at: str
     uses_period_groups: bool
+    active_academic_period: dict | None
     groups: list[dict]
     unassigned: list[dict]
     summary: dict
@@ -28,16 +30,74 @@ def _to_css_hex(value: str) -> str:
         normalized = '3B82F6'
     return f'#{normalized.upper()}'
 
+
+def _serialize_active_period(active_period: dict | None) -> dict | None:
+    if not isinstance(active_period, dict):
+        return None
+
+    period_id = active_period.get('id')
+    if not period_id:
+        return None
+
+    return {
+        'id': period_id,
+        'name': active_period.get('name'),
+        'year': active_period.get('year'),
+        'order': active_period.get('order'),
+        'start_month': active_period.get('start_month'),
+        'end_month': active_period.get('end_month'),
+    }
+
+
+def _serialize_group_career(group_context: GroupContext | None, node: ScheduleNode) -> dict:
+    return {
+        'id': node.career_id,
+        'name': group_context.career_name if group_context else None,
+        'short_name': group_context.career_short_name if group_context else None,
+        'code': group_context.career_code if group_context else None,
+    }
+
+
+def _serialize_group_shift(group_context: GroupContext | None) -> dict | None:
+    if group_context is None:
+        return None
+
+    return {
+        'id': group_context.shift_id,
+        'name': group_context.shift_name,
+        'start_time': _to_hhmm(group_context.shift_start),
+        'end_time': _to_hhmm(group_context.shift_end),
+    }
+
+
+def _serialize_group_period(
+    group_context: GroupContext | None,
+    active_period: dict | None,
+) -> dict | None:
+    if group_context and group_context.academic_period_id:
+        return {
+            'id': group_context.academic_period_id,
+            'name': group_context.academic_period_name,
+            'year': group_context.academic_period_year,
+            'order': group_context.academic_period_order,
+        }
+
+    return active_period
+
 # Transforma resultado interno del algoritmo al payload final de API.
 def format_generated_schedule(
     university_id: int,
     uses_period_groups: bool,
+    active_academic_period: dict | None,
+    groups_context: list[GroupContext],
     nodes: list[ScheduleNode],
     assignments: list[ScheduleAssignment],
     unassigned: list[UnassignedNode],
 ) -> ScheduleGenerationPayload:
     """Transforma resultado interno del algoritmo al payload final de API."""
     nodes_by_key = {node.node_key: node for node in nodes}
+    groups_by_id = {group.group_id: group for group in groups_context}
+    normalized_active_period = _serialize_active_period(active_academic_period)
 
     grouped: dict[int, dict] = {}
 
@@ -59,11 +119,18 @@ def format_generated_schedule(
 
         # Se agrupa por grupo para facilitar renderizado de calendario en frontend.
         if node.group_id not in grouped:
+            group_context = groups_by_id.get(node.group_id)
+            allowed_days = group_context.allowed_days if group_context else [1, 2, 3, 4, 5]
+
             grouped[node.group_id] = {
                 'group_id': node.group_id,
                 'group_name': node.group_name,
                 'career_id': node.career_id,
+                'career': _serialize_group_career(group_context, node),
                 'period_number': node.period_number,
+                'shift': _serialize_group_shift(group_context),
+                'academic_period': _serialize_group_period(group_context, normalized_active_period),
+                'allowed_days': allowed_days,
                 'blocks': [],
             }
 
@@ -117,6 +184,7 @@ def format_generated_schedule(
         university_id=university_id,
         generated_at=datetime.now(timezone.utc).isoformat(),
         uses_period_groups=uses_period_groups,
+        active_academic_period=normalized_active_period,
         groups=groups_payload,
         unassigned=unassigned_payload,
         summary={
