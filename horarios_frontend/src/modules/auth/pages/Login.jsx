@@ -1,7 +1,46 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useLogin } from '../hooks/useLogin';
+
+const installLoginFonts = () => {
+  const fontLinks = [
+    {
+      id: 'login-google-fonts-main',
+      href: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap'
+    },
+    {
+      id: 'login-google-fonts-material',
+      href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+    }
+  ];
+
+  fontLinks.forEach((linkData) => {
+    if (!document.getElementById(linkData.id)) {
+      const link = document.createElement('link');
+      link.id = linkData.id;
+      link.rel = 'stylesheet';
+      link.href = linkData.href;
+      document.head.appendChild(link);
+    }
+  });
+
+  if (!document.getElementById('login-material-symbols-style')) {
+    const style = document.createElement('style');
+    style.id = 'login-material-symbols-style';
+    style.textContent = `.material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }`;
+    document.head.appendChild(style);
+  }
+};
+
+const applyBlueThemeToRoot = () => {
+  const root = document.documentElement;
+  root.dataset.theme = 'light';
+  root.dataset.themeMode = 'light';
+  root.dataset.accent = 'blue';
+};
 
 export const Login = () => {
   const emailInputId = 'login-email';
@@ -11,93 +50,130 @@ export const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { loading, error, loginUser } = useLogin();
 
+  useEffect(() => {
+    installLoginFonts();
+    applyBlueThemeToRoot();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     await loginUser(email, password);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl mb-4">
-            <GraduationCap className="w-10 h-10 text-white" />
+    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <header className="fixed top-0 z-50 w-full border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[var(--accent)]">school</span>
+            <span className="text-xl font-bold tracking-tight text-[var(--accent)]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              EduSchedule
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Sistema de Horarios Académicos
-          </h1>
-          <p className="text-gray-600">Inicia sesión para continuar</p>
+        </div>
+      </header>
+
+      <main className="relative flex min-h-screen flex-grow items-center justify-center overflow-hidden px-4 pt-24 pb-12">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -top-[10%] -right-[5%] h-[40%] w-[40%] rounded-full bg-[var(--accent-subtle)] opacity-60 blur-3xl" />
+          <div className="absolute -bottom-[5%] -left-[5%] h-[30%] w-[30%] rounded-full bg-[var(--accent-subtle)] opacity-40 blur-3xl" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor={emailInputId} className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                id={emailInputId}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="correo@ejemplo.com"
-                required
-              />
+        <div className="z-10 w-full max-w-[440px]">
+          <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-8 shadow-[0_12px_32px_-4px_rgba(25,27,35,0.06)] md:p-12">
+            <div className="mb-8 text-center">
+              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent)]">
+                <span className="material-symbols-outlined text-3xl text-[var(--text-on-accent)]">school</span>
+              </div>
+              <h1 className="mb-2 text-2xl font-bold text-[var(--text-primary)]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Sistema de Horarios Académicos
+              </h1>
+              <p className="text-[var(--text-secondary)]">Inicia sesión para continuar</p>
             </div>
-          </div>
 
-          <div>
-            <label htmlFor={passwordInputId} className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                id={passwordInputId}
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-11 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="••••••••"
-                required
-              />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor={emailInputId}
+                  className="ml-1 block text-sm font-semibold text-[var(--text-primary)]"
+                  style={{ fontFamily: 'Manrope, sans-serif' }}
+                >
+                  Correo Electrónico
+                </label>
+                <input
+                  id={emailInputId}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
+                  placeholder="correo@ejemplo.com"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={passwordInputId}
+                  className="ml-1 block text-sm font-semibold text-[var(--text-primary)]"
+                  style={{ fontFamily: 'Manrope, sans-serif' }}
+                >
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    id={passwordInputId}
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-5 py-4 pr-12 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute top-1/2 right-4 -translate-y-1/2 text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div
+                  className="rounded-xl px-4 py-3 text-sm"
+                  style={{
+                    border: '1px solid var(--error-border, #fecaca)',
+                    backgroundColor: 'var(--error-subtle, #fef2f2)',
+                    color: 'var(--error, #dc2626)',
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
               <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl px-6 py-3 font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-[var(--text-secondary)]">
+                ¿No tienes cuenta?{' '}
+                <Link to="/registro" className="font-medium text-[var(--accent)] hover:underline">
+                  Regístrate aquí
+                </Link>
+              </p>
             </div>
           </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            ¿No tienes cuenta?{' '}
-            <Link to="/registro" className="text-blue-600 hover:underline font-medium">
-              Regístrate aquí
-            </Link>
-          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
