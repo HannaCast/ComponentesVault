@@ -36,20 +36,6 @@ WHERE NOT EXISTS (
   SELECT 1 FROM users WHERE email = 'usuario@gmail.com'
 );
 
-INSERT INTO users (name, surname, last_name, email, password, status, role_id)
-SELECT
-  'Coordinacion',
-  'ITZ',
-  'Horarios',
-  'itz.coordinacion@gmail.com',
-  'bcrypt_sha256$$2b$12$sg6nN/Ltj.kxwSd29afbXOf2fhyDYcnWBS5q04wPAWSqE/S2lw.i2',
-  1,
-  (SELECT id FROM roles WHERE name = 'usuario' LIMIT 1)
-FROM DUAL
-WHERE NOT EXISTS (
-  SELECT 1 FROM users WHERE email = 'itz.coordinacion@gmail.com'
-);
-
 INSERT INTO user_configurations (user_id, selected_university_id, theme, accent, schedule_generation, status)
 SELECT
   u.id,
@@ -60,7 +46,7 @@ SELECT
   1
 FROM users u
 LEFT JOIN user_configurations uc ON uc.user_id = u.id
-WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com', 'itz.coordinacion@gmail.com')
+WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com')
   AND uc.id IS NULL;
 
 UPDATE user_configurations uc
@@ -73,7 +59,7 @@ SET
     JSON_OBJECT('draft_schedule_university_ids', JSON_ARRAY())
   ),
   uc.status = COALESCE(uc.status, 1)
-WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com', 'itz.coordinacion@gmail.com');
+WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com');
 
 -- -----------------------------------------------------
 /*  2) IMAGENES Y UNIVERSIDADES: UTEZ + ITZ          */
@@ -112,9 +98,6 @@ SET @admin_user_id = (
 );
 SET @usuario_user_id = (
   SELECT id FROM users WHERE email = 'usuario@gmail.com' AND status = 1 ORDER BY id DESC LIMIT 1
-);
-SET @itz_user_id = (
-  SELECT id FROM users WHERE email = 'itz.coordinacion@gmail.com' AND status = 1 ORDER BY id DESC LIMIT 1
 );
 
 SET @period_cuat_id = (
@@ -186,7 +169,7 @@ SELECT
   'ITZ',
   'ITZ',
   @img_itz_id,
-  COALESCE(@itz_user_id, @admin_user_id),
+  COALESCE(@usuario_user_id, @admin_user_id),
   '07:00:00',
   '21:00:00',
   @period_sem_id,
@@ -212,17 +195,34 @@ SET @itz_id = (
   LIMIT 1
 );
 
+UPDATE universities
+SET user_id = COALESCE(@usuario_user_id, @admin_user_id)
+WHERE short_name IN ('UTEZ', 'ITZ')
+  AND status = 1
+  AND is_deleted = 0;
+
+DELETE uc
+FROM user_configurations uc
+JOIN users u ON u.id = uc.user_id
+WHERE u.email = 'itz.coordinacion@gmail.com';
+
+DELETE u
+FROM users u
+LEFT JOIN universities univ
+  ON univ.user_id = u.id
+WHERE u.email = 'itz.coordinacion@gmail.com'
+  AND univ.id IS NULL;
+
 UPDATE user_configurations uc
 JOIN users u ON u.id = uc.user_id
 SET
   uc.selected_university_id = CASE
     WHEN u.email = 'usuario@gmail.com' THEN @utez_id
-    WHEN u.email = 'itz.coordinacion@gmail.com' THEN @itz_id
-    WHEN u.email = 'admin@gmail.com' AND uc.selected_university_id IS NULL THEN @utez_id
+    WHEN u.email = 'admin@gmail.com' THEN NULL
     ELSE uc.selected_university_id
   END,
   uc.status = 1
-WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com', 'itz.coordinacion@gmail.com');
+WHERE u.email IN ('admin@gmail.com', 'usuario@gmail.com');
 
 -- -----------------------------------------------------
 /*  3) MODALIDADES, TURNOS, PERIODOS ACADEMICOS      */
@@ -486,11 +486,26 @@ INSERT INTO subjects (
   hours_per_week,
   color_id,
   university_id,
+  is_restricted_to_classroom_types,
   is_mandatory,
   status,
   is_deleted
 )
-SELECT s.name, s.short_name, s.code, s.description, s.hours_per_week, s.color_id, s.university_id, s.is_mandatory, 1, 0
+SELECT
+  s.name,
+  s.short_name,
+  s.code,
+  s.description,
+  s.hours_per_week,
+  s.color_id,
+  s.university_id,
+  CASE
+    WHEN s.code IN ('UTEZ-ING1') THEN 1
+    ELSE 0
+  END AS is_restricted_to_classroom_types,
+  s.is_mandatory,
+  1,
+  0
 FROM (
   SELECT 'Algebra' AS name, 'ALG' AS short_name, 'UTEZ-MAT1' AS code, 'Bases matematicas' AS description, 4 AS hours_per_week, @color_azul_id AS color_id, @utez_id AS university_id, 1 AS is_mandatory
   UNION ALL SELECT 'Fundamentos de programacion', 'FDP', 'UTEZ-PROG1', 'Programacion inicial', 5, @color_esmeralda_id, @utez_id, 1
@@ -760,7 +775,7 @@ WHERE tu.universities_id IN (@utez_id, @itz_id)
   );
 
 -- -----------------------------------------------------
-/*  7) AULAS Y RESTRICCIONES POR CARRERA             */
+/*  7) AULAS Y RESTRICCIONES (CARRERA/MATERIA)       */
 -- -----------------------------------------------------
 
 SET @classroom_type_compu_id = (
@@ -791,20 +806,22 @@ INSERT INTO classrooms (
   building_code,
   universities_id,
   is_restricted,
+  is_restricted_to_subjects,
   status,
   is_deleted
 )
-SELECT c.name, c.classroom_type_id, c.code, c.floor, c.building, c.building_code, c.university_id, c.is_restricted, 1, 0
+SELECT c.name, c.classroom_type_id, c.code, c.floor, c.building, c.building_code, c.university_id, c.is_restricted, c.is_restricted_to_subjects, 1, 0
 FROM (
-  SELECT 'Aula UTEZ A101' AS name, @classroom_type_aula_id AS classroom_type_id, 'UTEZ-A101' AS code, 1 AS floor, 'Edificio A' AS building, 'A' AS building_code, @utez_id AS university_id, 0 AS is_restricted
-  UNION ALL SELECT 'Aula UTEZ A102', @classroom_type_aula_id, 'UTEZ-A102', 1, 'Edificio A', 'A', @utez_id, 0
-  UNION ALL SELECT 'CompuAula UTEZ C201', @classroom_type_compu_id, 'UTEZ-C201', 2, 'Edificio C', 'C', @utez_id, 1
-  UNION ALL SELECT 'Laboratorio UTEZ L301', @classroom_type_lab_id, 'UTEZ-L301', 3, 'Edificio L', 'L', @utez_id, 1
+  SELECT 'Aula UTEZ A101' AS name, @classroom_type_aula_id AS classroom_type_id, 'UTEZ-A101' AS code, 1 AS floor, 'Edificio A' AS building, 'A' AS building_code, @utez_id AS university_id, 0 AS is_restricted, 0 AS is_restricted_to_subjects
+  UNION ALL SELECT 'Aula UTEZ A102', @classroom_type_aula_id, 'UTEZ-A102', 1, 'Edificio A', 'A', @utez_id, 0, 0
+  UNION ALL SELECT 'CompuAula UTEZ C201', @classroom_type_compu_id, 'UTEZ-C201', 2, 'Edificio C', 'C', @utez_id, 1, 0
+  UNION ALL SELECT 'Academia de Idiomas UTEZ', @classroom_type_compu_id, 'UTEZ-ACA-IDIOMAS', 2, 'Edificio C', 'C', @utez_id, 0, 1
+  UNION ALL SELECT 'Laboratorio UTEZ L301', @classroom_type_lab_id, 'UTEZ-L301', 3, 'Edificio L', 'L', @utez_id, 1, 0
 
-  UNION ALL SELECT 'Aula ITZ B101', @classroom_type_aula_id, 'ITZ-B101', 1, 'Edificio B', 'B', @itz_id, 0
-  UNION ALL SELECT 'Aula ITZ B102', @classroom_type_aula_id, 'ITZ-B102', 1, 'Edificio B', 'B', @itz_id, 0
-  UNION ALL SELECT 'CompuAula ITZ C201', @classroom_type_compu_id, 'ITZ-C201', 2, 'Centro de computo', 'CC', @itz_id, 1
-  UNION ALL SELECT 'Laboratorio ITZ L301', @classroom_type_lab_id, 'ITZ-L301', 3, 'Edificio de laboratorios', 'LAB', @itz_id, 1
+  UNION ALL SELECT 'Aula ITZ B101', @classroom_type_aula_id, 'ITZ-B101', 1, 'Edificio B', 'B', @itz_id, 0, 0
+  UNION ALL SELECT 'Aula ITZ B102', @classroom_type_aula_id, 'ITZ-B102', 1, 'Edificio B', 'B', @itz_id, 0, 0
+  UNION ALL SELECT 'CompuAula ITZ C201', @classroom_type_compu_id, 'ITZ-C201', 2, 'Centro de computo', 'CC', @itz_id, 1, 0
+  UNION ALL SELECT 'Laboratorio ITZ L301', @classroom_type_lab_id, 'ITZ-L301', 3, 'Edificio de laboratorios', 'LAB', @itz_id, 1, 0
 ) AS c
 LEFT JOIN classrooms existing
   ON existing.code = c.code
@@ -833,6 +850,51 @@ LEFT JOIN classroom_careers existing
  AND existing.classrooms_id = cl.id
  AND existing.is_deleted = 0
 WHERE existing.id IS NULL;
+
+INSERT INTO subjects_classroom_types (subject_id, classroom_type_id, is_deleted)
+SELECT s.id, @classroom_type_compu_id, 0
+FROM subjects s
+LEFT JOIN subjects_classroom_types existing
+  ON existing.subject_id = s.id
+ AND existing.classroom_type_id = @classroom_type_compu_id
+ AND existing.is_deleted = 0
+WHERE s.code = 'UTEZ-ING1'
+  AND s.university_id = @utez_id
+  AND s.is_deleted = 0
+  AND @classroom_type_compu_id IS NOT NULL
+  AND existing.id IS NULL;
+
+UPDATE subjects
+SET is_restricted_to_classroom_types = CASE
+  WHEN code = 'UTEZ-ING1' AND university_id = @utez_id THEN 1
+  ELSE is_restricted_to_classroom_types
+END
+WHERE university_id IN (@utez_id, @itz_id)
+  AND is_deleted = 0;
+
+INSERT INTO classroom_subjects (subject_id, classroom_id, is_deleted)
+SELECT s.id, cl.id, 0
+FROM classrooms cl
+JOIN subjects s
+  ON s.code = 'UTEZ-ING1'
+ AND s.university_id = @utez_id
+ AND s.is_deleted = 0
+LEFT JOIN classroom_subjects existing
+  ON existing.subject_id = s.id
+ AND existing.classroom_id = cl.id
+ AND existing.is_deleted = 0
+WHERE cl.code = 'UTEZ-ACA-IDIOMAS'
+  AND cl.universities_id = @utez_id
+  AND cl.is_deleted = 0
+  AND existing.id IS NULL;
+
+UPDATE classrooms
+SET is_restricted_to_subjects = CASE
+  WHEN code = 'UTEZ-ACA-IDIOMAS' AND universities_id = @utez_id THEN 1
+  ELSE is_restricted_to_subjects
+END
+WHERE universities_id IN (@utez_id, @itz_id)
+  AND is_deleted = 0;
 
 -- -----------------------------------------------------
 /*  8) NOTA FINAL                                     */

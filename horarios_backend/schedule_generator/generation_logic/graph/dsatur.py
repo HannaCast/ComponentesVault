@@ -74,7 +74,15 @@ def _choose_classroom(
 
     feasible_classrooms = []
     for classroom in classrooms:
-        if can_use_classroom(classroom, node.career_id, slot_id, classroom_busy):
+        if can_use_classroom(
+            classroom=classroom,
+            career_id=node.career_id,
+            subject_id=node.subject_id,
+            slot_id=slot_id,
+            classroom_busy=classroom_busy,
+            is_restricted_to_classroom_types=node.is_restricted_to_classroom_types,
+            allowed_classroom_type_ids=node.allowed_classroom_type_ids,
+        ):
             feasible_classrooms.append(classroom)
 
     if not feasible_classrooms:

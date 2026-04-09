@@ -13,6 +13,7 @@ class Classrooms(models.Model):
     building_code = models.CharField(max_length=20, blank=True, null=True)
     universities = models.ForeignKey(Universities, models.DO_NOTHING)
     is_restricted = models.IntegerField()
+    is_restricted_to_subjects = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)

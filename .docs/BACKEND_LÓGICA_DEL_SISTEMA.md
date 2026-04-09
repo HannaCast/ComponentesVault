@@ -84,7 +84,12 @@ La tabla `subjects` contiene las materias ofertadas por la universidad e incluye
 - Codigo.
 - Horas por semana.
 - Color.
+- Indicador `is_restricted_to_classroom_types`.
 - Indicador de obligatoriedad.
+
+### `subjects_classroom_types`
+
+Cuando `subjects.is_restricted_to_classroom_types = 1`, esta tabla define los tipos de aula permitidos para impartir la materia.
 
 ---
 
@@ -190,10 +195,15 @@ Define espacios fisicos e incluye:
 - Piso.
 - Edificio.
 - Indicador `is_restricted`.
+- Indicador `is_restricted_to_subjects`.
 
 ### `classroom_careers`
 
 Cuando `is_restricted = true`, esta tabla indica a que carreras pertenece el aula.
+
+### `classroom_subjects`
+
+Cuando `is_restricted_to_subjects = true`, esta tabla indica que materias pueden ocupar el aula.
 
 ---
 
@@ -279,7 +289,7 @@ Por otro lado, cuando `uses_period_groups` es verdadero, los grupos si estan rel
 
 El sistema tambien cuenta con la tabla `images`, que almacena la informacion de las imagenes utilizadas, y la tabla `colors`, que define colores representativos que pueden utilizarse para identificar visualmente las materias dentro de los horarios.
 
-La tabla `subjects` contiene las materias que ofrece la universidad, incluyendo informacion como nombre, codigo, horas por semana y si son obligatorias.
+La tabla `subjects` contiene las materias que ofrece la universidad, incluyendo informacion como nombre, codigo, horas por semana y si son obligatorias. Tambien maneja la bandera `is_restricted_to_classroom_types`, que habilita restricciones por tipo de aula. Cuando esa bandera esta activa, la tabla `subjects_classroom_types` guarda los tipos de aula permitidos para la materia.
 
 Los periodos academicos se manejan mediante la tabla `academic_periods`, donde se definen elementos como el nombre del periodo (por ejemplo, "Mayo - Agosto"), su orden dentro del anio y el anio correspondiente. Cuando los grupos estan relacionados con periodos, el campo `is_active` indica cual es el periodo vigente en el que se esta trabajando.
 
@@ -293,7 +303,7 @@ En cuanto a los profesores, la tabla `teachers` contiene su informacion basica, 
 
 Los turnos se definen en la tabla `shifts`, donde se establecen opciones como matutino, vespertino o mixto, junto con sus horarios correspondientes.
 
-Las aulas se gestionan mediante varias tablas. `classroom_types` define los tipos de aula, como salon, laboratorio o compuaula. `classrooms` contiene la informacion de los espacios fisicos, incluyendo nombre, codigo, ubicacion y si son restringidos. Cuando un aula es restringida, la tabla `classroom_careers` indica a que carreras pertenece exclusivamente.
+Las aulas se gestionan mediante varias tablas. `classroom_types` define los tipos de aula, como salon, laboratorio o compuaula. `classrooms` contiene la informacion de los espacios fisicos, incluyendo nombre, codigo, ubicacion y si son restringidos por carrera o por materia. Cuando un aula es restringida por carrera (`is_restricted = 1`), la tabla `classroom_careers` indica a que carreras pertenece exclusivamente. Cuando un aula es restringida por materia (`is_restricted_to_subjects = 1`), la tabla `classroom_subjects` indica que materias pueden usarla.
 
 Las modalidades se almacenan en la tabla `modalities`, donde se definen tipos como presencial, en linea, mixta o fines de semana. Estas pueden incluir configuraciones adicionales en formato JSON, como los dias permitidos para clases y la cantidad de dias que requieren el uso de un aula.
 

@@ -192,7 +192,12 @@ class ClassroomDetailView(APIView):
         if row is None:
             return ApiResponse.not_found()
 
-        serializer = ClassroomWriteSerializer(row, data=request.data, partial=True)
+        serializer = ClassroomWriteSerializer(
+            row,
+            data=request.data,
+            partial=True,
+            context={'selected_university_id': request.selected_university_id},
+        )
         if serializer.is_valid():
             row = serializer.save()
             return ApiResponse.success(

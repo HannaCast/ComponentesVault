@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from careers.models import CareerSubjects
-from subjects.models import Subjects
+from subjects.models import Subjects, SubjectsClassroomTypes
 from teachers.models import TeachersSubjects
 
 class SubjectDetailSerializer(serializers.ModelSerializer):
@@ -9,6 +9,7 @@ class SubjectDetailSerializer(serializers.ModelSerializer):
     color_id = serializers.IntegerField(read_only=True)
     careers = serializers.SerializerMethodField()
     teachers = serializers.SerializerMethodField()
+    classroom_types = serializers.SerializerMethodField()
 
     def get_careers(self, obj):
         queryset = CareerSubjects.objects.filter(
@@ -47,6 +48,22 @@ class SubjectDetailSerializer(serializers.ModelSerializer):
 
         return rows
 
+    def get_classroom_types(self, obj):
+        queryset = SubjectsClassroomTypes.objects.filter(
+            subject=obj,
+            is_deleted=0,
+            classroom_type__is_deleted=0,
+            classroom_type__status=1,
+        ).select_related('classroom_type').order_by('classroom_type_id', 'id')
+
+        return [
+            {
+                'id': row.classroom_type_id,
+                'name': row.classroom_type.name,
+            }
+            for row in queryset
+        ]
+
     class Meta:
         model = Subjects
         fields = (
@@ -59,10 +76,12 @@ class SubjectDetailSerializer(serializers.ModelSerializer):
             'color',
             'color_hex',
             'color_id',
+            'is_restricted_to_classroom_types',
             'is_mandatory',
             'status',
             'created_at',
             'updated_at',
             'careers',
             'teachers',
+            'classroom_types',
         )

@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`subjects` (
   `hours_per_week` INT NOT NULL,
   `color_id` INT NOT NULL,
   `university_id` INT NOT NULL,
+  `is_restricted_to_classroom_types` TINYINT NOT NULL DEFAULT 0,
   `is_mandatory` TINYINT NOT NULL,
   `status` TINYINT NOT NULL DEFAULT 1,
   `is_deleted` TINYINT NOT NULL DEFAULT 0,
@@ -549,7 +550,8 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`classrooms` (
   `building` VARCHAR(50) NULL,
   `building_code` VARCHAR(20) NULL,
   `universities_id` INT NOT NULL,
-  `is_restricted` TINYINT NOT NULL,
+  `is_restricted` TINYINT NOT NULL DEFAULT 0,
+  `is_restricted_to_subjects` TINYINT NOT NULL DEFAULT 0,
   `status` TINYINT NOT NULL DEFAULT 1,
   `is_deleted` TINYINT NOT NULL DEFAULT 0,
   `created_at` DATETIME NULL,
@@ -661,6 +663,62 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`schedule_versions` (
   CONSTRAINT `fk_schedule_versions_academic_periods1`
     FOREIGN KEY (`academic_period_id`)
     REFERENCES `cdi_horarios`.`academic_periods` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `cdi_horarios`.`classroom_subjects`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`classroom_subjects` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `subject_id` INT NOT NULL,
+  `classroom_id` INT NOT NULL,
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `created_by` VARCHAR(100) NULL,
+  `updated_at` DATETIME NULL,
+  `updated_by` VARCHAR(100) NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_classroom_careers_classrooms1_idx` (`classroom_id` ASC) VISIBLE,
+  INDEX `fk_classroom_subjects_subjects1_idx` (`subject_id` ASC) VISIBLE,
+  CONSTRAINT `fk_classroom_careers_classrooms10`
+    FOREIGN KEY (`classroom_id`)
+    REFERENCES `cdi_horarios`.`classrooms` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_classroom_subjects_subjects1`
+    FOREIGN KEY (`subject_id`)
+    REFERENCES `cdi_horarios`.`subjects` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `cdi_horarios`.`subjects_classroom_types`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`subjects_classroom_types` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `subject_id` INT NOT NULL,
+  `classroom_type_id` INT NOT NULL,
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `created_by` VARCHAR(100) NULL,
+  `updated_at` DATETIME NULL,
+  `updated_by` VARCHAR(100) NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_classroom_subjects_subjects1_idx` (`subject_id` ASC) VISIBLE,
+  INDEX `fk_subjects_classroom_types_classroom_types1_idx` (`classroom_type_id` ASC) VISIBLE,
+  CONSTRAINT `fk_classroom_subjects_subjects10`
+    FOREIGN KEY (`subject_id`)
+    REFERENCES `cdi_horarios`.`subjects` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_subjects_classroom_types_classroom_types1`
+    FOREIGN KEY (`classroom_type_id`)
+    REFERENCES `cdi_horarios`.`classroom_types` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

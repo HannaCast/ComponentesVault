@@ -113,6 +113,20 @@ class ClassroomCareers(models.Model):
         db_table = 'classroom_careers'
 
 
+class ClassroomSubjects(models.Model):
+    subject = models.ForeignKey('Subjects', models.DO_NOTHING)
+    classroom = models.ForeignKey('Classrooms', models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'classroom_subjects'
+
+
 class ClassroomTypes(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
@@ -137,6 +151,7 @@ class Classrooms(models.Model):
     building_code = models.CharField(max_length=20, blank=True, null=True)
     universities = models.ForeignKey('Universities', models.DO_NOTHING)
     is_restricted = models.IntegerField()
+    is_restricted_to_subjects = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
@@ -294,6 +309,7 @@ class Subjects(models.Model):
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
+    is_restricted_to_classroom_types = models.IntegerField()
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
@@ -305,6 +321,20 @@ class Subjects(models.Model):
     class Meta:
         managed = False
         db_table = 'subjects'
+
+
+class SubjectsClassroomTypes(models.Model):
+    subject = models.ForeignKey(Subjects, models.DO_NOTHING)
+    classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'subjects_classroom_types'
 
 
 class TeacherAvailabilities(models.Model):
