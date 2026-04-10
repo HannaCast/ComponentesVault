@@ -134,6 +134,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = 'user_accounts.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 PASSWORD_HASHERS = [ # Usar bcrypt para encriptar contraseñas
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',

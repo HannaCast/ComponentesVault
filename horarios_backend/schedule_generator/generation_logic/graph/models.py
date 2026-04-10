@@ -57,6 +57,8 @@ class ClassroomCandidate:
     classroom_id: int
     name: str
     classroom_type_id: int
+    classroom_type_name: str
+    classroom_type_priority: int | None
     is_restricted: bool
     allowed_career_ids: list[int]
     is_restricted_to_subjects: bool

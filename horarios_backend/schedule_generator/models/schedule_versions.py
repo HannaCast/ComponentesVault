@@ -4,6 +4,7 @@ from universities.models import AcademicPeriods, Universities
 
 
 class ScheduleVersions(models.Model):
+    id = models.BigAutoField(primary_key=True)
     label = models.CharField(max_length=100)
     university = models.ForeignKey(Universities, models.DO_NOTHING)
     academic_period = models.ForeignKey(

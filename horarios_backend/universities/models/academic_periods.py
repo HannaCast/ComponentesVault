@@ -16,6 +16,6 @@ class AcademicPeriods(models.Model):
     updated_by = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'academic_periods'
 
