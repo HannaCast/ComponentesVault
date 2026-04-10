@@ -492,9 +492,21 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la
 
 Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 
+**Body opcional de generacion:**
+```json
+{
+  "parameters": {
+    "allow_multiple_teachers_per_group_subject": false
+  }
+}
+```
+
 - En la primera generacion, el backend asigna label por defecto con formato `Borrador YYYY-MM-DD HH:MM`.
 - En regeneracion de borrador existente, el endpoint conserva el label actual.
 - `parameters.uses_period_groups` siempre se define desde backend segun la configuracion institucional.
+- `parameters.allow_multiple_teachers_per_group_subject` controla si una materia de un grupo puede ser impartida por varios profesores dentro del mismo horario generado.
+- Si no se envia `allow_multiple_teachers_per_group_subject`, el backend usa `false` por defecto (un solo profesor por combinacion `grupo + materia`).
+- Si `allow_multiple_teachers_per_group_subject = true`, el solver puede asignar distintos profesores para bloques diferentes de la misma materia en el mismo grupo.
 - `data.active_academic_period` guarda el periodo activo institucional (si existe).
 - Cada elemento de `data.groups[]` incluye metadata enriquecida: `career`, `shift`, `academic_period`, `allowed_days`.
 - Para representar correctamente la rejilla en frontend, usar `data.groups[].shift.start_time/end_time` como ventana del turno y completar slots vacios del intervalo aunque no vengan bloques asignados para todos.

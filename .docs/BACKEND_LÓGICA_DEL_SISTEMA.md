@@ -156,6 +156,11 @@ Campo relevante:
 
 Este campo se considera en la generacion de horarios. Por ejemplo, en modalidad en linea, un profesor puede requerir aula si no cuenta con espacio adecuado.
 
+Regla de generacion por defecto:
+
+- Para una combinacion `grupo + materia`, el generador intenta mantener un solo profesor en todos los bloques.
+- Esta regla puede relajarse por request con `parameters.allow_multiple_teachers_per_group_subject = true` al generar horario.
+
 ### Otras tablas relacionadas
 
 - `teacher_availabilities`: disponibilidad por dia y horario.

@@ -73,8 +73,19 @@ def _choose_teacher(
     slot: TimeSlot,
     teacher_busy: set[tuple[int, str]],
     teacher_load: dict[int, int],
+    fixed_teacher_id: int | None = None,
 ) -> TeacherContext | None:
     """Selecciona profesor factible para un slot, priorizando menor carga."""
+    if fixed_teacher_id is not None:
+        for teacher in node.teacher_candidates:
+            if teacher.teacher_id != fixed_teacher_id:
+                continue
+
+            if can_use_teacher(teacher, slot, teacher_busy):
+                return teacher
+
+        return None
+
     feasible_teachers = []
 
     for teacher in node.teacher_candidates:
@@ -136,6 +147,7 @@ def run_dsatur_coloring(
     adjacency: dict[str, set[str]],
     slots: list[TimeSlot],
     classrooms: list[ClassroomCandidate],
+    allow_multiple_teachers_per_group_subject: bool = False,
     soft_weights: dict | None = None,
 ) -> DSaturResult:
     """Resuelve asignaciones con DSatur + restricciones de profesor/aula."""
@@ -158,6 +170,7 @@ def run_dsatur_coloring(
 
     teacher_busy: set[tuple[int, str]] = set()
     classroom_busy: set[tuple[int, str]] = set()
+    assigned_teacher_by_group_subject: dict[tuple[int, int], int] = {}
 
     teacher_load: dict[int, int] = defaultdict(int)
     group_day_load: dict[tuple[int, int], int] = defaultdict(int)
@@ -201,10 +214,21 @@ def run_dsatur_coloring(
             continue
 
         best_candidate = None
+        group_subject_key = (node.group_id, node.subject_id)
+        fixed_teacher_id = None
+
+        if not allow_multiple_teachers_per_group_subject:
+            fixed_teacher_id = assigned_teacher_by_group_subject.get(group_subject_key)
 
         # 3) Evaluar combinaciones factibles y elegir la de menor penalizacion.
         for slot in candidate_slots:
-            teacher = _choose_teacher(node, slot, teacher_busy, teacher_load)
+            teacher = _choose_teacher(
+                node,
+                slot,
+                teacher_busy,
+                teacher_load,
+                fixed_teacher_id=fixed_teacher_id,
+            )
             if teacher is None:
                 continue
 
@@ -261,6 +285,9 @@ def run_dsatur_coloring(
         teacher_busy.add((chosen_teacher.teacher_id, chosen_slot.slot_id))
         teacher_load[chosen_teacher.teacher_id] += 1
         group_day_load[(node.group_id, chosen_slot.day_of_week)] += 1
+
+        if not allow_multiple_teachers_per_group_subject:
+            assigned_teacher_by_group_subject[group_subject_key] = chosen_teacher.teacher_id
 
         classroom_id = None
         classroom_name = None

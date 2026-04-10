@@ -14,7 +14,11 @@ from schedule_generator.generation_logic.loaders import (
 )
 
 
-def generate_schedule(university_id: int):
+def generate_schedule(
+    university_id: int,
+    *,
+    allow_multiple_teachers_per_group_subject: bool = False,
+):
     """Orquesta la generacion completa de horarios para una universidad."""
     university_context = load_university_context(university_id)
     uses_period_groups = bool(university_context.get('uses_period_groups', False))
@@ -79,6 +83,7 @@ def generate_schedule(university_id: int):
         adjacency=adjacency,
         slots=ordered_slots,
         classrooms=classrooms,
+        allow_multiple_teachers_per_group_subject=allow_multiple_teachers_per_group_subject,
         soft_weights={
             'spread_days_weight': 4.0,
             'day_order_weight': 0.1,

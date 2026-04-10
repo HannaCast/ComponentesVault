@@ -86,6 +86,8 @@ Que hace:
 - Si no existe borrador, crea uno nuevo con label por defecto: Borrador YYYY-MM-DD HH:MM.
 - Si ya existe borrador, regenera contenido del borrador y conserva su label actual.
 - En parameters, el campo uses_period_groups siempre se fuerza desde backend.
+- En `parameters.allow_multiple_teachers_per_group_subject` se controla si una materia de un grupo puede quedar repartida entre varios profesores.
+- Si ese parametro no viene en el request, el backend usa `false` por defecto (un solo profesor por materia en cada grupo).
 
 ### 5.2 Actualizar borrador existente
 
@@ -213,6 +215,12 @@ Campos:
 - is_confirmed: HiddenField default 0.
 - is_deleted: HiddenField default 0.
 
+Parametro soportado en `parameters`:
+
+- `allow_multiple_teachers_per_group_subject` (bool, opcional).
+   - `false` (default): una combinacion `grupo + materia` usa un solo profesor en todos sus bloques.
+   - `true`: permite mezclar profesores para bloques distintos de la misma materia en el mismo grupo.
+
 Validaciones:
 
 - label no se usa para nombrar en generate/regenerate.
@@ -243,7 +251,7 @@ Validaciones:
 
 ## 9) Flujo completo de generacion (detalle tecnico)
 
-Funcion orquestadora: generate_schedule(university_id)
+Funcion orquestadora: generate_schedule(university_id, allow_multiple_teachers_per_group_subject=False)
 
 ### Paso 1: Cargar contexto institucional
 
@@ -357,6 +365,8 @@ Estrategia:
    - no colisionar con colores de vecinos ya asignados.
    - pertenecer a allowed_slot_ids del nodo.
 3. Elige profesor factible (no ocupado + disponible) priorizando menor carga actual.
+   - Si `allow_multiple_teachers_per_group_subject = false`, el solver fija un solo profesor por combinacion `grupo + materia`.
+   - Si `allow_multiple_teachers_per_group_subject = true`, puede elegir profesores distintos entre bloques de la misma materia.
 4. Si requiere aula (por modalidad o por profesor), elige aula factible por reglas de ocupacion y restricciones:
    - por carrera (classroom_careers),
    - por materia (classroom_subjects),
@@ -424,6 +434,7 @@ Este servicio hace dos cosas en una sola transaccion:
 - Toma assigned_count y unassigned_count desde summary.
 - Resuelve academic_period a partir del active_period_id del contexto institucional.
 - Construye parameters y sobrescribe uses_period_groups con el valor institucional del backend.
+- Si `allow_multiple_teachers_per_group_subject` no se envia, se persiste con default `false`.
 - En data persiste metadata enriquecida de cada grupo (career, shift, academic_period, allowed_days).
 
 ### 10.2 Regla de un borrador activo por universidad

@@ -45,6 +45,26 @@ def _normalize_schedule_generation_payload(payload) -> dict:
     return normalized
 
 
+def _normalize_boolean_parameter(value, *, default: bool) -> bool:
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, int):
+        return value != 0
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {'true', '1', 'yes', 'si'}:
+            return True
+        if normalized in {'false', '0', 'no'}:
+            return False
+
+    return default
+
+
 def _get_or_create_user_configuration(user) -> UserConfiguration:
     user_config, _ = UserConfiguration.objects.get_or_create(
         user=user,
@@ -100,6 +120,10 @@ def _default_draft_label(now_dt) -> str:
 def _build_parameters_payload(parameters: dict | None, *, uses_period_groups: bool) -> dict:
     payload = dict(parameters) if isinstance(parameters, dict) else {}
     payload['uses_period_groups'] = bool(uses_period_groups)
+    payload['allow_multiple_teachers_per_group_subject'] = _normalize_boolean_parameter(
+        payload.get('allow_multiple_teachers_per_group_subject'),
+        default=False,
+    )
     return payload
 
 
@@ -134,7 +158,18 @@ def generate_or_update_draft_schedule_version(
     now_dt = timezone.now()
 
     university_context = load_university_context(university_id)
-    result = generate_schedule(university_id=university_id)
+
+    parameters_payload = _build_parameters_payload(
+        parameters,
+        uses_period_groups=bool(university_context.get('uses_period_groups', False)),
+    )
+
+    result = generate_schedule(
+        university_id=university_id,
+        allow_multiple_teachers_per_group_subject=bool(
+            parameters_payload.get('allow_multiple_teachers_per_group_subject', False)
+        ),
+    )
     result_payload = asdict(result)
 
     summary = result_payload.get('summary') if isinstance(result_payload.get('summary'), dict) else {}
@@ -143,11 +178,6 @@ def generate_or_update_draft_schedule_version(
 
     context_active_period_id = university_context.get('active_period_id')
     academic_period = _resolve_academic_period(context_active_period_id, university_id)
-
-    parameters_payload = _build_parameters_payload(
-        parameters,
-        uses_period_groups=bool(result_payload.get('uses_period_groups', False)),
-    )
 
     draft_queryset = (
         ScheduleVersions.objects
