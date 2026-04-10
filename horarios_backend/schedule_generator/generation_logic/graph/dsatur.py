@@ -15,6 +15,39 @@ from schedule_generator.generation_logic.graph.models import (
     UnassignedNode,
 )
 
+
+def _fallback_option_one_rank(
+    classroom: ClassroomCandidate,
+    node: ScheduleNode,
+) -> tuple[int, int, int, int, int]:
+    """Ranking hardcodeado para universidades sin configuracion de prioridades."""
+    classroom_type_name = (classroom.classroom_type_name or '').strip().lower()
+    is_regular_classroom = classroom_type_name in {'aula', 'salon', 'salón'}
+
+    # Para materias sin restriccion por tipo se intenta primero aula general.
+    prefer_regular_classroom = (
+        0 if (not node.is_restricted_to_classroom_types and is_regular_classroom) else 1
+    )
+
+    return (
+        prefer_regular_classroom,
+        0 if not classroom.is_restricted else 1,
+        0 if not classroom.is_restricted_to_subjects else 1,
+        len(classroom.allowed_career_ids) if classroom.is_restricted else 0,
+        classroom.classroom_id,
+    )
+
+
+def _priority_config_rank(classroom: ClassroomCandidate) -> tuple[int, int, int, int, int]:
+    """Ranking por prioridad de tipo configurada por universidad."""
+    return (
+        int(classroom.classroom_type_priority or 9999),
+        0 if not classroom.is_restricted else 1,
+        0 if not classroom.is_restricted_to_subjects else 1,
+        len(classroom.allowed_career_ids) if classroom.is_restricted else 0,
+        classroom.classroom_id,
+    )
+
 # Implementación del algoritmo DSatur adaptado a la generación de horarios académicos, con restricciones de profesor y aula.
 def _select_next_node(
     uncolored: set[str],
@@ -67,6 +100,7 @@ def _choose_classroom(
     classrooms: list[ClassroomCandidate],
     classroom_busy: set[tuple[int, str]],
     require_classroom: bool,
+    has_university_type_priorities: bool,
 ) -> ClassroomCandidate | None:
     """Selecciona aula factible para el slot respetando restricciones."""
     if not require_classroom:
@@ -88,14 +122,12 @@ def _choose_classroom(
     if not feasible_classrooms:
         return None
 
-    # Priorizar aulas restringidas ayuda a reservar aulas abiertas para conflictos futuros.
-    feasible_classrooms.sort(
-        key=lambda classroom: (
-            0 if classroom.is_restricted else 1,
-            len(classroom.allowed_career_ids),
-            classroom.classroom_id,
-        )
-    )
+    if has_university_type_priorities:
+        feasible_classrooms.sort(key=_priority_config_rank)
+    else:
+        # Fallback cuando la universidad no tiene configuracion en la tabla nueva.
+        feasible_classrooms.sort(key=lambda classroom: _fallback_option_one_rank(classroom, node))
+
     return feasible_classrooms[0]
 
 # La función principal de DSatur, que asigna slots a nodos respetando restricciones de profesor y aula.
@@ -129,6 +161,10 @@ def run_dsatur_coloring(
 
     teacher_load: dict[int, int] = defaultdict(int)
     group_day_load: dict[tuple[int, int], int] = defaultdict(int)
+
+    has_university_type_priorities = any(
+        classroom.classroom_type_priority is not None for classroom in classrooms
+    )
 
     uncolored = set(nodes_by_key)
 
@@ -179,6 +215,7 @@ def run_dsatur_coloring(
                 classrooms=classrooms,
                 classroom_busy=classroom_busy,
                 require_classroom=require_classroom,
+                has_university_type_priorities=has_university_type_priorities,
             )
 
             if require_classroom and classroom is None:

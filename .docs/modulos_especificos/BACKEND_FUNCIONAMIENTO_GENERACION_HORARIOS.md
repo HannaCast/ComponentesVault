@@ -285,6 +285,7 @@ Reglas:
 - Solo aulas activas y no eliminadas.
 - Si aula es restringida, se cargan carreras permitidas desde classroom_careers.
 - Si aula tiene `is_restricted_to_subjects = 1`, se cargan materias permitidas desde classroom_subjects.
+- Si existen filas activas en `university_classroom_type_priorities` para la universidad, se cargan prioridades por tipo de aula para el ranking de seleccion.
 
 ### Paso 4: Cargar materias por grupo
 
@@ -360,6 +361,8 @@ Estrategia:
    - por carrera (classroom_careers),
    - por materia (classroom_subjects),
    - y por tipo de aula permitido para la materia (subjects_classroom_types).
+   - Si hay configuracion en `university_classroom_type_priorities`, usa esa prioridad por tipo para materias no restringidas por tipo.
+   - Si no hay configuracion para la universidad, aplica fallback hardcodeado: para materias no restringidas intenta primero `Aula`.
 5. Calcula penalizacion blanda del slot (balance semanal y preferencia temporal).
 6. Selecciona la mejor combinacion por ranking.
 7. Confirma asignacion y actualiza ocupaciones:

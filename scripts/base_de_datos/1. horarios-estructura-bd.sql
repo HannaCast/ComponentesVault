@@ -637,7 +637,7 @@ ENGINE = InnoDB;
 -- Table `cdi_horarios`.`schedule_versions`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `cdi_horarios`.`schedule_versions` (
-  `id` INT NOT NULL AUTO_INCREMENT,
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `label` VARCHAR(100) NOT NULL,
   `university_id` INT NOT NULL,
   `academic_period_id` INT NULL,
@@ -717,6 +717,35 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`subjects_classroom_types` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_subjects_classroom_types_classroom_types1`
+    FOREIGN KEY (`classroom_type_id`)
+    REFERENCES `cdi_horarios`.`classroom_types` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `cdi_horarios`.`university_classroom_type_priorities`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`university_classroom_type_priorities` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `university_id` INT NOT NULL,
+  `classroom_type_id` INT NOT NULL,
+  `priority` INT NOT NULL DEFAULT 10,
+  `is_deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `created_by` VARCHAR(100) NULL,
+  `updated_at` DATETIME NULL,
+  `updated_by` VARCHAR(100) NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_academic_periods_universities1_idx` (`university_id` ASC) VISIBLE,
+  INDEX `fk_university_classroom_type_priorities_classroom_types1_idx` (`classroom_type_id` ASC) VISIBLE,
+  CONSTRAINT `fk_academic_periods_universities10`
+    FOREIGN KEY (`university_id`)
+    REFERENCES `cdi_horarios`.`universities` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_university_classroom_type_priorities_classroom_types1`
     FOREIGN KEY (`classroom_type_id`)
     REFERENCES `cdi_horarios`.`classroom_types` (`id`)
     ON DELETE NO ACTION

@@ -813,6 +813,74 @@ SET @classroom_type_lab_id = (
   LIMIT 1
 );
 
+INSERT INTO university_classroom_type_priorities (
+  university_id,
+  classroom_type_id,
+  priority,
+  is_deleted
+)
+SELECT cfg.university_id, ct.id, cfg.priority, 0
+FROM (
+  SELECT @utez_id AS university_id, 'Aula' AS classroom_type_name, 10 AS priority
+  UNION ALL SELECT @utez_id, 'Sala de Seminario', 20
+  UNION ALL SELECT @utez_id, 'Sala de Usos Multiples', 25
+  UNION ALL SELECT @utez_id, 'Taller', 30
+  UNION ALL SELECT @utez_id, 'Laboratorio', 40
+  UNION ALL SELECT @utez_id, 'Sala de Videoconferencia', 45
+  UNION ALL SELECT @utez_id, 'CompuAula', 50
+  UNION ALL SELECT @utez_id, 'Auditorio', 60
+  UNION ALL SELECT @utez_id, 'Aula Virtual', 70
+
+  UNION ALL SELECT @itz_id, 'Aula', 10
+  UNION ALL SELECT @itz_id, 'Sala de Seminario', 20
+  UNION ALL SELECT @itz_id, 'Sala de Usos Multiples', 25
+  UNION ALL SELECT @itz_id, 'Taller', 30
+  UNION ALL SELECT @itz_id, 'Laboratorio', 40
+  UNION ALL SELECT @itz_id, 'Sala de Videoconferencia', 45
+  UNION ALL SELECT @itz_id, 'CompuAula', 50
+  UNION ALL SELECT @itz_id, 'Auditorio', 60
+  UNION ALL SELECT @itz_id, 'Aula Virtual', 70
+) AS cfg
+JOIN classroom_types ct
+  ON ct.name = cfg.classroom_type_name
+ AND ct.status = 1
+ AND ct.is_deleted = 0
+LEFT JOIN university_classroom_type_priorities existing
+  ON existing.university_id = cfg.university_id
+ AND existing.classroom_type_id = ct.id
+ AND existing.is_deleted = 0
+WHERE cfg.university_id IS NOT NULL
+  AND existing.id IS NULL;
+
+UPDATE university_classroom_type_priorities uctp
+JOIN (
+  SELECT @utez_id AS university_id, 'Aula' AS classroom_type_name, 10 AS priority
+  UNION ALL SELECT @utez_id, 'Sala de Seminario', 20
+  UNION ALL SELECT @utez_id, 'Sala de Usos Multiples', 25
+  UNION ALL SELECT @utez_id, 'Taller', 30
+  UNION ALL SELECT @utez_id, 'Laboratorio', 40
+  UNION ALL SELECT @utez_id, 'Sala de Videoconferencia', 45
+  UNION ALL SELECT @utez_id, 'CompuAula', 50
+  UNION ALL SELECT @utez_id, 'Auditorio', 60
+  UNION ALL SELECT @utez_id, 'Aula Virtual', 70
+
+  UNION ALL SELECT @itz_id, 'Aula', 10
+  UNION ALL SELECT @itz_id, 'Sala de Seminario', 20
+  UNION ALL SELECT @itz_id, 'Sala de Usos Multiples', 25
+  UNION ALL SELECT @itz_id, 'Taller', 30
+  UNION ALL SELECT @itz_id, 'Laboratorio', 40
+  UNION ALL SELECT @itz_id, 'Sala de Videoconferencia', 45
+  UNION ALL SELECT @itz_id, 'CompuAula', 50
+  UNION ALL SELECT @itz_id, 'Auditorio', 60
+  UNION ALL SELECT @itz_id, 'Aula Virtual', 70
+) AS cfg
+  ON cfg.university_id = uctp.university_id
+JOIN classroom_types ct
+  ON ct.id = uctp.classroom_type_id
+ AND ct.name = cfg.classroom_type_name
+SET uctp.priority = cfg.priority
+WHERE uctp.is_deleted = 0;
+
 INSERT INTO classrooms (
   name,
   classroom_type_id,

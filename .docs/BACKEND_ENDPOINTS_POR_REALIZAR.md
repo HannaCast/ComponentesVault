@@ -212,6 +212,39 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 
 ---
 
+### 4.5 Prioridades de tipo de aula por universidad
+
+Permite configurar el orden de preferencia de tipos de aula para la **universidad seleccionada**.
+
+Estas prioridades solo aplican cuando la materia **no** esta restringida por `subjects_classroom_types`.
+
+Si una universidad no tiene configuraciones en esta tabla, el generador usa fallback hardcodeado: para materias no restringidas por tipo intenta primero `Aula` y luego evalua el resto de reglas duras.
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/classroom-type-priorities/` | Lista prioridades activas de la universidad seleccionada. |
+| `POST` | `/api/v1/university/classroom-type-priorities/` | Crea una configuracion de prioridad por tipo de aula. |
+| `GET` | `/api/v1/university/classroom-type-priorities/{pk}/` | Detalle de una configuracion. |
+| `PUT` | `/api/v1/university/classroom-type-priorities/{pk}/` | Actualiza prioridad y/o tipo de aula de una configuracion. |
+| `DELETE` | `/api/v1/university/classroom-type-priorities/{pk}/` | Soft delete de la configuracion. |
+
+**Body (POST / PUT):**
+```json
+{
+  "classroom_type_id": 1,
+  "priority": 10
+}
+```
+
+Reglas:
+
+- `priority` debe ser >= 1.
+- Solo acepta `classroom_type_id` activos y no eliminados.
+- Debe existir a lo mas una configuracion activa por combinacion `universidad + tipo_de_aula`.
+- `DELETE` realiza borrado logico (`is_deleted = 1`).
+
+---
+
 ## 5. Carreras
 
 La creacion incluye las excepciones de periodos en la misma transaccion.
@@ -496,6 +529,7 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 | Universidad -> Modalidades | `GET /api/v1/university/modalities/` al entrar a la pestana | `PUT /api/v1/university/modalities/{modality_pk}/` por modalidad individual |
 | Universidad -> Turnos | `GET /api/v1/university/shifts/` al entrar a la pestana | `PUT /api/v1/university/shifts/{shift_pk}/` por turno individual |
 | Universidad -> Periodos | `GET /api/v1/university/academic-periods/` al entrar a la pestana | `PUT /api/v1/university/academic-periods/{period_pk}/` por periodo individual |
+| Universidad -> Prioridades de tipo de aula | `GET /api/v1/university/classroom-type-priorities/` para ver configuracion institucional | `PUT /api/v1/university/classroom-type-priorities/{pk}/` para ajustar prioridad/tipo; `DELETE` hace borrado logico |
 | Carrera | Un solo GET trae todo (datos + excepciones, formulario simple) | PUT reemplaza excepciones completas junto con los datos (comparando cambios para evitar escrituras innecesarias) |
 | Materia | Un solo GET trae todo (datos + carreras + profesores + tipos de aula permitidos) | PUT sincroniza carreras/profesores/tipos de aula: reemplaza la lista solo cuando se envia; conserva la que no se envia |
 | Profesor | Un solo GET trae todo (datos + disponibilidades + materias) | PUT reemplaza listas completas (comparando cambios para evitar escrituras innecesarias) |

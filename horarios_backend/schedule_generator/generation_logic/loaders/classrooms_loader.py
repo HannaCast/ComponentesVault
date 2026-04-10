@@ -1,7 +1,12 @@
 from collections import defaultdict
 
-from classrooms.models import ClassroomCareers, ClassroomSubjects, Classrooms
+from classrooms.models import (
+    ClassroomCareers,
+    ClassroomSubjects,
+    Classrooms,
+)
 from schedule_generator.generation_logic.graph.models import ClassroomCandidate
+from universities.models import UniversityClassroomTypePriorities
 
 # Se carga aulas activas y sus restricciones por carrera.
 def load_classrooms_for_university(university_id: int) -> list[ClassroomCandidate]:
@@ -15,6 +20,7 @@ def load_classrooms_for_university(university_id: int) -> list[ClassroomCandidat
             'id',
             'name',
             'classroom_type_id',
+            'classroom_type__name',
             'is_restricted',
             'is_restricted_to_subjects',
         )
@@ -24,6 +30,25 @@ def load_classrooms_for_university(university_id: int) -> list[ClassroomCandidat
         return []
 
     classroom_ids = [row['id'] for row in classroom_rows]
+
+    # Configuracion opcional de prioridades por universidad.
+    priority_rows = list(
+        UniversityClassroomTypePriorities.objects.filter(
+            university_id=university_id,
+            is_deleted=0,
+            classroom_type__status=1,
+            classroom_type__is_deleted=0,
+        ).values('classroom_type_id', 'priority')
+    )
+
+    has_university_type_priorities = bool(priority_rows)
+    type_priority_map: dict[int, int] = {}
+    for row in priority_rows:
+        classroom_type_id = int(row['classroom_type_id'])
+        priority = int(row['priority'])
+        current_priority = type_priority_map.get(classroom_type_id)
+        if current_priority is None or priority < current_priority:
+            type_priority_map[classroom_type_id] = priority
 
     # Map classrooms_id -> carreras permitidas para aulas restringidas.
     career_map: dict[int, list[int]] = defaultdict(list)
@@ -57,6 +82,12 @@ def load_classrooms_for_university(university_id: int) -> list[ClassroomCandidat
                 classroom_id=classroom_id,
                 name=row['name'],
                 classroom_type_id=int(row['classroom_type_id']),
+                classroom_type_name=str(row.get('classroom_type__name') or ''),
+                classroom_type_priority=(
+                    type_priority_map.get(int(row['classroom_type_id']), 9999)
+                    if has_university_type_priorities
+                    else None
+                ),
                 is_restricted=bool(row['is_restricted']),
                 allowed_career_ids=allowed_career_ids,
                 is_restricted_to_subjects=bool(row['is_restricted_to_subjects']),

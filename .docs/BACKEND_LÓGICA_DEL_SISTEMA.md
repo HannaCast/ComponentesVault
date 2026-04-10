@@ -205,6 +205,16 @@ Cuando `is_restricted = true`, esta tabla indica a que carreras pertenece el aul
 
 Cuando `is_restricted_to_subjects = true`, esta tabla indica que materias pueden ocupar el aula.
 
+### `university_classroom_type_priorities`
+
+Esta tabla permite configurar, por universidad, la prioridad de tipos de aula para la asignacion del generador.
+
+Regla funcional:
+
+- Si una materia **no** tiene restriccion por tipo (`is_restricted_to_classroom_types = 0`), el solver usa esta prioridad para elegir entre aulas factibles.
+- Si una materia **si** tiene restriccion por tipo, primero se respetan esas restricciones duras.
+- Si la universidad no tiene filas activas en `university_classroom_type_priorities`, se aplica fallback hardcodeado del solver (opcion 1): preferir `Aula` para materias sin restriccion por tipo.
+
 ---
 
 ## Modalidades

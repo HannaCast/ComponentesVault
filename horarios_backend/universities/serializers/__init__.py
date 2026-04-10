@@ -6,5 +6,10 @@ from .academic_periods import (
     AcademicPeriodWriteSerializer,
 )
 from .shifts import ShiftWriteSerializer, ShiftDetailSerializer, ShiftListSerializer
+from .classroom_type_priorities import (
+    UniversityClassroomTypePriorityDetailSerializer,
+    UniversityClassroomTypePriorityListSerializer,
+    UniversityClassroomTypePriorityWriteSerializer,
+)
 from .universities.serializer_full import FullSetupSerializer
 from .images.image_serializer import UploadImageSerializer

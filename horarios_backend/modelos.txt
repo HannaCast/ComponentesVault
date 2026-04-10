@@ -263,6 +263,7 @@ class Roles(models.Model):
 
 
 class ScheduleVersions(models.Model):
+    id = models.BigAutoField(primary_key=True)
     label = models.CharField(max_length=100)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
     academic_period = models.ForeignKey(AcademicPeriods, models.DO_NOTHING, blank=True, null=True)
@@ -421,6 +422,21 @@ class Universities(models.Model):
     class Meta:
         managed = False
         db_table = 'universities'
+
+
+class UniversityClassroomTypePriorities(models.Model):
+    university = models.ForeignKey(Universities, models.DO_NOTHING)
+    classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
+    priority = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'university_classroom_type_priorities'
 
 
 class UserConfigurations(models.Model):
