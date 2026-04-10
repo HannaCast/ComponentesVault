@@ -14,6 +14,10 @@ export const SubjectDetail = ({
 
   const isActive = Number(subject.status) === 1;
   const isMandatory = Number(subject.is_mandatory) === 1 || subject.is_mandatory === true;
+  const hasRestrictedClassroomTypes = (
+    Number(subject.is_restricted_to_classroom_types) === 1
+    || subject.is_restricted_to_classroom_types === true
+  );
 
   const formatDateTime = (value) => {
     if (!value) return '-';
@@ -161,6 +165,28 @@ export const SubjectDetail = ({
         </div>
       )}
 
+      {/* Tipos de aula */}
+      <div>
+        <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+          Tipos de Aula Permitidos
+        </p>
+
+        {hasRestrictedClassroomTypes && Array.isArray(subject.classroom_types) && subject.classroom_types.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {subject.classroom_types.map((classroomType, index) => (
+              <span
+                key={classroomType?.id ?? index}
+                className="px-3 py-1 text-xs font-medium bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-full text-[var(--text-primary)]"
+              >
+                {classroomType?.name || '-'}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--text-secondary)]">Sin restricción por tipo de aula</p>
+        )}
+      </div>
+
       {/* Auditoría */}
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -203,6 +229,7 @@ SubjectDetail.propTypes = {
     code: PropTypes.string,
     status: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
     is_mandatory: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+    is_restricted_to_classroom_types: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
     description: PropTypes.string,
     hours_per_week: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     color: PropTypes.string,
@@ -217,6 +244,10 @@ SubjectDetail.propTypes = {
     teachers: PropTypes.arrayOf(PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       full_name: PropTypes.string,
+      name: PropTypes.string,
+    })),
+    classroom_types: PropTypes.arrayOf(PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       name: PropTypes.string,
     })),
   }),

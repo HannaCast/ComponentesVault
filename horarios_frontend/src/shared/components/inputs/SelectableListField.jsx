@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Plus, X } from 'lucide-react';
+import { Info, Plus, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
 import Input from '@shared/components/inputs/InputText';
 
@@ -18,6 +18,7 @@ export const SelectableListField = ({
   onRemove,
   placeholder = 'Seleccionar...',
   addLabel = 'Agregar',
+  infoMessage,
   disabled = false,
   enableSecondaryField = false,
   primaryLabel = 'Elemento',
@@ -28,6 +29,7 @@ export const SelectableListField = ({
   secondaryMax,
 }) => {
   const [isPendingRowVisible, setIsPendingRowVisible] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const normalizeSelectedEntry = (entry) => {
     if (entry && typeof entry === 'object') {
@@ -119,9 +121,49 @@ export const SelectableListField = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-medium text-[var(--text-primary)]">
-          {label}
-        </label>
+        <div className="flex items-center gap-2">
+          <label className="block text-sm font-medium text-[var(--text-primary)]">
+            {label}
+          </label>
+
+          {infoMessage && (
+            <div className="relative flex items-center">
+              <button
+                type="button"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={() => setShowTooltip((prev) => !prev)}
+                className="focus:outline-none transition-colors"
+                style={{ color: 'var(--text-secondary, #6b7280)' }}
+                aria-label="Ver informacion adicional"
+                title="Ver informacion adicional"
+              >
+                <Info className="w-4 h-4" />
+              </button>
+
+              {showTooltip && (
+                <div
+                  className="absolute top-6 z-50 w-64 p-3 text-xs rounded-lg shadow-lg left-0"
+                  style={{
+                    backgroundColor: 'var(--bg-base, #111827)',
+                    color: 'var(--text-primary, #f1f5f9)',
+                    border: '1px solid var(--border-default, #334155)',
+                  }}
+                >
+                  <div
+                    className="absolute -top-1 left-2 w-2 h-2 transform rotate-45"
+                    style={{
+                      backgroundColor: 'var(--bg-base, #111827)',
+                      borderTop: '1px solid var(--border-default, #334155)',
+                      borderLeft: '1px solid var(--border-default, #334155)',
+                    }}
+                  ></div>
+                  {infoMessage}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"
@@ -333,6 +375,7 @@ SelectableListField.propTypes = {
   onRemove: PropTypes.func,
   placeholder: PropTypes.string,
   addLabel: PropTypes.string,
+  infoMessage: PropTypes.node,
   disabled: PropTypes.bool,
   enableSecondaryField: PropTypes.bool,
   primaryLabel: PropTypes.string,

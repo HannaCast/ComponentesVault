@@ -153,6 +153,8 @@ export const SubjectsPage = () => {
     fetchCareerOptions,
     professorOptions,
     fetchProfessorOptions,
+    classroomTypeOptions,
+    fetchClassroomTypeOptions,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -211,6 +213,7 @@ export const SubjectsPage = () => {
       fetchColorOptions(),
       fetchCareerOptions(),
       fetchProfessorOptions(),
+      fetchClassroomTypeOptions(),
     ]);
   };
 
@@ -498,6 +501,7 @@ export const SubjectsPage = () => {
             colorOptions={colorOptions}
             careerOptions={careerOptions}
             professorOptions={professorOptions}
+            classroomTypeOptions={classroomTypeOptions}
           />
         )}
       </SideDrawer>

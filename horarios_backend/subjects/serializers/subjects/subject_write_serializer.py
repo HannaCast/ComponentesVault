@@ -322,10 +322,13 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
         )
 
         classroom_types_payload = None
+        classroom_types_in_payload = False
         if 'classroom_types' in attrs:
             classroom_types_payload = attrs.get('classroom_types') or []
+            classroom_types_in_payload = True
         elif 'classroom_types' in self.initial_data:
             classroom_types_payload = self.initial_data.get('classroom_types') or []
+            classroom_types_in_payload = True
 
         parsed_classroom_types = None
         if classroom_types_payload is not None:
@@ -349,6 +352,11 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
                         )
                     }
                 )
+
+        # Si classroom_types viene en el payload, su contenido gobierna la bandera.
+        if classroom_types_in_payload:
+            effective_restricted_classroom_types = bool(parsed_classroom_types)
+            attrs['is_restricted_to_classroom_types'] = 1 if parsed_classroom_types else 0
 
         if (
             effective_restricted_classroom_types

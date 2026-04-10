@@ -40,6 +40,10 @@ export const getCareers = () =>
 export const getTeachers = () =>
   apiToken.get('/api/v1/university/teachers/');
 
+// Obtener tipos de aula activos para restriccion por materia
+export const getClassroomTypes = () =>
+  apiToken.get('/api/v1/classroom-types/');
+
 // Crear una nueva materia
 export const createSubject = (data) => 
   apiToken.post("/api/v1/university/subjects/", data);

@@ -332,6 +332,10 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignac
 
 > Si `is_restricted_to_classroom_types = false`, `classroom_types` puede omitirse o enviarse vacio (en update, esto limpia las relaciones activas).
 
+> Si `classroom_types` llega con elementos, el backend marca automaticamente `is_restricted_to_classroom_types = true`.
+
+> Si `classroom_types` llega vacio en el payload, el backend marca `is_restricted_to_classroom_types = false` y limpia relaciones activas.
+
 > Selects que alimentan este formulario:
 > - `GET /api/v1/university/careers/` -> "Carreras a las que pertenece"
 > - `GET /api/v1/university/teachers/` -> "Profesores que pueden impartir"

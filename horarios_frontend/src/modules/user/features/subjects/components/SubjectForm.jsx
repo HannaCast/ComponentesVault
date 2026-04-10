@@ -17,7 +17,23 @@ const getFirstColorValue = (options = []) => {
   return String(firstColorValue);
 };
 
-const createDefaultFormData = (defaultColor = '') => ({
+const normalizeOptionLabel = (value) => String(value || '').trim().toLowerCase();
+
+const getDefaultClassroomTypeOption = (options = []) => {
+  const source = Array.isArray(options) ? options : [];
+  const aulaOption = source.find((option) => normalizeOptionLabel(option?.label) === 'aula');
+
+  if (!aulaOption) {
+    return null;
+  }
+
+  return {
+    value: String(aulaOption.value),
+    label: String(aulaOption.label || 'Aula'),
+  };
+};
+
+const createDefaultFormData = (defaultColor = '', defaultClassroomTypeOption = null) => ({
   name: '',
   short_name: '',
   code: '',
@@ -26,6 +42,7 @@ const createDefaultFormData = (defaultColor = '') => ({
   color: defaultColor,
   careers: [],
   professors: [],
+  classroom_types: defaultClassroomTypeOption ? [defaultClassroomTypeOption] : [],
   is_mandatory: true,
 });
 
@@ -38,10 +55,15 @@ export const SubjectForm = ({
   careerOptions = [],
   professorOptions = [],
   colorOptions = [],
+  classroomTypeOptions = [],
 }) => {
-  const [formData, setFormData] = useState(() => createDefaultFormData(getFirstColorValue(colorOptions)));
+  const [formData, setFormData] = useState(() => createDefaultFormData(
+    getFirstColorValue(colorOptions),
+    getDefaultClassroomTypeOption(classroomTypeOptions)
+  ));
 
   const [professorsTemp, setProfessorsTemp] = useState('');
+  const [classroomTypesTemp, setClassroomTypesTemp] = useState('');
   const [careersTemp, setCareersTemp] = useState('');
   const [careersPeriodTemp, setCareersPeriodTemp] = useState('');
   const [formErrors, setFormErrors] = useState({});
@@ -115,6 +137,22 @@ export const SubjectForm = ({
         })
         .filter(Boolean);
 
+      const normalizedClassroomTypes = Array.isArray(initialData.classroom_types)
+        ? initialData.classroom_types
+          .map((classroomType) => {
+            if (classroomType && typeof classroomType === 'object') {
+              const rawValue = classroomType.id ?? classroomType.classroom_type_id ?? classroomType.value;
+              const value = String(rawValue || '').trim();
+              const label = classroomType.name ?? classroomType.label ?? value;
+              return value ? { value, label: String(label || value) } : null;
+            }
+
+            const value = String(classroomType || '').trim();
+            return value ? { value, label: value } : null;
+          })
+          .filter(Boolean)
+        : [];
+
       setFormData({
         name: initialData.name || '',
         short_name: initialData.short_name || '',
@@ -124,6 +162,7 @@ export const SubjectForm = ({
         color: Number.isFinite(parsedColorId) && parsedColorId > 0 ? String(parsedColorId) : '',
         careers: normalizedCareers,
         professors: normalizedProfessors,
+        classroom_types: normalizedClassroomTypes,
         is_mandatory: Number(initialData.is_mandatory) === 1,
       });
     }
@@ -139,27 +178,37 @@ export const SubjectForm = ({
     }
 
     const firstColorValue = getFirstColorValue(colorOptions);
+    const defaultClassroomTypeOption = getDefaultClassroomTypeOption(classroomTypeOptions);
 
     if (enteringCreateMode) {
-      setFormData(createDefaultFormData(firstColorValue));
-      return;
-    }
-
-    if (!firstColorValue) {
+      setFormData(createDefaultFormData(firstColorValue, defaultClassroomTypeOption));
       return;
     }
 
     setFormData((prev) => {
-      if (prev.color) {
+      let changed = false;
+      const next = { ...prev };
+
+      if (!next.color && firstColorValue) {
+        next.color = firstColorValue;
+        changed = true;
+      }
+
+      if (
+        defaultClassroomTypeOption
+        && (!Array.isArray(next.classroom_types) || next.classroom_types.length === 0)
+      ) {
+        next.classroom_types = [defaultClassroomTypeOption];
+        changed = true;
+      }
+
+      if (!changed) {
         return prev;
       }
 
-      return {
-        ...prev,
-        color: firstColorValue,
-      };
+      return next;
     });
-  }, [mode, initialData, colorOptions]);
+  }, [mode, initialData, colorOptions, classroomTypeOptions]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -301,6 +350,70 @@ export const SubjectForm = ({
     });
   };
 
+  const handleAddClassroomType = (classroomTypeValue = classroomTypesTemp) => {
+    const nextClassroomType = String(classroomTypeValue || '').trim();
+    const nextClassroomTypeLabel = String(
+      classroomTypeOptions.find((item) => String(item.value) === nextClassroomType)?.label
+      || nextClassroomType,
+    ).trim();
+
+    if (!nextClassroomType) {
+      return;
+    }
+
+    if (
+      formData.classroom_types.some((classroomType) => {
+        if (classroomType && typeof classroomType === 'object') {
+          return String(classroomType.value) === nextClassroomType;
+        }
+        return String(classroomType) === nextClassroomType;
+      })
+    ) {
+      setClassroomTypesTemp('');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      classroom_types: [
+        ...prev.classroom_types,
+        {
+          value: nextClassroomType,
+          label: nextClassroomTypeLabel,
+        },
+      ],
+    }));
+    setClassroomTypesTemp('');
+  };
+
+  const handleRemoveClassroomType = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      classroom_types: prev.classroom_types.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleUpdateClassroomType = (index, classroomTypeValue, classroomTypeLabel = '') => {
+    const nextClassroomType = String(classroomTypeValue || '').trim();
+    const optionLabel = classroomTypeOptions.find((item) => String(item.value) === nextClassroomType)?.label;
+    const nextClassroomTypeLabel = String(classroomTypeLabel || optionLabel || nextClassroomType).trim();
+
+    if (!nextClassroomType) return;
+
+    setFormData((prev) => {
+      const nextClassroomTypes = [...prev.classroom_types];
+      nextClassroomTypes[index] = {
+        value: nextClassroomType,
+        label: nextClassroomTypeLabel,
+      };
+
+      return {
+        ...prev,
+        classroom_types: nextClassroomTypes,
+      };
+    });
+  };
+
   const validateForm = async (dataToValidate = formData) => {
     try {
       await subjectValidationSchema.validate(dataToValidate, {
@@ -380,10 +493,24 @@ export const SubjectForm = ({
       });
     }
 
+    const effectiveClassroomTypes = [...formData.classroom_types];
+    const pendingClassroomType = String(classroomTypesTemp || '').trim();
+    if (
+      pendingClassroomType
+      && !effectiveClassroomTypes.some((row) => String(row?.value) === pendingClassroomType)
+    ) {
+      const optionLabel = classroomTypeOptions.find((item) => String(item.value) === pendingClassroomType)?.label;
+      effectiveClassroomTypes.push({
+        value: pendingClassroomType,
+        label: String(optionLabel || pendingClassroomType),
+      });
+    }
+
     const effectiveFormData = {
       ...formData,
       careers: effectiveCareers,
       professors: effectiveProfessors,
+      classroom_types: effectiveClassroomTypes,
     };
 
     if (!(await validateForm(effectiveFormData))) {
@@ -439,7 +566,26 @@ export const SubjectForm = ({
           return { teacher_id: teacherId };
         })
         .filter(Boolean),
+      classroom_types: effectiveFormData.classroom_types
+        .map((classroomType) => {
+          if (classroomType && typeof classroomType === 'object') {
+            const classroomTypeId = Number.parseInt(classroomType.value, 10);
+            if (!Number.isFinite(classroomTypeId)) {
+              return null;
+            }
+            return { classroom_type_id: classroomTypeId };
+          }
+
+          const classroomTypeId = Number.parseInt(classroomType, 10);
+          if (!Number.isFinite(classroomTypeId)) {
+            return null;
+          }
+          return { classroom_type_id: classroomTypeId };
+        })
+        .filter(Boolean),
     };
+
+    submitData.is_restricted_to_classroom_types = submitData.classroom_types.length > 0 ? 1 : 0;
 
     delete submitData.professors;
 
@@ -558,6 +704,22 @@ export const SubjectForm = ({
         disabled={isViewMode || isLoading}
       />
 
+      {/* Tipos de aula */}
+      <SelectableListField
+        label="Tipos de aula permitidos para esta materia"
+        infoMessage="Si agregas uno o mas tipos de aula, la materia quedara restringida a esos salones. Por defecto se agrega Aula cuando esta disponible."
+        selectedValues={formData.classroom_types}
+        options={classroomTypeOptions}
+        selectedOption={classroomTypesTemp}
+        onSelectedOptionChange={setClassroomTypesTemp}
+        onAdd={handleAddClassroomType}
+        onUpdate={handleUpdateClassroomType}
+        onRemove={handleRemoveClassroomType}
+        placeholder="Seleccionar tipo de aula"
+        addLabel="Agregar Tipo de Aula"
+        disabled={isViewMode || isLoading}
+      />
+
       {/* Color */}
       <ColorSwatchPicker
         label="Color de la Materia"
@@ -631,6 +793,7 @@ const SubjectInitialDataShape = PropTypes.shape({
   careers: PropTypes.array,
   teachers: PropTypes.array,
   professors: PropTypes.array,
+  classroom_types: PropTypes.array,
 });
 
 SubjectForm.propTypes = {
@@ -641,6 +804,7 @@ SubjectForm.propTypes = {
   mode: PropTypes.oneOf(['create', 'edit', 'view']),
   careerOptions: PropTypes.arrayOf(SubjectOptionShape),
   professorOptions: PropTypes.arrayOf(SubjectOptionShape),
+  classroomTypeOptions: PropTypes.arrayOf(SubjectOptionShape),
   colorOptions: PropTypes.arrayOf(PropTypes.shape({
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     label: PropTypes.string,

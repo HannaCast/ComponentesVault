@@ -9,6 +9,7 @@ import {
   getColors,
   getCareers,
   getTeachers,
+  getClassroomTypes,
 } from '../api/subjectsApi';
 
 export const useSubjects = () => {
@@ -25,6 +26,7 @@ export const useSubjects = () => {
   const [colorOptions, setColorOptions] = useState([]);
   const [careerOptions, setCareerOptions] = useState([]);
   const [professorOptions, setProfessorOptions] = useState([]);
+  const [classroomTypeOptions, setClassroomTypeOptions] = useState([]);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -194,6 +196,22 @@ export const useSubjects = () => {
     }
   }, []);
 
+  const fetchClassroomTypeOptions = useCallback(async () => {
+    try {
+      const response = await getClassroomTypes();
+      const classroomTypes = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setClassroomTypeOptions(
+        classroomTypes.map((classroomType) => ({
+          value: String(classroomType.id),
+          label: classroomType.name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar tipos de aula:', err);
+    }
+  }, []);
+
   return {
     subjectsPage,
     totalItems,
@@ -224,5 +242,7 @@ export const useSubjects = () => {
     fetchCareerOptions,
     professorOptions,
     fetchProfessorOptions,
+    classroomTypeOptions,
+    fetchClassroomTypeOptions,
   };
 };
