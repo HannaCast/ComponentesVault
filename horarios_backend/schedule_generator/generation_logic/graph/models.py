@@ -24,6 +24,8 @@ class SubjectContext:
     subject_id: int
     subject_name: str
     hours_per_week: int
+    is_restricted_to_classroom_types: bool
+    allowed_classroom_type_ids: list[int]
     color_hex: str
     contrast_hex: str
 
@@ -57,6 +59,8 @@ class ClassroomCandidate:
     classroom_type_id: int
     is_restricted: bool
     allowed_career_ids: list[int]
+    is_restricted_to_subjects: bool
+    allowed_subject_ids: list[int]
 
 
 @dataclass(slots=True)
@@ -77,6 +81,8 @@ class ScheduleNode:
     subject_id: int
     subject_name: str
     allowed_slot_ids: set[str]
+    is_restricted_to_classroom_types: bool
+    allowed_classroom_type_ids: set[int]
     teacher_candidates: list[TeacherContext]
     require_classroom: bool
     color_hex: str

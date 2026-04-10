@@ -68,9 +68,15 @@ WHERE existing.id IS NULL;
 INSERT INTO classroom_types (name, description, status, is_deleted)
 SELECT ct.name, ct.description, 1, 0
 FROM (
-  SELECT 'CompuAula' AS name, 'Aula de computo' AS description
-  UNION ALL SELECT 'Aula', 'Salon teorico'
+  SELECT 'Aula' AS name, 'Salon teorico' AS description
+  UNION ALL SELECT 'CompuAula', 'Aula de computo'
   UNION ALL SELECT 'Laboratorio', 'Espacio practico especializado'
+  UNION ALL SELECT 'Taller', 'Espacio practico para oficios y manufactura'
+  UNION ALL SELECT 'Auditorio', 'Espacio de gran capacidad para eventos y conferencias'
+  UNION ALL SELECT 'Sala de Videoconferencia', 'Sala equipada para sesiones hibridas o remotas'
+  UNION ALL SELECT 'Sala de Seminario', 'Sala para grupos pequenos y discusion academica'
+  UNION ALL SELECT 'Sala de Usos Multiples', 'Espacio flexible para distintas actividades'
+  UNION ALL SELECT 'Aula Virtual', 'Espacio en linea sin ubicacion fisica requerida'
 ) AS ct
 LEFT JOIN classroom_types existing ON existing.name = ct.name AND existing.is_deleted = 0
 WHERE existing.id IS NULL;

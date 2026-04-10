@@ -500,7 +500,23 @@ SELECT
   s.color_id,
   s.university_id,
   CASE
-    WHEN s.code IN ('UTEZ-ING1') THEN 1
+    WHEN s.code IN (
+      'UTEZ-ING1',
+      'UTEZ-PROG1',
+      'UTEZ-BD1',
+      'UTEZ-POO',
+      'UTEZ-REDES',
+      'UTEZ-FIS1',
+      'UTEZ-ROBO',
+      'UTEZ-AUTOC',
+      'ITZ-PROG1',
+      'ITZ-BD1',
+      'ITZ-REDES',
+      'ITZ-FIS1',
+      'ITZ-QUIM1',
+      'ITZ-ELEC1',
+      'ITZ-MEC1'
+    ) THEN 1
     ELSE 0
   END AS is_restricted_to_classroom_types,
   s.is_mandatory,
@@ -852,21 +868,57 @@ LEFT JOIN classroom_careers existing
 WHERE existing.id IS NULL;
 
 INSERT INTO subjects_classroom_types (subject_id, classroom_type_id, is_deleted)
-SELECT s.id, @classroom_type_compu_id, 0
-FROM subjects s
+SELECT s.id, map.classroom_type_id, 0
+FROM (
+  SELECT 'UTEZ-ING1' AS subject_code, @utez_id AS university_id, @classroom_type_compu_id AS classroom_type_id
+  UNION ALL SELECT 'UTEZ-PROG1', @utez_id, @classroom_type_compu_id
+  UNION ALL SELECT 'UTEZ-BD1', @utez_id, @classroom_type_compu_id
+  UNION ALL SELECT 'UTEZ-POO', @utez_id, @classroom_type_compu_id
+  UNION ALL SELECT 'UTEZ-REDES', @utez_id, @classroom_type_compu_id
+  UNION ALL SELECT 'ITZ-PROG1', @itz_id, @classroom_type_compu_id
+  UNION ALL SELECT 'ITZ-BD1', @itz_id, @classroom_type_compu_id
+  UNION ALL SELECT 'ITZ-REDES', @itz_id, @classroom_type_compu_id
+
+  UNION ALL SELECT 'UTEZ-FIS1', @utez_id, @classroom_type_lab_id
+  UNION ALL SELECT 'UTEZ-ROBO', @utez_id, @classroom_type_lab_id
+  UNION ALL SELECT 'UTEZ-AUTOC', @utez_id, @classroom_type_lab_id
+  UNION ALL SELECT 'ITZ-FIS1', @itz_id, @classroom_type_lab_id
+  UNION ALL SELECT 'ITZ-QUIM1', @itz_id, @classroom_type_lab_id
+  UNION ALL SELECT 'ITZ-ELEC1', @itz_id, @classroom_type_lab_id
+  UNION ALL SELECT 'ITZ-MEC1', @itz_id, @classroom_type_lab_id
+) AS map
+JOIN subjects s
+  ON s.code = map.subject_code
+ AND s.university_id = map.university_id
+ AND s.is_deleted = 0
 LEFT JOIN subjects_classroom_types existing
   ON existing.subject_id = s.id
- AND existing.classroom_type_id = @classroom_type_compu_id
+ AND existing.classroom_type_id = map.classroom_type_id
  AND existing.is_deleted = 0
-WHERE s.code = 'UTEZ-ING1'
-  AND s.university_id = @utez_id
-  AND s.is_deleted = 0
-  AND @classroom_type_compu_id IS NOT NULL
+WHERE map.classroom_type_id IS NOT NULL
   AND existing.id IS NULL;
 
 UPDATE subjects
 SET is_restricted_to_classroom_types = CASE
-  WHEN code = 'UTEZ-ING1' AND university_id = @utez_id THEN 1
+  WHEN code IN (
+    'UTEZ-ING1',
+    'UTEZ-PROG1',
+    'UTEZ-BD1',
+    'UTEZ-POO',
+    'UTEZ-REDES',
+    'UTEZ-FIS1',
+    'UTEZ-ROBO',
+    'UTEZ-AUTOC'
+  ) AND university_id = @utez_id THEN 1
+  WHEN code IN (
+    'ITZ-PROG1',
+    'ITZ-BD1',
+    'ITZ-REDES',
+    'ITZ-FIS1',
+    'ITZ-QUIM1',
+    'ITZ-ELEC1',
+    'ITZ-MEC1'
+  ) AND university_id = @itz_id THEN 1
   ELSE is_restricted_to_classroom_types
 END
 WHERE university_id IN (@utez_id, @itz_id)

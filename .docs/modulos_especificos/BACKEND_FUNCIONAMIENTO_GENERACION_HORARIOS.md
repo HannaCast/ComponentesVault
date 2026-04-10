@@ -284,6 +284,7 @@ Reglas:
 
 - Solo aulas activas y no eliminadas.
 - Si aula es restringida, se cargan carreras permitidas desde classroom_careers.
+- Si aula tiene `is_restricted_to_subjects = 1`, se cargan materias permitidas desde classroom_subjects.
 
 ### Paso 4: Cargar materias por grupo
 
@@ -292,6 +293,7 @@ Loader: load_subjects_for_group(career_id, period_number)
 Reglas:
 
 - Trae materias activas de career_subjects.
+- Si la materia tiene `is_restricted_to_classroom_types = 1`, se cargan tipos de aula permitidos desde subjects_classroom_types.
 - Lee color y contrast_hex para salida visual.
 - hours_per_week se fuerza a minimo 1 para evitar materia sin nodos.
 
@@ -332,6 +334,7 @@ Reglas:
 - Cada hora semanal de una materia crea 1 nodo.
 - node_key incluye group, subject, career_subject y numero de hora.
 - Cada nodo solo puede usar slots permitidos del propio grupo (allowed_slot_ids).
+- Cada nodo mantiene metadata de restriccion por tipo de aula de su materia para validarla al elegir aula.
 
 ### Paso 8: Construir adyacencia (conflictos)
 
@@ -353,7 +356,10 @@ Estrategia:
    - no colisionar con colores de vecinos ya asignados.
    - pertenecer a allowed_slot_ids del nodo.
 3. Elige profesor factible (no ocupado + disponible) priorizando menor carga actual.
-4. Si requiere aula (por modalidad o por profesor), elige aula factible.
+4. Si requiere aula (por modalidad o por profesor), elige aula factible por reglas de ocupacion y restricciones:
+   - por carrera (classroom_careers),
+   - por materia (classroom_subjects),
+   - y por tipo de aula permitido para la materia (subjects_classroom_types).
 5. Calcula penalizacion blanda del slot (balance semanal y preferencia temporal).
 6. Selecciona la mejor combinacion por ranking.
 7. Confirma asignacion y actualiza ocupaciones:
@@ -638,7 +644,8 @@ Responsabilidad:
 5. Backend no escribe campos created_*/updated_* en schedule_versions.
 6. En generate/regenerate, el label del borrador se crea por default y despues se conserva.
 7. En parameters, uses_period_groups siempre lo determina backend segun la universidad seleccionada.
-8. Si no hay datos minimos para agendar, se devuelve error de negocio explicito.
+8. Las restricciones de aula por carrera, por materia y por tipo de aula se aplican como reglas duras durante la asignacion.
+9. Si no hay datos minimos para agendar, se devuelve error de negocio explicito.
 
 ## 20) Guia de depuracion para personas nuevas
 
@@ -652,7 +659,7 @@ Si falla la generacion, revisar en este orden:
 6. Que existan profesores ligados a materias y habilitados en la universidad.
 7. Disponibilidad de profesores por dia/hora.
 8. Disponibilidad de slots dentro del turno y allowed_days.
-9. Si requiere aula, validar aulas y restricciones por carrera.
+9. Si requiere aula, validar aulas y restricciones por carrera, por materia y por tipo de aula.
 10. Revisar unassigned[] para entender por que no se pudo asignar cada nodo.
 
 Si hay duda de persistencia o auditoria:

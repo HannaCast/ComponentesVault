@@ -38,6 +38,8 @@ def build_schedule_nodes(
                     subject_name=subject.subject_name,
                     # Copia defensiva para mantener independencia entre nodos.
                     allowed_slot_ids=set(allowed_slot_ids),
+                    is_restricted_to_classroom_types=subject.is_restricted_to_classroom_types,
+                    allowed_classroom_type_ids=set(subject.allowed_classroom_type_ids),
                     teacher_candidates=teacher_candidates,
                     require_classroom=group.modality_require_classroom,
                     color_hex=subject.color_hex,

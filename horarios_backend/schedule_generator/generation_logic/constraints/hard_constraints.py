@@ -52,14 +52,26 @@ def can_use_teacher(teacher: TeacherContext, slot: TimeSlot, teacher_busy: set[t
 def can_use_classroom(
     classroom: ClassroomCandidate,
     career_id: int,
+    subject_id: int,
     slot_id: str,
     classroom_busy: set[tuple[int, str]],
+    is_restricted_to_classroom_types: bool = False,
+    allowed_classroom_type_ids: set[int] | None = None,
 ) -> bool:
-    """Valida ocupacion de aula y reglas de restriccion por carrera."""
+    """Valida ocupacion de aula y reglas por carrera, materia y tipo de aula."""
     if (classroom.classroom_id, slot_id) in classroom_busy:
         return False
 
-    if not classroom.is_restricted:
-        return True
+    if classroom.is_restricted and career_id not in classroom.allowed_career_ids:
+        return False
 
-    return career_id in classroom.allowed_career_ids
+    if classroom.is_restricted_to_subjects and subject_id not in classroom.allowed_subject_ids:
+        return False
+
+    if is_restricted_to_classroom_types:
+        if not allowed_classroom_type_ids:
+            return False
+        if classroom.classroom_type_id not in allowed_classroom_type_ids:
+            return False
+
+    return True
