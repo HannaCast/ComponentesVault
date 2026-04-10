@@ -457,6 +457,7 @@ export const TeachersPage = () => {
           />
         ) : (
           <TeacherForm
+            key={`${drawerMode}-${selectedTeacher?.id ?? 'new'}`}
             initialData={selectedTeacher}
             isLoading={teacherLoading}
             onSubmit={handleFormSubmit}
