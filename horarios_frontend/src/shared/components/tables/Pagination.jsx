@@ -81,22 +81,44 @@ export function Pagination({
     return pages;
   };
 
+  const summaryText = (
+    <>
+      Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de{' '}
+      {totalItems} resultados
+    </>
+  );
+
+  const barShellClassName =
+    'flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 rounded-lg border';
+  const barShellStyle = {
+    backgroundColor: 'var(--bg-elevated, #ffffff)',
+    borderColor: 'var(--border-default, #d1d5db)',
+  };
+
+  /** Una sola página: el listado sigue siendo paginado en servidor; solo ocultamos botones de página. */
   if (totalPages <= 1) {
-    return null;
+    if (totalItems <= 0) {
+      return null;
+    }
+
+    return (
+      <div className={barShellClassName} style={barShellStyle}>
+        <div
+          className="text-xs sm:text-sm w-full text-center sm:text-left"
+          style={{ color: 'var(--text-secondary, #6b7280)' }}
+        >
+          {summaryText}
+        </div>
+      </div>
+    );
   }
 
   let mobileEllipsisCounter = 0;
 
   return (
-    <div
-      className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 rounded-lg border"
-      style={{
-        backgroundColor: 'var(--bg-elevated, #ffffff)',
-        borderColor: 'var(--border-default, #d1d5db)',
-      }}
-    >
+    <div className={barShellClassName} style={barShellStyle}>
       <div className="text-xs sm:text-sm hidden sm:block" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-        Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} resultados
+        {summaryText}
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-2">
