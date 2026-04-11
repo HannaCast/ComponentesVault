@@ -98,6 +98,13 @@ class ClassroomPaginatedView(APIView):
                 required=False,
             ),
             OpenApiParameter(
+                name='classroom_type_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Filtrar por id de tipo de aula',
+                required=False,
+            ),
+            OpenApiParameter(
                 name='sortBy',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
@@ -126,6 +133,7 @@ class ClassroomPaginatedView(APIView):
         limit = max(1, int(request.query_params.get('limit', 10)))
         search = request.query_params.get('search', '').strip()
         status_param = request.query_params.get('status', None)
+        classroom_type_id_param = request.query_params.get('classroom_type_id', None)
         sort_by = request.query_params.get('sortBy', 'id')
         order = request.query_params.get('order', 'ASC').upper()
         offset = (page - 1) * limit
@@ -143,6 +151,12 @@ class ClassroomPaginatedView(APIView):
             queryset = queryset.filter(
                 status=1 if status_param.lower() == 'true' else 0
             )
+
+        if classroom_type_id_param is not None:
+            try:
+                queryset = queryset.filter(classroom_type_id=int(classroom_type_id_param))
+            except (TypeError, ValueError):
+                pass
 
         if search:
             queryset = queryset.filter(
