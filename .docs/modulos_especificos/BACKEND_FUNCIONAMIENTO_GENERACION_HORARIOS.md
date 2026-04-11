@@ -88,6 +88,9 @@ Que hace:
 - En parameters, el campo uses_period_groups siempre se fuerza desde backend.
 - En `parameters.allow_multiple_teachers_per_group_subject` se controla si una materia de un grupo puede quedar repartida entre varios profesores.
 - Si ese parametro no viene en el request, el backend usa `false` por defecto (un solo profesor por materia en cada grupo).
+- En `parameters.randomize_generation` se controla si el solver usa desempates aleatorios en esa ejecucion.
+- Si `randomize_generation` no viene, el backend usa `false` por defecto (comportamiento determinista actual).
+- Si `randomize_generation = true` y no se envia `parameters.random_seed`, backend genera una semilla y la persiste en la version.
 
 ### 5.2 Actualizar borrador existente
 
@@ -220,6 +223,12 @@ Parametro soportado en `parameters`:
 - `allow_multiple_teachers_per_group_subject` (bool, opcional).
    - `false` (default): una combinacion `grupo + materia` usa un solo profesor en todos sus bloques.
    - `true`: permite mezclar profesores para bloques distintos de la misma materia en el mismo grupo.
+- `randomize_generation` (bool, opcional).
+   - `false` (default): el solver mantiene desempates deterministas.
+   - `true`: habilita desempates aleatorios por ejecucion.
+- `random_seed` (int >= 0, opcional).
+   - Si `randomize_generation = true` y se envia, permite reproducir el resultado con la misma semilla.
+   - Si `randomize_generation = true` y no se envia, backend genera una semilla y la guarda en `schedule_versions.parameters`.
 
 Validaciones:
 
@@ -251,7 +260,7 @@ Validaciones:
 
 ## 9) Flujo completo de generacion (detalle tecnico)
 
-Funcion orquestadora: generate_schedule(university_id, allow_multiple_teachers_per_group_subject=False)
+Funcion orquestadora: generate_schedule(university_id, allow_multiple_teachers_per_group_subject=False, randomize_generation=False, random_seed=None)
 
 ### Paso 1: Cargar contexto institucional
 
@@ -367,6 +376,7 @@ Estrategia:
 3. Elige profesor factible (no ocupado + disponible) priorizando menor carga actual.
    - Si `allow_multiple_teachers_per_group_subject = false`, el solver fija un solo profesor por combinacion `grupo + materia`.
    - Si `allow_multiple_teachers_per_group_subject = true`, puede elegir profesores distintos entre bloques de la misma materia.
+   - Si `randomize_generation = true`, los empates entre candidatos equivalentes se resuelven aleatoriamente usando `random_seed`.
 4. Si requiere aula (por modalidad o por profesor), elige aula factible por reglas de ocupacion y restricciones:
    - por carrera (classroom_careers),
    - por materia (classroom_subjects),
@@ -375,6 +385,8 @@ Estrategia:
    - Si no hay configuracion para la universidad, aplica fallback hardcodeado: para materias no restringidas intenta primero `Aula`.
 5. Calcula penalizacion blanda del slot (balance semanal y preferencia temporal).
 6. Selecciona la mejor combinacion por ranking.
+   - En modo determinista, ante empate se conserva el orden estable actual.
+   - En modo randomizado, ante empate se elige aleatoriamente entre opciones equivalentes.
 7. Confirma asignacion y actualiza ocupaciones:
    - teacher_busy
    - classroom_busy
@@ -435,6 +447,8 @@ Este servicio hace dos cosas en una sola transaccion:
 - Resuelve academic_period a partir del active_period_id del contexto institucional.
 - Construye parameters y sobrescribe uses_period_groups con el valor institucional del backend.
 - Si `allow_multiple_teachers_per_group_subject` no se envia, se persiste con default `false`.
+- Si `randomize_generation` no se envia, se persiste con default `false`.
+- Si `randomize_generation = true` y no se envia `random_seed`, se genera una semilla y se persiste en `parameters.random_seed`.
 - En data persiste metadata enriquecida de cada grupo (career, shift, academic_period, allowed_days).
 
 ### 10.2 Regla de un borrador activo por universidad
@@ -660,6 +674,7 @@ Responsabilidad:
 7. En parameters, uses_period_groups siempre lo determina backend segun la universidad seleccionada.
 8. Las restricciones de aula por carrera, por materia y por tipo de aula se aplican como reglas duras durante la asignacion.
 9. Si no hay datos minimos para agendar, se devuelve error de negocio explicito.
+10. La aleatoriedad es opcional: solo aplica si `parameters.randomize_generation = true`; por defecto la generacion sigue siendo determinista.
 
 ## 20) Guia de depuracion para personas nuevas
 

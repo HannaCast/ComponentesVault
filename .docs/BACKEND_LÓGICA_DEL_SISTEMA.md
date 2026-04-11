@@ -160,6 +160,9 @@ Regla de generacion por defecto:
 
 - Para una combinacion `grupo + materia`, el generador intenta mantener un solo profesor en todos los bloques.
 - Esta regla puede relajarse por request con `parameters.allow_multiple_teachers_per_group_subject = true` al generar horario.
+- El comportamiento del solver es determinista por defecto (`parameters.randomize_generation = false`).
+- Se puede habilitar variacion por ejecucion con `parameters.randomize_generation = true`; los desempates del solver pasan a ser aleatorios.
+- Para reproducibilidad, se puede enviar `parameters.random_seed`; si no se envia, el backend genera una semilla y la guarda en `schedule_versions.parameters`.
 
 ### Otras tablas relacionadas
 

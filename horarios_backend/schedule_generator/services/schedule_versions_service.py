@@ -1,4 +1,5 @@
 from dataclasses import asdict
+import secrets
 
 from django.db import transaction
 from django.utils import timezone
@@ -65,6 +66,29 @@ def _normalize_boolean_parameter(value, *, default: bool) -> bool:
     return default
 
 
+def _normalize_optional_non_negative_int_parameter(value) -> int | None:
+    if value is None:
+        return None
+
+    if isinstance(value, bool):
+        return None
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    if parsed < 0:
+        return None
+
+    return parsed
+
+
+def _build_random_seed() -> int:
+    # Se usa rango amplio positivo para facilitar interoperabilidad en serializacion JSON.
+    return secrets.randbelow(2_147_483_647) + 1
+
+
 def _get_or_create_user_configuration(user) -> UserConfiguration:
     user_config, _ = UserConfiguration.objects.get_or_create(
         user=user,
@@ -124,6 +148,13 @@ def _build_parameters_payload(parameters: dict | None, *, uses_period_groups: bo
         payload.get('allow_multiple_teachers_per_group_subject'),
         default=False,
     )
+    payload['randomize_generation'] = _normalize_boolean_parameter(
+        payload.get('randomize_generation'),
+        default=False,
+    )
+    payload['random_seed'] = _normalize_optional_non_negative_int_parameter(
+        payload.get('random_seed')
+    )
     return payload
 
 
@@ -164,11 +195,16 @@ def generate_or_update_draft_schedule_version(
         uses_period_groups=bool(university_context.get('uses_period_groups', False)),
     )
 
+    if parameters_payload.get('randomize_generation') and parameters_payload.get('random_seed') is None:
+        parameters_payload['random_seed'] = _build_random_seed()
+
     result = generate_schedule(
         university_id=university_id,
         allow_multiple_teachers_per_group_subject=bool(
             parameters_payload.get('allow_multiple_teachers_per_group_subject', False)
         ),
+        randomize_generation=bool(parameters_payload.get('randomize_generation', False)),
+        random_seed=parameters_payload.get('random_seed'),
     )
     result_payload = asdict(result)
 
