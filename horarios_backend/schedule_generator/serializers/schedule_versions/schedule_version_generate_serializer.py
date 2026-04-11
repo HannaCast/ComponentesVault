@@ -13,7 +13,8 @@ class ScheduleVersionGenerateSerializer(serializers.Serializer):
         default=dict,
         help_text=(
             'Objeto JSON opcional. Soporta '
-            'allow_multiple_teachers_per_group_subject (bool).'
+            'allow_multiple_teachers_per_group_subject (bool), '
+            'randomize_generation (bool) y random_seed (int >= 0).'
         ),
     )
     is_confirmed = serializers.HiddenField(default=0)
@@ -40,13 +41,53 @@ class ScheduleVersionGenerateSerializer(serializers.Serializer):
             }
         )
 
+    def _parse_optional_non_negative_int(self, value, field_name: str) -> int | None:
+        if value is None:
+            return None
+
+        if isinstance(value, bool):
+            raise serializers.ValidationError(
+                {field_name: 'Debe ser entero mayor o igual a 0.'}
+            )
+
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError(
+                {field_name: 'Debe ser entero mayor o igual a 0.'}
+            )
+
+        if parsed < 0:
+            raise serializers.ValidationError(
+                {field_name: 'Debe ser entero mayor o igual a 0.'}
+            )
+
+        return parsed
+
     def validate_parameters(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError('parameters debe ser un objeto JSON.')
 
         normalized = dict(value)
-        key = 'allow_multiple_teachers_per_group_subject'
-        if key in normalized:
-            normalized[key] = self._parse_boolean(normalized[key], key)
+        key_allow_multiple = 'allow_multiple_teachers_per_group_subject'
+        if key_allow_multiple in normalized:
+            normalized[key_allow_multiple] = self._parse_boolean(
+                normalized[key_allow_multiple],
+                key_allow_multiple,
+            )
+
+        key_randomize = 'randomize_generation'
+        if key_randomize in normalized:
+            normalized[key_randomize] = self._parse_boolean(
+                normalized[key_randomize],
+                key_randomize,
+            )
+
+        key_seed = 'random_seed'
+        if key_seed in normalized:
+            normalized[key_seed] = self._parse_optional_non_negative_int(
+                normalized[key_seed],
+                key_seed,
+            )
 
         return normalized

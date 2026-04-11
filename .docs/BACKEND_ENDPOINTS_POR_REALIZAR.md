@@ -500,7 +500,9 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 ```json
 {
   "parameters": {
-    "allow_multiple_teachers_per_group_subject": false
+    "allow_multiple_teachers_per_group_subject": false,
+    "randomize_generation": false,
+    "random_seed": null
   }
 }
 ```
@@ -511,6 +513,10 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 - `parameters.allow_multiple_teachers_per_group_subject` controla si una materia de un grupo puede ser impartida por varios profesores dentro del mismo horario generado.
 - Si no se envia `allow_multiple_teachers_per_group_subject`, el backend usa `false` por defecto (un solo profesor por combinacion `grupo + materia`).
 - Si `allow_multiple_teachers_per_group_subject = true`, el solver puede asignar distintos profesores para bloques diferentes de la misma materia en el mismo grupo.
+- `parameters.randomize_generation` controla si el solver usa desempates aleatorios.
+- Si no se envia `randomize_generation`, el backend usa `false` por defecto (comportamiento determinista actual).
+- Si `randomize_generation = true` y no se envia `random_seed`, el backend genera una semilla automaticamente y la persiste en `schedule_versions.parameters.random_seed`.
+- Si `randomize_generation = true` y se envia `random_seed`, se puede reproducir el mismo resultado con la misma semilla (manteniendo datos y logica sin cambios).
 - `data.active_academic_period` guarda el periodo activo institucional (si existe).
 - Cada elemento de `data.groups[]` incluye metadata enriquecida: `career`, `shift`, `academic_period`, `allowed_days`.
 - Para representar correctamente la rejilla en frontend, usar `data.groups[].shift.start_time/end_time` como ventana del turno y completar slots vacios del intervalo aunque no vengan bloques asignados para todos.

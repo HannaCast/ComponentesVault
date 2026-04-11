@@ -1,5 +1,6 @@
 from django.db import transaction
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -18,14 +19,59 @@ from core.permissions import RequireSelectedUniversity
 class CareerPeriodExceptionListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    @extend_schema(
+ feature/career_period_exceptions
+        summary='Lista de excepciones de periodo',
+
+        parameters=[
+            OpenApiParameter(
+                name='career',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    'Opcional. Si se envía, solo se devuelven excepciones de esa carrera '
+                    '(debe pertenecer a la universidad seleccionada).'
+                ),
+                description='Si se indica, solo excepciones de esta carrera (ID).',
+                required=False,
+            ),
+        ],
+    )
     def get(self, request):
-        """Lista de periodos exceptuados (estadías, etc.) de la universidad."""
+        """Lista de periodos exceptuados (estadías, etc.) de la universidad.
+
+        Query opcional: ?career=<id> — solo excepciones de esa carrera (misma universidad).
+        """
         selected_university_id = request.selected_university_id
 
         queryset = CareerPeriodExceptions.objects.filter(
             is_deleted=0,
             career__university_id=selected_university_id,
-        ).select_related('career').order_by('career_id', 'period_number', 'id')
+        ).select_related('career')
+
+        career_param = request.query_params.get('career')
+        if career_param not in (None, ''):
+            try:
+                queryset = queryset.filter(career_id=int(career_param))
+            except (TypeError, ValueError):
+                return ApiResponse.error(
+                    message='Parámetro career inválido.',
+                    errors={'career': ['Debe ser un identificador numérico.']},
+                )
+
+        queryset = queryset.order_by('career_id', 'period_number', 'id')
+
+        career_param = request.query_params.get('career', '').strip()
+        if career_param:
+            try:
+                career_id = int(career_param)
+                if career_id > 0:
+                    queryset = queryset.filter(career_id=career_id)
+            except ValueError:
+                return ApiResponse.error(
+                    message='Parámetro career inválido.',
+                    status_code=400,
+                )
 
         return ApiResponse.success(
             CareerPeriodExceptionListSerializer(queryset, many=True).data

@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Check, Download, SlidersHorizontal } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Checkbox from '@shared/components/inputs/Checkbox';
+import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 
@@ -308,6 +309,37 @@ const getGroupCareerLabel = (group) => {
   return String(group?.career_id || '-');
 };
 
+const getGroupCareerKey = (group) => {
+  const careerId = Number(group?.career?.id || group?.career_id);
+  if (Number.isInteger(careerId) && careerId > 0) {
+    return `id:${careerId}`;
+  }
+
+  const fallbackLabel = getGroupCareerLabel(group).trim().toLowerCase();
+  return `label:${fallbackLabel || 'sin-carrera'}`;
+};
+
+const getGroupPeriodNumber = (group) => {
+  const periodNumber = Number(group?.period_number);
+  if (Number.isInteger(periodNumber) && periodNumber > 0) {
+    return periodNumber;
+  }
+
+  return null;
+};
+
+const getGroupPeriodKey = (group) => {
+  const periodNumber = getGroupPeriodNumber(group);
+  return periodNumber === null ? 'sin-periodo' : String(periodNumber);
+};
+
+const compareGroupNames = (leftGroup, rightGroup) => {
+  const leftName = String(leftGroup?.group_name || '').trim();
+  const rightName = String(rightGroup?.group_name || '').trim();
+
+  return leftName.localeCompare(rightName, 'es', { numeric: true, sensitivity: 'base' });
+};
+
 const getScheduleWindowLabel = (
   group,
   gridModel,
@@ -521,6 +553,171 @@ export const ScheduleGeneratedPanel = ({
 }) => {
   const [showViewSettings, setShowViewSettings] = useState(false);
 
+  const data = scheduleVersion?.data || {};
+  const groups = Array.isArray(data?.groups) ? data.groups : [];
+  const unassigned = Array.isArray(data?.unassigned) ? data.unassigned : [];
+  const summary = data?.summary && typeof data.summary === 'object' ? data.summary : {};
+
+  const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
+
+  const groupedCareers = useMemo(() => {
+    const sortedGroups = [...groups].sort((leftGroup, rightGroup) => {
+      const leftCareerLabel = getGroupCareerLabel(leftGroup);
+      const rightCareerLabel = getGroupCareerLabel(rightGroup);
+      const careerCompare = leftCareerLabel.localeCompare(rightCareerLabel, 'es', {
+        sensitivity: 'base',
+      });
+
+      if (careerCompare !== 0) {
+        return careerCompare;
+      }
+
+      const leftPeriod = getGroupPeriodNumber(leftGroup);
+      const rightPeriod = getGroupPeriodNumber(rightGroup);
+      if (leftPeriod === null && rightPeriod !== null) {
+        return 1;
+      }
+      if (leftPeriod !== null && rightPeriod === null) {
+        return -1;
+      }
+      if (leftPeriod !== rightPeriod) {
+        return (leftPeriod || 0) - (rightPeriod || 0);
+      }
+
+      return compareGroupNames(leftGroup, rightGroup);
+    });
+
+    const careersMap = new Map();
+
+    sortedGroups.forEach((group) => {
+      const careerKey = getGroupCareerKey(group);
+      if (!careersMap.has(careerKey)) {
+        careersMap.set(careerKey, {
+          key: careerKey,
+          label: getGroupCareerLabel(group),
+          periodsMap: new Map(),
+        });
+      }
+
+      const careerEntry = careersMap.get(careerKey);
+      const periodNumber = getGroupPeriodNumber(group);
+      const periodKey = getGroupPeriodKey(group);
+
+      if (!careerEntry.periodsMap.has(periodKey)) {
+        careerEntry.periodsMap.set(periodKey, {
+          key: periodKey,
+          periodNumber,
+          label: periodNumber === null ? 'Sin periodo' : `Periodo ${periodNumber}`,
+          groups: [],
+        });
+      }
+
+      careerEntry.periodsMap.get(periodKey).groups.push(group);
+    });
+
+    return Array.from(careersMap.values())
+      .map((careerEntry) => {
+        const periods = Array.from(careerEntry.periodsMap.values()).sort((leftPeriod, rightPeriod) => {
+          if (leftPeriod.periodNumber === null && rightPeriod.periodNumber !== null) {
+            return 1;
+          }
+          if (leftPeriod.periodNumber !== null && rightPeriod.periodNumber === null) {
+            return -1;
+          }
+          return (leftPeriod.periodNumber || 0) - (rightPeriod.periodNumber || 0);
+        });
+
+        return {
+          key: careerEntry.key,
+          label: careerEntry.label,
+          periods,
+        };
+      })
+      .sort((leftCareer, rightCareer) => leftCareer.label.localeCompare(rightCareer.label, 'es', {
+        sensitivity: 'base',
+      }));
+  }, [groups]);
+
+  const selectedCareerKey = currentGroup ? getGroupCareerKey(currentGroup) : groupedCareers[0]?.key || null;
+  const selectedCareer = groupedCareers.find((career) => career.key === selectedCareerKey) || groupedCareers[0] || null;
+
+  const selectedPeriodKey = currentGroup ? getGroupPeriodKey(currentGroup) : selectedCareer?.periods?.[0]?.key || null;
+  const selectedPeriod = selectedCareer?.periods?.find((period) => period.key === selectedPeriodKey)
+    || selectedCareer?.periods?.[0]
+    || null;
+
+  const visibleGroups = selectedPeriod?.groups || [];
+
+  const careerOptions = useMemo(() => groupedCareers.map((career) => {
+    const careerGroupCount = career.periods.reduce(
+      (accumulator, period) => accumulator + period.groups.length,
+      0,
+    );
+
+    return {
+      value: career.key,
+      label: `${career.label} (${careerGroupCount})`,
+    };
+  }), [groupedCareers]);
+
+  const periodOptions = useMemo(
+    () => (selectedCareer?.periods || []).map((period) => ({
+      value: period.key,
+      label: `${period.label} (${period.groups.length})`,
+    })),
+    [selectedCareer],
+  );
+
+  const groupOptions = useMemo(
+    () => visibleGroups.map((group) => {
+      const groupId = Number(group?.group_id);
+      return {
+        value: String(groupId),
+        label: group?.group_name || `Grupo ${groupId}`,
+      };
+    }),
+    [visibleGroups],
+  );
+
+  const handleCareerChange = (event) => {
+    const careerKey = String(event.target.value || '');
+    const nextCareer = groupedCareers.find((career) => career.key === careerKey);
+    const nextGroupId = Number(nextCareer?.periods?.[0]?.groups?.[0]?.group_id);
+
+    if (Number.isFinite(nextGroupId)) {
+      onSelectGroup?.(nextGroupId);
+    }
+  };
+
+  const handlePeriodChange = (event) => {
+    const periodKey = String(event.target.value || '');
+    const nextPeriod = selectedCareer?.periods?.find((period) => period.key === periodKey);
+    const nextGroupId = Number(nextPeriod?.groups?.[0]?.group_id);
+
+    if (Number.isFinite(nextGroupId)) {
+      onSelectGroup?.(nextGroupId);
+    }
+  };
+
+  const handleGroupChange = (event) => {
+    const groupId = Number(event.target.value);
+
+    if (Number.isFinite(groupId)) {
+      onSelectGroup?.(groupId);
+    }
+  };
+
+  const unassignedReasons = buildUnassignedReasons(unassigned);
+
+  const isConfirmed = Number(scheduleVersion?.is_confirmed) === 1;
+  const isConfirming = pendingAction?.type === 'confirm' && Number(pendingAction?.versionId) === Number(scheduleVersion?.id);
+
+  const palette = getPalette(viewConfig?.forceWhiteBackground);
+
+  const groupsScheduled = Number(summary?.groups_scheduled) || groups.length;
+  const assignedCount = Number(scheduleVersion?.assigned_count) || Number(summary?.total_blocks_assigned) || 0;
+  const unassignedCount = Number(scheduleVersion?.unassigned_count) || Number(summary?.total_blocks_unassigned) || 0;
+
   if (loading) {
     return <LoadingStatePanel message="Cargando version seleccionada..." />;
   }
@@ -534,24 +731,6 @@ export const ScheduleGeneratedPanel = ({
       </SurfacePanel>
     );
   }
-
-  const data = scheduleVersion?.data || {};
-  const groups = Array.isArray(data?.groups) ? data.groups : [];
-  const unassigned = Array.isArray(data?.unassigned) ? data.unassigned : [];
-  const summary = data?.summary && typeof data.summary === 'object' ? data.summary : {};
-
-  const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
-
-  const unassignedReasons = buildUnassignedReasons(unassigned);
-
-  const isConfirmed = Number(scheduleVersion?.is_confirmed) === 1;
-  const isConfirming = pendingAction?.type === 'confirm' && Number(pendingAction?.versionId) === Number(scheduleVersion?.id);
-
-  const palette = getPalette(viewConfig?.forceWhiteBackground);
-
-  const groupsScheduled = Number(summary?.groups_scheduled) || groups.length;
-  const assignedCount = Number(scheduleVersion?.assigned_count) || Number(summary?.total_blocks_assigned) || 0;
-  const unassignedCount = Number(scheduleVersion?.unassigned_count) || Number(summary?.total_blocks_unassigned) || 0;
 
   return (
     <div className="space-y-4">
@@ -670,27 +849,41 @@ export const ScheduleGeneratedPanel = ({
           </div>
         ) : null}
 
-        <div className="screen-only flex flex-wrap items-center gap-2">
-          {groups.map((group) => {
-            const groupId = Number(group?.group_id);
-            const isSelected = Number(currentGroup?.group_id) === groupId;
+        <div className="screen-only rounded-lg border p-3" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Select
+              label="Carrera"
+              value={selectedCareer?.key || ''}
+              onChange={handleCareerChange}
+              options={careerOptions}
+              placeholder="Sin carreras disponibles"
+              showPlaceholderOption={careerOptions.length === 0}
+              disabled={careerOptions.length === 0}
+              reserveHelperSpace={false}
+            />
 
-            return (
-              <button
-                key={groupId}
-                type="button"
-                onClick={() => onSelectGroup?.(groupId)}
-                className="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
-                style={{
-                  borderColor: isSelected ? 'var(--accent, #2563eb)' : 'var(--border-default, #d1d5db)',
-                  color: isSelected ? 'var(--accent, #2563eb)' : 'var(--text-primary, #111827)',
-                  backgroundColor: isSelected ? 'var(--accent-subtle, #eff6ff)' : 'transparent',
-                }}
-              >
-                {group?.group_name || `Grupo ${groupId}`}
-              </button>
-            );
-          })}
+            <Select
+              label="Periodo"
+              value={selectedPeriod?.key || ''}
+              onChange={handlePeriodChange}
+              options={periodOptions}
+              placeholder="Sin periodos disponibles"
+              showPlaceholderOption={periodOptions.length === 0}
+              disabled={periodOptions.length === 0}
+              reserveHelperSpace={false}
+            />
+
+            <Select
+              label="Grupo"
+              value={currentGroup?.group_id ? String(currentGroup.group_id) : ''}
+              onChange={handleGroupChange}
+              options={groupOptions}
+              placeholder="Sin grupos disponibles"
+              showPlaceholderOption={groupOptions.length === 0}
+              disabled={groupOptions.length === 0}
+              reserveHelperSpace={false}
+            />
+          </div>
         </div>
 
         <div className="screen-only">

@@ -18,6 +18,8 @@ def generate_schedule(
     university_id: int,
     *,
     allow_multiple_teachers_per_group_subject: bool = False,
+    randomize_generation: bool = False,
+    random_seed: int | None = None,
 ):
     """Orquesta la generacion completa de horarios para una universidad."""
     university_context = load_university_context(university_id)
@@ -84,6 +86,8 @@ def generate_schedule(
         slots=ordered_slots,
         classrooms=classrooms,
         allow_multiple_teachers_per_group_subject=allow_multiple_teachers_per_group_subject,
+        randomize_generation=randomize_generation,
+        random_seed=random_seed,
         soft_weights={
             'spread_days_weight': 4.0,
             'day_order_weight': 0.1,

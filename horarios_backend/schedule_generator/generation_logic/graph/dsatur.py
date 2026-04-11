@@ -1,4 +1,5 @@
 from collections import defaultdict
+import random
 
 from schedule_generator.generation_logic.constraints.hard_constraints import (
     can_use_classroom,
@@ -19,7 +20,9 @@ from schedule_generator.generation_logic.graph.models import (
 def _fallback_option_one_rank(
     classroom: ClassroomCandidate,
     node: ScheduleNode,
-) -> tuple[int, int, int, int, int]:
+    *,
+    include_classroom_id: bool = True,
+) -> tuple[int, ...]:
     """Ranking hardcodeado para universidades sin configuracion de prioridades."""
     classroom_type_name = (classroom.classroom_type_name or '').strip().lower()
     is_regular_classroom = classroom_type_name in {'aula', 'salon', 'salón'}
@@ -29,43 +32,69 @@ def _fallback_option_one_rank(
         0 if (not node.is_restricted_to_classroom_types and is_regular_classroom) else 1
     )
 
-    return (
+    base_rank = (
         prefer_regular_classroom,
         0 if not classroom.is_restricted else 1,
         0 if not classroom.is_restricted_to_subjects else 1,
         len(classroom.allowed_career_ids) if classroom.is_restricted else 0,
-        classroom.classroom_id,
     )
 
+    if include_classroom_id:
+        return (*base_rank, classroom.classroom_id)
 
-def _priority_config_rank(classroom: ClassroomCandidate) -> tuple[int, int, int, int, int]:
+    return base_rank
+
+
+def _priority_config_rank(
+    classroom: ClassroomCandidate,
+    *,
+    include_classroom_id: bool = True,
+) -> tuple[int, ...]:
     """Ranking por prioridad de tipo configurada por universidad."""
-    return (
+    base_rank = (
         int(classroom.classroom_type_priority or 9999),
         0 if not classroom.is_restricted else 1,
         0 if not classroom.is_restricted_to_subjects else 1,
         len(classroom.allowed_career_ids) if classroom.is_restricted else 0,
-        classroom.classroom_id,
     )
+
+    if include_classroom_id:
+        return (*base_rank, classroom.classroom_id)
+
+    return base_rank
 
 # Implementación del algoritmo DSatur adaptado a la generación de horarios académicos, con restricciones de profesor y aula.
 def _select_next_node(
     uncolored: set[str],
     adjacency: dict[str, set[str]],
     colors: dict[str, str],
+    randomizer: random.Random | None = None,
 ) -> str:
     """Elige el siguiente nodo por criterio DSatur: saturacion y grado."""
-    def _rank(node_key: str) -> tuple[int, int, str]:
+    best_rank = None
+    best_nodes: list[str] = []
+
+    for node_key in uncolored:
         colored_neighbors = {
             colors[neighbor]
             for neighbor in adjacency.get(node_key, set())
             if neighbor in colors
         }
-        saturation_degree = len(colored_neighbors)
-        total_degree = len(adjacency.get(node_key, set()))
-        return (saturation_degree, total_degree, node_key)
+        rank = (
+            len(colored_neighbors),
+            len(adjacency.get(node_key, set())),
+        )
 
-    return max(uncolored, key=_rank)
+        if best_rank is None or rank > best_rank:
+            best_rank = rank
+            best_nodes = [node_key]
+        elif rank == best_rank:
+            best_nodes.append(node_key)
+
+    if randomizer is not None and len(best_nodes) > 1:
+        return randomizer.choice(best_nodes)
+
+    return max(best_nodes)
 
 # Funciones auxiliares para elegir profesor y aula factibles, priorizando carga y restricciones.
 def _choose_teacher(
@@ -74,6 +103,7 @@ def _choose_teacher(
     teacher_busy: set[tuple[int, str]],
     teacher_load: dict[int, int],
     fixed_teacher_id: int | None = None,
+    randomizer: random.Random | None = None,
 ) -> TeacherContext | None:
     """Selecciona profesor factible para un slot, priorizando menor carga."""
     if fixed_teacher_id is not None:
@@ -101,8 +131,18 @@ def _choose_teacher(
     if not feasible_teachers:
         return None
 
-    feasible_teachers.sort(key=lambda item: (item[0], item[1]))
-    return feasible_teachers[0][2]
+    minimum_load = min(item[0] for item in feasible_teachers)
+    best_teachers = [
+        item[2]
+        for item in feasible_teachers
+        if item[0] == minimum_load
+    ]
+
+    if randomizer is not None and len(best_teachers) > 1:
+        return randomizer.choice(best_teachers)
+
+    best_teachers.sort(key=lambda teacher: teacher.teacher_id)
+    return best_teachers[0]
 
 
 def _choose_classroom(
@@ -112,6 +152,7 @@ def _choose_classroom(
     classroom_busy: set[tuple[int, str]],
     require_classroom: bool,
     has_university_type_priorities: bool,
+    randomizer: random.Random | None = None,
 ) -> ClassroomCandidate | None:
     """Selecciona aula factible para el slot respetando restricciones."""
     if not require_classroom:
@@ -133,6 +174,40 @@ def _choose_classroom(
     if not feasible_classrooms:
         return None
 
+    if randomizer is not None:
+        if has_university_type_priorities:
+            ranked = [
+                (
+                    _priority_config_rank(classroom, include_classroom_id=False),
+                    classroom,
+                )
+                for classroom in feasible_classrooms
+            ]
+        else:
+            ranked = [
+                (
+                    _fallback_option_one_rank(
+                        classroom,
+                        node,
+                        include_classroom_id=False,
+                    ),
+                    classroom,
+                )
+                for classroom in feasible_classrooms
+            ]
+
+        best_rank = min(rank for rank, _ in ranked)
+        best_classrooms = [
+            classroom
+            for rank, classroom in ranked
+            if rank == best_rank
+        ]
+
+        if len(best_classrooms) > 1:
+            return randomizer.choice(best_classrooms)
+
+        return best_classrooms[0]
+
     if has_university_type_priorities:
         feasible_classrooms.sort(key=_priority_config_rank)
     else:
@@ -148,6 +223,8 @@ def run_dsatur_coloring(
     slots: list[TimeSlot],
     classrooms: list[ClassroomCandidate],
     allow_multiple_teachers_per_group_subject: bool = False,
+    randomize_generation: bool = False,
+    random_seed: int | None = None,
     soft_weights: dict | None = None,
 ) -> DSaturResult:
     """Resuelve asignaciones con DSatur + restricciones de profesor/aula."""
@@ -178,12 +255,18 @@ def run_dsatur_coloring(
     has_university_type_priorities = any(
         classroom.classroom_type_priority is not None for classroom in classrooms
     )
+    randomizer = random.Random(random_seed) if randomize_generation else None
 
     uncolored = set(nodes_by_key)
 
     while uncolored:
         # 1) Seleccionar nodo mas restrictivo en este momento del proceso.
-        node_key = _select_next_node(uncolored, adjacency, colors)
+        node_key = _select_next_node(
+            uncolored,
+            adjacency,
+            colors,
+            randomizer=randomizer,
+        )
         node = nodes_by_key[node_key]
 
         if not node.teacher_candidates:
@@ -213,7 +296,8 @@ def run_dsatur_coloring(
             uncolored.remove(node_key)
             continue
 
-        best_candidate = None
+        best_rank = None
+        best_candidates: list[dict] = []
         group_subject_key = (node.group_id, node.subject_id)
         fixed_teacher_id = None
 
@@ -228,6 +312,7 @@ def run_dsatur_coloring(
                 teacher_busy,
                 teacher_load,
                 fixed_teacher_id=fixed_teacher_id,
+                randomizer=randomizer,
             )
             if teacher is None:
                 continue
@@ -240,6 +325,7 @@ def run_dsatur_coloring(
                 classroom_busy=classroom_busy,
                 require_classroom=require_classroom,
                 has_university_type_priorities=has_university_type_priorities,
+                randomizer=randomizer,
             )
 
             if require_classroom and classroom is None:
@@ -259,20 +345,30 @@ def run_dsatur_coloring(
                 teacher_load.get(teacher.teacher_id, 0),
             )
 
-            if best_candidate is None or rank < best_candidate['rank']:
-                best_candidate = {
-                    'rank': rank,
-                    'slot': slot,
-                    'teacher': teacher,
-                    'classroom': classroom,
-                }
+            candidate = {
+                'rank': rank,
+                'slot': slot,
+                'teacher': teacher,
+                'classroom': classroom,
+            }
 
-        if best_candidate is None:
+            if best_rank is None or rank < best_rank:
+                best_rank = rank
+                best_candidates = [candidate]
+            elif rank == best_rank:
+                best_candidates.append(candidate)
+
+        if not best_candidates:
             unassigned.append(
                 UnassignedNode(node_key=node.node_key, reason='NO_FEASIBLE_ASSIGNMENT') 
             )
             uncolored.remove(node_key)
             continue
+
+        if randomizer is not None and len(best_candidates) > 1:
+            best_candidate = randomizer.choice(best_candidates)
+        else:
+            best_candidate = best_candidates[0]
 
         # 4) Confirmar asignacion y actualizar estructuras de ocupacion.
         chosen_slot = best_candidate['slot']
