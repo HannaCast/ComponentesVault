@@ -4,6 +4,35 @@ import { Info, Plus, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
 import Input from '@shared/components/inputs/InputText';
 
+/**
+ * SelectableListField
+ *
+ * Props:
+ * - label: Etiqueta principal del campo.
+ * - error: Mensaje de error mostrado debajo del campo.
+ * - selectedValues: Elementos seleccionados actualmente.
+ * - options: Opciones disponibles para seleccionar.
+ * - selectedOption: Valor seleccionado en el selector pendiente.
+ * - selectedSecondaryOption: Valor secundario pendiente (si aplica).
+ * - onSelectedOptionChange: Callback al cambiar seleccion principal pendiente.
+ * - onSelectedSecondaryOptionChange: Callback al cambiar valor secundario pendiente.
+ * - onAdd: Callback para agregar un elemento seleccionado.
+ * - onUpdate: Callback para actualizar una fila existente.
+ * - onRemove: Callback para eliminar una fila existente.
+ * - placeholder: Placeholder del selector principal.
+ * - addLabel: Texto del boton para agregar.
+ * - infoMessage: Mensaje opcional para tooltip informativo.
+ * - disabled: Deshabilita el control completo.
+ * - colorVariant: 'user' | 'default' para elegir paleta de foco/accion.
+ * - enableSecondaryField: Habilita un segundo campo por fila.
+ * - primaryLabel: Etiqueta del campo principal en filas.
+ * - secondaryLabel: Etiqueta del campo secundario en filas.
+ * - secondaryPlaceholder: Placeholder del campo secundario.
+ * - secondaryType: Tipo de input del campo secundario.
+ * - secondaryMin: Minimo permitido para campo secundario numerico.
+ * - secondaryMax: Maximo permitido para campo secundario numerico.
+ */
+
 export const SelectableListField = ({
   label,
   error,
@@ -20,6 +49,7 @@ export const SelectableListField = ({
   addLabel = 'Agregar',
   infoMessage,
   disabled = false,
+  colorVariant = 'user',
   enableSecondaryField = false,
   primaryLabel = 'Elemento',
   secondaryLabel = 'Detalle',
@@ -107,6 +137,9 @@ export const SelectableListField = ({
 
   const canAdd = canConfirmAdd || canShowPendingRow;
   const canHidePendingSelector = normalizedSelectedEntries.length > 0;
+  const actionAccent = colorVariant === 'default'
+    ? 'var(--system-accent, #0f766e)'
+    : 'var(--accent, #2563eb)';
 
   const handleAdd = () => {
     if (canShowPendingRow) {
@@ -170,7 +203,7 @@ export const SelectableListField = ({
           onClick={handleAdd}
           disabled={!canAdd}
           className="inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ color: 'var(--accent, #2563eb)' }}
+          style={{ color: actionAccent }}
         >
           <Plus size={16} />
           {addLabel}
@@ -216,6 +249,7 @@ export const SelectableListField = ({
                     }}
                     options={rowOptions}
                     disabled={disabled}
+                    colorVariant={colorVariant}
                     showPlaceholderOption={false}
                     reserveHelperSpace={false}
                   />
@@ -240,6 +274,7 @@ export const SelectableListField = ({
                         );
                       }}
                       disabled={disabled}
+                      colorVariant={colorVariant}
                       placeholder={secondaryPlaceholder}
                       className="h-10 px-3"
                       reserveHelperSpace={false}
@@ -281,6 +316,7 @@ export const SelectableListField = ({
               options={availableOptions}
               placeholder={placeholder}
               disabled={disabled}
+              colorVariant={colorVariant}
               reserveHelperSpace={false}
             />
           </div>
@@ -297,6 +333,7 @@ export const SelectableListField = ({
                 value={selectedSecondaryOption}
                 onChange={(e) => onSelectedSecondaryOptionChange?.(e.target.value)}
                 disabled={disabled}
+                colorVariant={colorVariant}
                 placeholder={secondaryPlaceholder}
                 className="h-10 px-3"
                 reserveHelperSpace={false}
@@ -377,6 +414,7 @@ SelectableListField.propTypes = {
   addLabel: PropTypes.string,
   infoMessage: PropTypes.node,
   disabled: PropTypes.bool,
+  colorVariant: PropTypes.oneOf(['user', 'default']),
   enableSecondaryField: PropTypes.bool,
   primaryLabel: PropTypes.string,
   secondaryLabel: PropTypes.string,

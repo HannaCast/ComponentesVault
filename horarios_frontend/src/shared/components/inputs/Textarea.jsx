@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Info } from 'lucide-react';
 
 /**
@@ -11,6 +12,7 @@ import { Info } from 'lucide-react';
  * - infoMessage: Mensaje opcional para tooltip informativo.
  * - reserveHelperSpace: Si true, reserva espacio inferior cuando no hay error/helper.
  * - className: Clases CSS adicionales para el textarea.
+ * - colorVariant: 'user' | 'default' para elegir la paleta de foco.
  * - ...props: Props nativas del textarea (value, onChange, placeholder, rows, required, disabled, etc).
  */
 const Textarea = forwardRef(
@@ -21,6 +23,7 @@ const Textarea = forwardRef(
       helperText,
       infoMessage,
       className = '',
+      colorVariant = 'user',
       reserveHelperSpace = false,
       ...props
     },
@@ -44,6 +47,12 @@ const Textarea = forwardRef(
     const textareaTextColor = isBaseDisabled
       ? 'var(--text-disabled, #94a3b8)'
       : 'var(--text-primary, #111827)';
+    const focusAccent = colorVariant === 'default'
+      ? 'var(--system-accent, #0f766e)'
+      : 'var(--accent, #2563eb)';
+    const focusAccentSubtle = colorVariant === 'default'
+      ? 'var(--system-accent-subtle, #dff5f2)'
+      : 'var(--accent-subtle, rgba(37, 99, 235, 0.1))';
 
     useEffect(() => {
       if (!showTooltip) {
@@ -130,8 +139,8 @@ const Textarea = forwardRef(
           onFocus={(e) => {
             if (!error && !isBaseDisabled) {
               e.currentTarget.style.backgroundColor = 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = 'var(--accent, #2563eb)';
-              e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-subtle, rgba(37, 99, 235, 0.1))';
+              e.currentTarget.style.borderColor = focusAccent;
+              e.currentTarget.style.boxShadow = `0 0 0 3px ${focusAccentSubtle}`;
             }
             props.onFocus?.(e);
           }}
@@ -167,5 +176,15 @@ const Textarea = forwardRef(
 );
 
 Textarea.displayName = 'Textarea';
+
+Textarea.propTypes = {
+  label: PropTypes.node,
+  error: PropTypes.node,
+  helperText: PropTypes.node,
+  infoMessage: PropTypes.node,
+  className: PropTypes.string,
+  colorVariant: PropTypes.oneOf(['user', 'default']),
+  reserveHelperSpace: PropTypes.bool,
+};
 
 export default Textarea;

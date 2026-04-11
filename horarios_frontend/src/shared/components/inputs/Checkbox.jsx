@@ -1,4 +1,5 @@
 import React, { forwardRef, useId, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Info } from 'lucide-react';
 
 /**
@@ -13,6 +14,7 @@ import { Info } from 'lucide-react';
  * - infoMessage: Mensaje opcional para tooltip informativo.
  * - disabled: Deshabilita el checkbox.
  * - required: Marca el campo como requerido (asterisco en label).
+ * - colorVariant: 'user' | 'default' para elegir la paleta del check.
  * - className: Clases CSS adicionales para el contenedor.
  * - id: Identificador HTML.
  * - ...props: Props nativas del input (name, etc).
@@ -28,6 +30,7 @@ const Checkbox = forwardRef(
       infoMessage,
       disabled = false,
       required = false,
+      colorVariant = 'user',
       className = '',
       id,
       ...props
@@ -37,16 +40,19 @@ const Checkbox = forwardRef(
     const [showTooltip, setShowTooltip] = useState(false);
     const generatedId = useId();
     const checkboxId = id || `checkbox-${generatedId}`;
+    const accentColor = colorVariant === 'default'
+      ? 'var(--system-accent, #0f766e)'
+      : 'var(--accent, #2563eb)';
 
     let checkboxBorderColor = 'var(--border-default, #d1d5db)';
     if (error) {
       checkboxBorderColor = 'var(--error, #dc2626)';
     } else if (checked) {
-      checkboxBorderColor = 'var(--accent, #2563eb)';
+      checkboxBorderColor = accentColor;
     }
 
     const checkboxBackgroundColor = checked
-      ? 'var(--accent, #2563eb)'
+      ? accentColor
       : 'var(--bg-surface, #f3f4f6)';
 
     const handleChange = (e) => {
@@ -70,7 +76,7 @@ const Checkbox = forwardRef(
               style={{
                 borderColor: checkboxBorderColor,
                 backgroundColor: checkboxBackgroundColor,
-                accentColor: 'var(--accent, #2563eb)',
+                accentColor,
               }}
               {...props}
             />
@@ -157,5 +163,19 @@ const Checkbox = forwardRef(
 );
 
 Checkbox.displayName = 'Checkbox';
+
+Checkbox.propTypes = {
+  label: PropTypes.node,
+  checked: PropTypes.bool,
+  onChange: PropTypes.func,
+  error: PropTypes.node,
+  helperText: PropTypes.node,
+  infoMessage: PropTypes.node,
+  disabled: PropTypes.bool,
+  required: PropTypes.bool,
+  colorVariant: PropTypes.oneOf(['user', 'default']),
+  className: PropTypes.string,
+  id: PropTypes.string,
+};
 
 export default Checkbox;

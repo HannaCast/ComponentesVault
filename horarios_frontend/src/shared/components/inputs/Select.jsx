@@ -17,6 +17,7 @@ import { ChevronDown, Info, X } from 'lucide-react';
  * - required: Marca el campo como requerido visualmente.
  * - disabled: Deshabilita el campo.
  * - className: Clases CSS adicionales del contenedor.
+ * - colorVariant: 'user' | 'default' para elegir la paleta de foco.
  * - infoMessage: Mensaje informativo opcional en tooltip.
  * - clearable: Permite limpiar el valor con boton.
  * - showPlaceholderOption: Si true, agrega opcion placeholder dentro del dropdown.
@@ -36,6 +37,7 @@ export const Select = ({
   required = false,
   disabled = false,
   className = '',
+  colorVariant = 'user',
   infoMessage,
   clearable = false,
   showPlaceholderOption = true,
@@ -70,6 +72,12 @@ export const Select = ({
   const selectTextColor = disabled
     ? 'var(--text-disabled, #94a3b8)'
     : 'var(--text-primary, #111827)';
+  const focusAccent = colorVariant === 'default'
+    ? 'var(--system-accent, #0f766e)'
+    : 'var(--accent, #2563eb)';
+  const focusAccentSubtle = colorVariant === 'default'
+    ? 'var(--system-accent-subtle, #dff5f2)'
+    : 'var(--accent-subtle, rgba(37, 99, 235, 0.1))';
 
   return (
     <div className={`w-full ${className}`}>
@@ -126,8 +134,8 @@ export const Select = ({
           onFocus={(e) => {
             if (!error && !disabled) {
               e.currentTarget.style.backgroundColor = 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = 'var(--accent, #2563eb)';
-              e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-subtle, rgba(37, 99, 235, 0.1))';
+              e.currentTarget.style.borderColor = focusAccent;
+              e.currentTarget.style.boxShadow = `0 0 0 3px ${focusAccentSubtle}`;
             }
           }}
           onBlur={(e) => {
@@ -192,6 +200,7 @@ Select.propTypes = {
   required: PropTypes.bool,
   disabled: PropTypes.bool,
   className: PropTypes.string,
+  colorVariant: PropTypes.oneOf(['user', 'default']),
   infoMessage: PropTypes.node,
   clearable: PropTypes.bool,
   showPlaceholderOption: PropTypes.bool,

@@ -6,7 +6,9 @@ import PropTypes from 'prop-types';
  * - icon: Componente de icono (opcional).
  * - label: Texto del boton.
  * - onClick: Funcion a ejecutar en click.
- * - variant: 'primary' | 'secondary' | 'outline' (outline se trata como secundario).
+ * - variant: 'primary' | 'secondary' | 'outline'.
+ *   Compatibilidad: 'user' | 'default' como atajo de variante primaria.
+ * - colorVariant: 'user' | 'default' para elegir paleta de color (usuario/sistema).
  * - size: 'small' | 'medium' | 'large'.
  * - align: 'center' | 'left'.
  * - iconPosition: 'left' | 'right'.
@@ -27,6 +29,7 @@ export function ActionButton({
   label,
   onClick,
   variant = 'secondary',
+  colorVariant = 'user',
   size = 'medium',
   align = 'center',
   iconPosition = 'left',
@@ -43,9 +46,48 @@ export function ActionButton({
   type = 'button',
 }) {
   const isBlocked = disabled || loading;
-  const isPrimary = variant === 'primary';
-  const isSecondary = variant === 'secondary';
-  const isOutline = variant === 'outline';
+  const semanticVariants = ['primary', 'secondary', 'outline'];
+  const isVariantShortcut = variant === 'user' || variant === 'default';
+  const resolvedVariant = isVariantShortcut
+    ? 'primary'
+    : (semanticVariants.includes(variant) ? variant : 'secondary');
+  const normalizedColorVariant = colorVariant === 'default' ? 'default' : 'user';
+  const resolvedColorVariant = isVariantShortcut ? variant : normalizedColorVariant;
+  const useSystemColors = resolvedColorVariant === 'default';
+
+  const palette = useSystemColors
+    ? {
+        accent: 'var(--system-accent, #0f766e)',
+        accentHover: 'var(--system-accent-hover, #115e59)',
+        accentSubtle: 'var(--system-accent-subtle, #dff5f2)',
+        textOnAccent: 'var(--system-text-on-accent, #ffffff)',
+        outlineBg: 'var(--system-button-outline-bg, transparent)',
+        outlineText: 'var(--system-button-outline-text, var(--text-primary, #111827))',
+        outlineBorder: 'var(--system-button-outline-border, var(--border-strong, #9ca3af))',
+        outlineHoverBg: 'var(--system-button-outline-hover-bg, var(--system-accent-subtle, #dff5f2))',
+        outlineHoverBorder: 'var(--system-button-outline-hover-border, var(--system-accent, #0f766e))',
+        outlineHoverText: 'var(--system-button-outline-hover-text, var(--text-primary, #111827))',
+        secondaryBorder: 'var(--system-secondary-border, var(--border-default, #d1d5db))',
+        secondaryHoverBorder: 'var(--system-secondary-hover-border, var(--border-strong, #9ca3af))',
+      }
+    : {
+        accent: 'var(--accent, #2563eb)',
+        accentHover: 'var(--accent-hover, #1d4ed8)',
+        accentSubtle: 'var(--accent-subtle, #eff6ff)',
+        textOnAccent: 'var(--text-on-accent, #ffffff)',
+        outlineBg: 'var(--button-outline-bg, transparent)',
+        outlineText: 'var(--button-outline-text, var(--text-primary, #111827))',
+        outlineBorder: 'var(--button-outline-border, var(--border-strong, #9ca3af))',
+        outlineHoverBg: 'var(--button-outline-hover-bg, var(--accent-subtle, #eff6ff))',
+        outlineHoverBorder: 'var(--button-outline-hover-border, var(--accent, #2563eb))',
+        outlineHoverText: 'var(--button-outline-hover-text, var(--text-primary, #111827))',
+        secondaryBorder: 'var(--border-default, #d1d5db)',
+        secondaryHoverBorder: 'var(--border-strong, #9ca3af)',
+      };
+
+  const isPrimary = resolvedVariant === 'primary';
+  const isSecondary = resolvedVariant === 'secondary';
+  const isOutline = resolvedVariant === 'outline';
 
   const sizeConfig = {
     small: {
@@ -90,20 +132,20 @@ export function ActionButton({
   let variantStyles;
   if (isPrimary) {
     variantStyles = {
-      backgroundColor: customBackgroundColor || 'var(--accent, #2563eb)',
-      color: customTextColor || 'var(--text-on-accent, #ffffff)',
+      backgroundColor: customBackgroundColor || palette.accent,
+      color: customTextColor || palette.textOnAccent,
     };
   } else if (isOutline) {
     variantStyles = {
-      backgroundColor: 'var(--button-outline-bg, transparent)',
-      color: 'var(--button-outline-text, var(--text-primary, #111827))',
-      border: '1px solid var(--button-outline-border, var(--border-strong, #9ca3af))',
+      backgroundColor: palette.outlineBg,
+      color: palette.outlineText,
+      border: `1px solid ${palette.outlineBorder}`,
     };
   } else {
     variantStyles = {
       backgroundColor: 'transparent',
       color: 'var(--text-primary, #111827)',
-      border: '1px solid var(--border-default, #d1d5db)',
+      border: `1px solid ${palette.secondaryBorder}`,
     };
   }
 
@@ -127,15 +169,15 @@ export function ActionButton({
       if (customBackgroundColor) {
         e.currentTarget.style.opacity = '0.9';
       } else {
-        e.currentTarget.style.backgroundColor = 'var(--accent-hover, #1d4ed8)';
+        e.currentTarget.style.backgroundColor = palette.accentHover;
       }
     } else if (isOutline) {
-      e.currentTarget.style.backgroundColor = 'var(--button-outline-hover-bg, var(--accent-subtle, #eff6ff))';
-      e.currentTarget.style.borderColor = 'var(--button-outline-hover-border, var(--accent, #2563eb))';
-      e.currentTarget.style.color = 'var(--button-outline-hover-text, var(--text-primary, #111827))';
+      e.currentTarget.style.backgroundColor = palette.outlineHoverBg;
+      e.currentTarget.style.borderColor = palette.outlineHoverBorder;
+      e.currentTarget.style.color = palette.outlineHoverText;
     } else if (isSecondary) {
-      e.currentTarget.style.backgroundColor = 'var(--accent-subtle, #eff6ff)';
-      e.currentTarget.style.borderColor = 'var(--border-strong, #9ca3af)';
+      e.currentTarget.style.backgroundColor = palette.accentSubtle;
+      e.currentTarget.style.borderColor = palette.secondaryHoverBorder;
     }
 
     applyStyleObject(e.currentTarget, customHoverStyle);
@@ -147,15 +189,15 @@ export function ActionButton({
     if (isPrimary) {
       e.currentTarget.style.opacity = '1';
       if (!customBackgroundColor) {
-        e.currentTarget.style.backgroundColor = 'var(--accent, #2563eb)';
+        e.currentTarget.style.backgroundColor = palette.accent;
       }
     } else if (isOutline) {
-      e.currentTarget.style.backgroundColor = 'var(--button-outline-bg, transparent)';
-      e.currentTarget.style.borderColor = 'var(--button-outline-border, var(--border-strong, #9ca3af))';
-      e.currentTarget.style.color = 'var(--button-outline-text, var(--text-primary, #111827))';
+      e.currentTarget.style.backgroundColor = palette.outlineBg;
+      e.currentTarget.style.borderColor = palette.outlineBorder;
+      e.currentTarget.style.color = palette.outlineText;
     } else if (isSecondary) {
       e.currentTarget.style.backgroundColor = 'transparent';
-      e.currentTarget.style.borderColor = 'var(--border-default, #d1d5db)';
+      e.currentTarget.style.borderColor = palette.secondaryBorder;
     }
 
     if (customHoverStyle) {
@@ -204,7 +246,8 @@ ActionButton.propTypes = {
   icon: PropTypes.elementType,
   label: PropTypes.node,
   onClick: PropTypes.func,
-  variant: PropTypes.oneOf(['primary', 'secondary', 'outline']),
+  variant: PropTypes.oneOf(['primary', 'secondary', 'outline', 'user', 'default']),
+  colorVariant: PropTypes.oneOf(['user', 'default']),
   size: PropTypes.oneOf(['small', 'medium', 'large']),
   align: PropTypes.oneOf(['center', 'left']),
   iconPosition: PropTypes.oneOf(['left', 'right']),

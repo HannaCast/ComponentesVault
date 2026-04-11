@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLogin } from '../hooks/useLogin';
+import { AuthTopBar } from '../components/AuthTopBar';
 
 const installLoginFonts = () => {
   const fontLinks = [
@@ -43,11 +44,13 @@ const applySystemThemeToRoot = () => {
 };
 
 export const Login = () => {
+  const navigate = useNavigate();
   const emailInputId = 'login-email';
   const passwordInputId = 'login-password';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isNavigatingToRegister, setIsNavigatingToRegister] = useState(false);
   const { loading, error, loginUser } = useLogin();
 
   useEffect(() => {
@@ -64,18 +67,20 @@ export const Login = () => {
     await loginUser(email, password);
   };
 
+  const handleRegisterNavigation = (event) => {
+    event.preventDefault();
+
+    if (isNavigatingToRegister) {
+      return;
+    }
+
+    setIsNavigatingToRegister(true);
+    navigate('/registro');
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <header className="fixed top-0 z-50 w-full border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[var(--accent)]">school</span>
-            <span className="text-xl font-bold tracking-tight text-[var(--accent)]" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              EduSchedule
-            </span>
-          </div>
-        </div>
-      </header>
+      <AuthTopBar showActionButton={false} showNavigation={false} logoClickable logoHref="/" />
 
       <main className="relative flex min-h-screen flex-grow items-center justify-center overflow-hidden px-4 pt-24 pb-12">
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -136,7 +141,7 @@ export const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute top-1/2 right-4 -translate-y-1/2 text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                    className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
                     aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -160,7 +165,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -170,8 +175,12 @@ export const Login = () => {
             <div className="mt-6 text-center">
               <p className="text-[var(--text-secondary)]">
                 ¿No tienes cuenta?{' '}
-                <Link to="/registro" className="font-medium text-[var(--accent)] hover:underline">
-                  Regístrate aquí
+                <Link
+                  to="/registro"
+                  onClick={handleRegisterNavigation}
+                  className="font-medium text-[var(--accent)] hover:underline"
+                >
+                  {isNavigatingToRegister ? 'Cargando...' : 'Regístrate aquí'}
                 </Link>
               </p>
             </div>

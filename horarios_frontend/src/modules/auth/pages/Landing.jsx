@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
+import { AuthTopBar } from '../components/AuthTopBar';
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
@@ -109,6 +110,7 @@ const benefits = [
 export const Landing = () => {
   const navigate = useNavigate();
   const { user, restoreSession } = useAuth();
+  const [pendingAction, setPendingAction] = useState(null);
 
   useEffect(() => {
     installLandingFonts();
@@ -120,18 +122,37 @@ export const Landing = () => {
   }, []);
 
   const handleLoginNavigation = async () => {
+    if (pendingAction) {
+      return;
+    }
+
+    setPendingAction('login');
+
     if (user) {
       navigate(getHomePathByRole(user.role));
       return;
     }
 
-    const restoredUser = await restoreSession();
-    if (restoredUser) {
-      navigate(getHomePathByRole(restoredUser.role));
-      return;
+    try {
+      const restoredUser = await restoreSession();
+      if (restoredUser) {
+        navigate(getHomePathByRole(restoredUser.role));
+        return;
+      }
+    } catch (error) {
+      // Ante error de restauracion, se permite continuar al login.
     }
 
     navigate('/login');
+  };
+
+  const handleRegisterNavigation = () => {
+    if (pendingAction) {
+      return;
+    }
+
+    setPendingAction('register');
+    navigate('/registro');
   };
 
   return (
@@ -140,32 +161,16 @@ export const Landing = () => {
       className="overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]"
       style={{ fontFamily: 'Inter, sans-serif', minHeight: 'max(884px, 100dvh)' }}
     >
-      <header className="fixed top-0 z-50 w-full border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-sm backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[32px] text-[var(--accent)]">account_balance</span>
-            <span
-              className="bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)] bg-clip-text text-xl font-extrabold tracking-tighter text-transparent md:text-2xl"
-              style={{ fontFamily: 'Manrope, sans-serif' }}
-            >
-              EduSchedule
-            </span>
-          </div>
-
-          <nav className="hidden items-center gap-8 md:flex">
-            <a className="border-b-2 border-[var(--accent)] font-semibold text-[var(--accent)] transition-colors" href="#inicio">Inicio</a>
-            <a className="rounded px-2 py-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-subtle)]" href="#funciones">Funciones</a>
-            <a className="rounded px-2 py-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-subtle)]" href="#cta">Precios</a>
-          </nav>
-
-          <button
-            onClick={handleLoginNavigation}
-            className="rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--text-on-accent)] shadow-md transition-all duration-200 hover:bg-[var(--accent-hover)] active:scale-90 sm:px-6 sm:text-base"
-          >
-            Iniciar Sesion
-          </button>
-        </div>
-      </header>
+      <AuthTopBar
+        showActionButton
+        showNavigation
+        logoClickable={false}
+        actionLabel="Iniciar Sesion"
+        actionLoadingLabel="Cargando..."
+        isActionLoading={pendingAction === 'login'}
+        actionDisabled={Boolean(pendingAction)}
+        onActionClick={handleLoginNavigation}
+      />
 
       <main className="pt-20">
         <section className="relative mx-auto max-w-7xl overflow-hidden px-4 pt-6 pb-12 sm:px-6 md:pt-10 md:pb-20">
@@ -190,18 +195,20 @@ export const Landing = () => {
 
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
                 <button
-                  onClick={() => navigate('/registro')}
-                  className="w-full rounded-xl px-8 py-4 text-base font-bold text-[var(--text-on-accent)] shadow-lg transition-all hover:shadow-xl active:scale-95 sm:w-auto md:text-lg"
+                  onClick={handleRegisterNavigation}
+                  disabled={Boolean(pendingAction)}
+                  className="w-full cursor-pointer rounded-xl px-8 py-4 text-base font-bold text-[var(--text-on-accent)] shadow-lg transition-all hover:brightness-95 hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto md:text-lg"
                   style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))' }}
                 >
-                  Comenzar Gratis
+                  {pendingAction === 'register' ? 'Cargando...' : 'Comenzar Gratis'}
                 </button>
 
                 <button
                   onClick={handleLoginNavigation}
-                  className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-8 py-4 text-base font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--accent-subtle)] sm:w-auto md:text-lg"
+                  disabled={Boolean(pendingAction)}
+                  className="w-full cursor-pointer rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-8 py-4 text-base font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--accent-subtle)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto md:text-lg"
                 >
-                  Iniciar Sesion
+                  {pendingAction === 'login' ? 'Cargando...' : 'Iniciar Sesion'}
                 </button>
               </div>
             </div>
@@ -367,10 +374,11 @@ export const Landing = () => {
               </p>
 
               <button
-                onClick={() => navigate('/registro')}
-                className="w-full rounded-2xl bg-[var(--bg-elevated)] px-12 py-5 text-lg font-bold text-[var(--accent)] shadow-lg transition-all hover:shadow-2xl active:scale-95 sm:w-auto"
+                onClick={handleRegisterNavigation}
+                disabled={Boolean(pendingAction)}
+                className="w-full cursor-pointer rounded-2xl bg-[var(--bg-elevated)] px-12 py-5 text-lg font-bold text-[var(--accent)] shadow-lg transition-all hover:shadow-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               >
-                Comenzar ahora
+                {pendingAction === 'register' ? 'Cargando...' : 'Comenzar ahora'}
               </button>
             </div>
           </div>

@@ -268,6 +268,41 @@ Reglas:
 - No guardar JWT en localStorage.
 - Confiar en cookies HttpOnly + refresh automatico del interceptor.
 
+## 6.6 Paleta user vs sistema en shared
+
+Para evitar duplicar componentes de usuario/sistema, los componentes shared ahora usan una sola API de color:
+
+- `colorVariant="user"` (default): usa variables `--accent`, `--accent-hover`, `--accent-subtle`.
+- `colorVariant="default"`: usa variables de sistema `--system-*` declaradas en `src/index.css`.
+
+Componentes ya alineados a este patron:
+
+- `ActionButton`
+- `InputText`
+- `Select`
+- `Textarea`
+- `Checkbox`
+- `SelectableListField`
+
+En `ActionButton` se mantiene compatibilidad y ademas se soporta atajo en `variant`:
+
+- `variant="primary|secondary|outline"` para estilo de boton.
+- `variant="user|default"` como atajo de boton primario con paleta indicada.
+
+Ejemplos:
+
+```jsx
+<ActionButton label="Guardar" variant="primary" colorVariant="user" />
+<ActionButton label="Comenzar" variant="primary" colorVariant="default" />
+
+// Atajos equivalentes de boton primario
+<ActionButton label="Guardar" variant="user" />
+<ActionButton label="Comenzar" variant="default" />
+
+<InputText label="Matricula" colorVariant="default" />
+<Select label="Periodo" options={periods} colorVariant="default" />
+```
+
 ---
 
 ## 7. Buenas practicas orientadas a Sonar

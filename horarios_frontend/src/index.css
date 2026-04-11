@@ -21,6 +21,20 @@
   --accent-hover: #1d4ed8;
   --accent-subtle: #eff6ff;
 
+  /* Paleta de sistema (independiente del accent de usuario) */
+  --system-accent: #0f766e;
+  --system-accent-hover: #115e59;
+  --system-accent-subtle: #dff5f2;
+  --system-text-on-accent: #ffffff;
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: #102027;
+  --system-button-outline-border: #93b3ac;
+  --system-button-outline-hover-bg: #dff5f2;
+  --system-button-outline-hover-border: #0f766e;
+  --system-button-outline-hover-text: #102027;
+  --system-secondary-border: #c1d5d0;
+  --system-secondary-hover-border: #93b3ac;
+
   /* Feedback */
   --error: #dc2626;
   --error-subtle: #fef2f2;
@@ -186,6 +200,19 @@
   --accent: #0f766e;
   --accent-hover: #115e59;
   --accent-subtle: #dff5f2;
+
+  --system-accent: #0f766e;
+  --system-accent-hover: #115e59;
+  --system-accent-subtle: #dff5f2;
+  --system-text-on-accent: #ffffff;
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: #102027;
+  --system-button-outline-border: #93b3ac;
+  --system-button-outline-hover-bg: #dff5f2;
+  --system-button-outline-hover-border: #0f766e;
+  --system-button-outline-hover-text: #102027;
+  --system-secondary-border: #c1d5d0;
+  --system-secondary-hover-border: #93b3ac;
 
   --error: #b91c1c;
   --error-subtle: #fef2f2;
