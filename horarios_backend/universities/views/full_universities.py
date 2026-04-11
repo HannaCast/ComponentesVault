@@ -1,18 +1,21 @@
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+import logging
+
 from django.db import transaction
 from django.utils import timezone
-
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError as DrfValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 
 from core.api_response import ApiResponse
+from universities.models import Universities
+from universities.serializers import FullSetupSerializer, UniversityWriteSerializer
+from universities.services.full_setup_sync import (
+    create_modalities_shifts_periods,
+    update_full_setup,
+)
 
-from universities.serializers.universities.serializer_full import FullSetupSerializer
-
-from universities.serializers.universities.university_write_serializer import UniversityWriteSerializer
-from careers.serializers.modalities.modalities_write_serializers import ModalitiesWriteSerializer
-from universities.serializers.academic_periods.academic_period_write_serializer import AcademicPeriodWriteSerializer
-from universities.serializers.shifts.shift_write_serializer import ShiftWriteSerializer
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(
@@ -20,12 +23,11 @@ from universities.serializers.shifts.shift_write_serializer import ShiftWriteSer
     summary='Setup completo de universidad',
     description='Crea universidad, múltiples modalidades, periodos académicos y turnos en una sola petición',
     request=FullSetupSerializer,
-    responses={201: None}
+    responses={201: None},
 )
 class UniversityFullSetupView(APIView):
     permission_classes = [IsAuthenticated]
 
-    @transaction.atomic
     def post(self, request):
         serializer = FullSetupSerializer(data=request.data)
 
@@ -35,50 +37,84 @@ class UniversityFullSetupView(APIView):
         data = serializer.validated_data
 
         try:
+            with transaction.atomic():
+                university_serializer = UniversityWriteSerializer(data=data['university'])
+                university_serializer.is_valid(raise_exception=True)
 
-            university_serializer = UniversityWriteSerializer(
-                data=data['university']
-            )
-            university_serializer.is_valid(raise_exception=True)
-
-            university = university_serializer.save(
-                user=request.user,
-                created_at=timezone.now(),
-                created_by=request.user.get_username()
-            )
-
-            university_id = university.id
-
-
-            for modality_data in data['modalities']:
-                modality_serializer = ModalitiesWriteSerializer(
-                    data=modality_data,
-                    context={'selected_university_id': university_id}
+                university = university_serializer.save(
+                    user=request.user,
+                    created_at=timezone.now(),
+                    created_by=request.user.get_username(),
                 )
-                modality_serializer.is_valid(raise_exception=True)
-                modality_serializer.save()
-            for period_data in data.get('academic_periods', []):
-                period_serializer = AcademicPeriodWriteSerializer(
-                    data=period_data,
-                    context={'selected_university_id': university_id}
-                )
-                period_serializer.is_valid(raise_exception=True)
-                period_serializer.save()
-            for shift_data in data['shifts']:
-                shift_serializer = ShiftWriteSerializer(
-                    data=shift_data,
-                    context={'selected_university_id': university_id}
-                )
-                shift_serializer.is_valid(raise_exception=True)
-                shift_serializer.save()
 
-            return ApiResponse.created({
-                "message": "Setup completo creado correctamente",
-                "university_id": university_id
-            })
+                create_modalities_shifts_periods(
+                    request=request,
+                    university_id=university.id,
+                    data=data,
+                )
 
-        except Exception as e:
+                return ApiResponse.created(
+                    {
+                        'message': 'Setup completo creado correctamente',
+                        'university_id': university.id,
+                    }
+                )
+        except DrfValidationError as exc:
+            return ApiResponse.error(errors=exc.detail)
+        except Exception:
+            logger.exception('Error en setup completo de universidad')
             return ApiResponse.error(
-                message="Error en setup completo",
-                errors=str(e)
+                message='Error en setup completo',
+                status_code=500,
+                errors='Error interno al procesar la solicitud.',
+            )
+
+
+@extend_schema(
+    tags=['Setup'],
+    summary='Actualizar setup completo de universidad',
+    description='Actualiza datos generales y sincroniza modalidades, periodos académicos y turnos',
+    request=FullSetupSerializer,
+    responses={200: None},
+)
+class UniversityFullSetupUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, university_id):
+        serializer = FullSetupSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return ApiResponse.error(errors=serializer.errors)
+
+        data = serializer.validated_data
+
+        try:
+            with transaction.atomic():
+                university = Universities.objects.select_for_update().get(
+                    id=university_id,
+                    status=1,
+                    is_deleted=0,
+                )
+
+                uid = update_full_setup(request=request, university=university, data=data)
+
+                return ApiResponse.success(
+                    {
+                        'message': 'Setup actualizado correctamente',
+                        'university_id': uid,
+                    }
+                )
+        except Universities.DoesNotExist:
+            return ApiResponse.error(
+                message='Universidad no encontrada',
+                status_code=404,
+            )
+        except DrfValidationError as exc:
+            return ApiResponse.error(errors=exc.detail)
+        except Exception:
+            logger.exception('Error al actualizar setup completo de universidad')
+            return ApiResponse.error(
+                message='Error al actualizar setup completo',
+                status_code=500,
+                errors='Error interno al procesar la solicitud.',
             )

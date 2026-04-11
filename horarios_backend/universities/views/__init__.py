@@ -6,4 +6,5 @@ from .classroom_type_priorities import (
     UniversityClassroomTypePriorityDetailView,
     UniversityClassroomTypePriorityListCreateView,
 )
-from .full_universities import UniversityFullSetupView
+from .full_universities import UniversityFullSetupUpdateView, UniversityFullSetupView
+from .university_profile import UniversityProfileView
