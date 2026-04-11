@@ -7,6 +7,7 @@ class UniversityWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Universities
         fields = (
+            'id',
             'name',
             'short_name',
             'institution_code',
