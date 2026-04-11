@@ -34,6 +34,10 @@ class GroupWriteSerializer(serializers.ModelSerializer):
             'academic_period',
             'status',
         ]
+        extra_kwargs = {
+            # No exigir en POST/PUT: create() asigna activo; activar/desactivar vía toggle-status.
+            'status': {'read_only': True},
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -32,6 +32,8 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             'academic_period_name',
             'university_id',
             'university_name',
+            'created_at',
+            'updated_at',
         ]
 
     def get_academic_period_id(self, obj):
