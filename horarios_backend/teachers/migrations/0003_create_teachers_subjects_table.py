@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
                 CREATE TABLE IF NOT EXISTS `teachers_subjects` (
                     `id` BIGINT NOT NULL AUTO_INCREMENT,
                     `teachers_id` BIGINT NOT NULL,
-                    `subjects_id` BIGINT NOT NULL,
+                    `subjects_id` INT NOT NULL,
                     `is_deleted` INT NOT NULL DEFAULT 0,
                     `created_at` DATETIME NULL,
                     `created_by` VARCHAR(100) NULL,

@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                         CREATE TABLE IF NOT EXISTS university_classroom_type_priorities (
                             id BIGINT AUTO_INCREMENT PRIMARY KEY,
                             university_id BIGINT NOT NULL,
-                            classroom_type_id BIGINT NOT NULL,
+                            classroom_type_id INT NOT NULL,
                             priority INT NOT NULL,
                             is_deleted INT NOT NULL,
                             created_at DATETIME NULL,
