@@ -5,6 +5,7 @@ import { TeachersPage } from '../../modules/user/features/teachers/pages/Teacher
 import { AccountSettingsPage } from '../../modules/user/features/settings/pages/AccountSettingsPage';
 import { ScheduleGeneratorPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleGeneratorPage';
 import { ScheduleVersionDetailPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleVersionDetailPage';
+import { CareersPage } from '../../modules/user/features/careers/pages/CareersPage';
 
 const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
 const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
@@ -16,7 +17,7 @@ export const userRoutes = (
     <Route path="universidad/generar-horario" element={<ScheduleGeneratorPage />} />
     <Route path="universidad/generar-horario/ver/:versionId" element={<ScheduleVersionDetailPage />} />
     <Route path="universidades" element={<UserPlaceholderPage />} />
-    <Route path="universidad/carreras" element={<UserPlaceholderPage />} />
+    <Route path="universidad/carreras" element={<CareersPage />} />
     <Route path="universidad/materias" element={<SubjectsPage />} />
     <Route path="universidad/materias/crear" element={<UserPlaceholderPage />} />
     <Route path="universidad/materias/editar/:id" element={<UserPlaceholderPage />} />

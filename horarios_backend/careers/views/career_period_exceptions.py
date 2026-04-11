@@ -20,7 +20,6 @@ class CareerPeriodExceptionListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     @extend_schema(
- feature/career_period_exceptions
         summary='Lista de excepciones de periodo',
 
         parameters=[
