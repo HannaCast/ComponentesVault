@@ -15,6 +15,8 @@ class ShiftWriteSerializer(serializers.ModelSerializer):
             'updated_at',
             'updated_by',
         ]
+        # El cliente no envía status; se fija en create() (alta) y se conserva en update().
+        read_only_fields = ('status',)
 
     def validate(self, attrs):
         selected_university_id = self.context.get('selected_university_id')
