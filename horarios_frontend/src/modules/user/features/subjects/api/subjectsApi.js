@@ -32,9 +32,8 @@ export const getSubject = (id) =>
 export const getColors = () =>
   apiToken.get('/api/v1/subjects/colors/');
 
-// Obtener carreras activas para asociarlas a una materia
-export const getCareers = () =>
-  apiToken.get('/api/v1/university/careers/');
+// Obtener carreras activas para asociarlas a una materia (definición única en careersApi)
+export { getCareers } from '../../careers/api/careersApi';
 
 // Obtener profesores activos para asociarlos a una materia
 export const getTeachers = () =>
