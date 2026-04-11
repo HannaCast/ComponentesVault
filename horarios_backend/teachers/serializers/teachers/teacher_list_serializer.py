@@ -20,3 +20,11 @@ class TeacherListSerializer(serializers.ModelSerializer):
 
     def get_require_classroom_display(self, obj):
         return 'Requiere salón' if obj.require_classroom == 1 else 'Tiene oficina'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # La lista paginada anota university_link_status; el toggle modifica ese vínculo, no Teachers.status.
+        link_status = getattr(instance, 'university_link_status', None)
+        if link_status is not None:
+            data['status'] = link_status
+        return data
