@@ -31,7 +31,6 @@ class CareerPeriodExceptionListView(APIView):
                     'Opcional. Si se envía, solo se devuelven excepciones de esa carrera '
                     '(debe pertenecer a la universidad seleccionada).'
                 ),
-                description='Si se indica, solo excepciones de esta carrera (ID).',
                 required=False,
             ),
         ],
