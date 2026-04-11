@@ -168,6 +168,37 @@
   --accent-subtle:   #3b0764;
 }
 
+/* ─── TEMA ACADEMICO (Landing/Login) ─────────── */
+[data-system-theme="academic"] {
+  --bg-base: #f7fbfa;
+  --bg-surface: #edf6f4;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #102027;
+  --text-secondary: #4a5c63;
+  --text-disabled: #9aa8ad;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: #d9e6e3;
+  --border-default: #c1d5d0;
+  --border-strong: #93b3ac;
+
+  --accent: #0f766e;
+  --accent-hover: #115e59;
+  --accent-subtle: #dff5f2;
+
+  --error: #b91c1c;
+  --error-subtle: #fef2f2;
+  --error-border: #fecaca;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
 @media screen {
   .print-only {
     display: none !important;

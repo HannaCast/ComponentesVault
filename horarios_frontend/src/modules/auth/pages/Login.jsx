@@ -35,11 +35,11 @@ const installLoginFonts = () => {
   }
 };
 
-const applyBlueThemeToRoot = () => {
+const applySystemThemeToRoot = () => {
   const root = document.documentElement;
   root.dataset.theme = 'light';
   root.dataset.themeMode = 'light';
-  root.dataset.accent = 'blue';
+  root.dataset.systemTheme = 'academic';
 };
 
 export const Login = () => {
@@ -52,7 +52,11 @@ export const Login = () => {
 
   useEffect(() => {
     installLoginFonts();
-    applyBlueThemeToRoot();
+    applySystemThemeToRoot();
+
+    return () => {
+      delete document.documentElement.dataset.systemTheme;
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -105,7 +109,7 @@ export const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
+                  className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
                   placeholder="correo@ejemplo.com"
                   required
                 />
@@ -125,7 +129,7 @@ export const Login = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-5 py-4 pr-12 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
+                    className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 pr-11 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
                     placeholder="••••••••"
                     required
                   />
@@ -156,7 +160,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl px-6 py-3 font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}

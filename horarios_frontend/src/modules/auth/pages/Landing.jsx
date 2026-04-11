@@ -39,11 +39,11 @@ const installLandingFonts = () => {
   }
 };
 
-const applyBlueThemeToRoot = () => {
+const applySystemThemeToRoot = () => {
   const root = document.documentElement;
   root.dataset.theme = 'light';
   root.dataset.themeMode = 'light';
-  root.dataset.accent = 'blue';
+  root.dataset.systemTheme = 'academic';
 };
 
 const featureCards = [
@@ -112,7 +112,11 @@ export const Landing = () => {
 
   useEffect(() => {
     installLandingFonts();
-    applyBlueThemeToRoot();
+    applySystemThemeToRoot();
+
+    return () => {
+      delete document.documentElement.dataset.systemTheme;
+    };
   }, []);
 
   const handleLoginNavigation = async () => {
