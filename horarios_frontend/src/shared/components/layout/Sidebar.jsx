@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Calendar,
@@ -18,8 +19,9 @@ import { useAuth } from '../../../core/context/AuthContext';
  * Props:
  * - collapsed: muestra menu compacto.
  * - className: clases adicionales.
+ * - onNavigate: callback opcional al navegar a un item.
  */
-export const Sidebar = ({ collapsed = false, className = '' }) => {
+export const Sidebar = ({ collapsed = false, className = '', onNavigate }) => {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -58,6 +60,7 @@ export const Sidebar = ({ collapsed = false, className = '' }) => {
               <li key={item.path}>
                 <Link
                   to={item.path}
+                  onClick={() => onNavigate?.()}
                   className={`flex items-center ${collapsed ? 'justify-center' : 'justify-start'} gap-3 px-3 py-2.5 rounded-lg transition-colors border ${
                     isActive
                       ? 'bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--border-strong)]'
@@ -76,4 +79,10 @@ export const Sidebar = ({ collapsed = false, className = '' }) => {
       </nav>
     </aside>
   );
+};
+
+Sidebar.propTypes = {
+  collapsed: PropTypes.bool,
+  className: PropTypes.string,
+  onNavigate: PropTypes.func,
 };

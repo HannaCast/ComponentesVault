@@ -1,6 +1,10 @@
 import { Route } from 'react-router-dom';
 import { UserLayout } from '../../modules/user/layout/UserLayout';
 import { SubjectsPage } from '../../modules/user/features/subjects/pages/SubjectsPage';
+import { TeachersPage } from '../../modules/user/features/teachers/pages/TeachersPage';
+import { AccountSettingsPage } from '../../modules/user/features/settings/pages/AccountSettingsPage';
+import { ScheduleGeneratorPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleGeneratorPage';
+import { ScheduleVersionDetailPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleVersionDetailPage';
 
 const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
 const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
@@ -9,15 +13,16 @@ const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div
 export const userRoutes = (
   <Route path="/usuario" element={<UserLayout />}>
     <Route index element={<UserHomePage />} />
-    <Route path="universidad/generar-horario" element={<UserPlaceholderPage />} />
+    <Route path="universidad/generar-horario" element={<ScheduleGeneratorPage />} />
+    <Route path="universidad/generar-horario/ver/:versionId" element={<ScheduleVersionDetailPage />} />
     <Route path="universidades" element={<UserPlaceholderPage />} />
     <Route path="universidad/carreras" element={<UserPlaceholderPage />} />
     <Route path="universidad/materias" element={<SubjectsPage />} />
     <Route path="universidad/materias/crear" element={<UserPlaceholderPage />} />
     <Route path="universidad/materias/editar/:id" element={<UserPlaceholderPage />} />
     <Route path="universidad/grupos" element={<UserPlaceholderPage />} />
-    <Route path="universidad/profesores" element={<UserPlaceholderPage />} />
+    <Route path="universidad/profesores" element={<TeachersPage />} />
     <Route path="universidad/aulas" element={<UserPlaceholderPage />} />
-    <Route path="ajustes" element={<UserPlaceholderPage />} />
+    <Route path="ajustes" element={<AccountSettingsPage />} />
   </Route>
 );

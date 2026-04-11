@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { Switch } from '@shared/components/inputs/Switch';
@@ -42,6 +43,93 @@ export const EntityListItem = ({
   const isLoadingEdit = loadingAction === 'edit';
   const isLoadingDelete = loadingAction === 'delete';
   const isLoadingToggle = loadingAction === 'toggle';
+
+  const viewDisabled = actionsDisabled || isLoadingEdit || isLoadingDelete || isLoadingToggle;
+  const editDisabled = actionsDisabled || isLoadingView || isLoadingDelete || isLoadingToggle;
+  const deleteDisabled = actionsDisabled || isLoadingView || isLoadingEdit || isLoadingToggle;
+
+  const renderIconActionButton = ({
+    onAction,
+    isLoading,
+    icon,
+    disabled,
+  }) => {
+    if (!onAction) {
+      return null;
+    }
+
+    if (isLoading) {
+      return (
+        <ActionButton
+          label=""
+          variant="secondary"
+          size="large"
+          fullWidth={false}
+          loading
+          loadingLabel=""
+          customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
+        />
+      );
+    }
+
+    return (
+      <ActionButton
+        icon={icon}
+        label=""
+        onClick={onAction}
+        variant="secondary"
+        size="large"
+        fullWidth={false}
+        customStyle={{ padding: '0.25rem' }}
+        disabled={disabled}
+      />
+    );
+  };
+
+  const contentBody = (
+    <div className="flex items-center gap-3">
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'var(--primary-100, rgba(37, 99, 235, 0.1))' }}
+      >
+        {Icon ? <Icon className="w-5 h-5" style={{ color: 'var(--primary-color, #2563eb)' }} /> : null}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <h3
+          className="font-medium truncate"
+          style={{ color: 'var(--text-primary, #111827)' }}
+          title={title}
+        >
+          {title}
+        </h3>
+
+        {subtitle ? (
+          <p
+            className="text-sm mt-1 truncate"
+            style={{ color: 'var(--text-secondary, #6b7280)' }}
+            title={subtitle}
+          >
+            {subtitle}
+          </p>
+        ) : null}
+
+        {visibleMetaItems.length > 0 ? (
+          <div
+            className="flex items-center gap-2 text-sm mt-1 min-w-0 overflow-hidden whitespace-nowrap"
+            style={{ color: 'var(--text-secondary, #6b7280)' }}
+          >
+            {visibleMetaItems.map((item, idx) => (
+              <React.Fragment key={`${item}-${idx}`}>
+                {idx > 0 ? <span className="shrink-0">•</span> : null}
+                <span className="truncate max-w-[10rem] sm:max-w-[14rem]" title={item}>{item}</span>
+              </React.Fragment>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
   
   return (
     <div
@@ -51,46 +139,23 @@ export const EntityListItem = ({
         borderBottom: showBottomBorder ? '1px solid var(--border-subtle, #e5e7eb)' : 'none',
       }}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div
-          className={`flex-1 ${onContentClick ? 'cursor-pointer' : ''}`}
-          onClick={onContentClick}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'var(--primary-100, rgba(37, 99, 235, 0.1))' }}
-            >
-              {Icon ? <Icon className="w-5 h-5" style={{ color: 'var(--primary-color, #2563eb)' }} /> : null}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <h3 className="font-medium truncate" style={{ color: 'var(--text-primary, #111827)' }}>
-                {title}
-              </h3>
-
-              {subtitle ? (
-                <p className="text-sm mt-1 truncate" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                  {subtitle}
-                </p>
-              ) : null}
-
-              {visibleMetaItems.length > 0 ? (
-                <div className="flex items-center gap-2 text-sm mt-1" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                  {visibleMetaItems.map((item, idx) => (
-                    <React.Fragment key={`${item}-${idx}`}>
-                      {idx > 0 ? <span>•</span> : null}
-                      <span className="truncate">{item}</span>
-                    </React.Fragment>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        {onContentClick ? (
+          <button
+            type="button"
+            className="w-full min-w-0 sm:flex-1 cursor-pointer text-left bg-transparent border-0 p-0"
+            onClick={onContentClick}
+          >
+            {contentBody}
+          </button>
+        ) : (
+          <div className="w-full min-w-0 sm:flex-1">
+            {contentBody}
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 md:gap-3">
+            <div className="flex items-center gap-2 shrink-0">
                 <span className="text-sm hidden md:inline" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                     {isActive ? activeText : inactiveText}
                 </span>
@@ -105,88 +170,52 @@ export const EntityListItem = ({
                     </svg>
                   </div>
                 ) : (
-                  <Switch checked={isActive} onCheckedChange={onToggleStatus} disabled={actionsDisabled} />
+                  <Switch checked={Boolean(isActive)} onCheckedChange={onToggleStatus} disabled={actionsDisabled} />
                 )}
             </div>
 
             {(onView || onEdit || onDelete) && (
-              <div className="flex items-center gap-1">
-                {onView ? (
-                  isLoadingView ? (
-                    <ActionButton
-                      label=""
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      loading
-                      loadingLabel=""
-                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
-                    />
-                  ) : (
-                    <ActionButton
-                      icon={Eye}
-                      label=""
-                      onClick={onView}
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      customStyle={{ padding: '0.25rem' }}
-                      disabled={actionsDisabled || isLoadingEdit || isLoadingDelete || isLoadingToggle}
-                    />
-                  )
-                ) : null}
-                {onEdit ? (
-                  isLoadingEdit ? (
-                    <ActionButton
-                      label=""
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      loading
-                      loadingLabel=""
-                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
-                    />
-                  ) : (
-                    <ActionButton
-                      icon={Pencil}
-                      label=""
-                      onClick={onEdit}
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      customStyle={{ padding: '0.25rem' }}
-                      disabled={actionsDisabled || isLoadingView || isLoadingDelete || isLoadingToggle}
-                    />
-                  )
-                ) : null}
-                {onDelete ? (
-                  isLoadingDelete ? (
-                    <ActionButton
-                      label=""
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      loading
-                      loadingLabel=""
-                      customStyle={{ padding: '0.25rem', width: '2rem', height: '2rem' }}
-                    />
-                  ) : (
-                    <ActionButton
-                      icon={Trash2}
-                      label=""
-                      onClick={onDelete}
-                      variant="secondary"
-                      size="large"
-                      fullWidth={false}
-                      customStyle={{ padding: '0.25rem' }}
-                      disabled={actionsDisabled || isLoadingView || isLoadingEdit || isLoadingToggle}
-                    />
-                  )
-                ) : null}
+              <div className="flex items-center gap-1 shrink-0">
+                {renderIconActionButton({
+                  onAction: onView,
+                  isLoading: isLoadingView,
+                  icon: Eye,
+                  disabled: viewDisabled,
+                })}
+                {renderIconActionButton({
+                  onAction: onEdit,
+                  isLoading: isLoadingEdit,
+                  icon: Pencil,
+                  disabled: editDisabled,
+                })}
+                {renderIconActionButton({
+                  onAction: onDelete,
+                  isLoading: isLoadingDelete,
+                  icon: Trash2,
+                  disabled: deleteDisabled,
+                })}
               </div>
             )}
         </div>
       </div>
     </div>
   );
+};
+
+EntityListItem.propTypes = {
+  icon: PropTypes.elementType,
+  title: PropTypes.node,
+  subtitle: PropTypes.node,
+  metaItems: PropTypes.arrayOf(PropTypes.node),
+  isActive: PropTypes.bool,
+  activeText: PropTypes.string,
+  inactiveText: PropTypes.string,
+  onToggleStatus: PropTypes.func,
+  onView: PropTypes.func,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  onContentClick: PropTypes.func,
+  showBottomBorder: PropTypes.bool,
+  loadingAction: PropTypes.oneOf(['view', 'edit', 'delete', 'toggle', null]),
+  actionsDisabled: PropTypes.bool,
 };

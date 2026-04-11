@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * Pagination
@@ -84,6 +85,8 @@ export function Pagination({
     return null;
   }
 
+  let mobileEllipsisCounter = 0;
+
   return (
     <div
       className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 rounded-lg border"
@@ -154,11 +157,14 @@ export function Pagination({
         </div>
 
         <div className="flex sm:hidden gap-1">
-          {renderPageNumbersMobile().map((page, index) => {
+          {renderPageNumbersMobile().map((page) => {
             if (page === 'ellipsis') {
+              mobileEllipsisCounter += 1;
+              const ellipsisKey = mobileEllipsisCounter === 1 ? 'ellipsis-start' : 'ellipsis-end';
+
               return (
                 <span
-                  key={`ellipsis-${index}`}
+                  key={ellipsisKey}
                   className="w-8 h-8 flex items-center justify-center text-xs"
                   style={{ color: 'var(--text-secondary, #6b7280)' }}
                 >
@@ -212,3 +218,13 @@ export function Pagination({
     </div>
   );
 }
+
+Pagination.propTypes = {
+  currentPage: PropTypes.number,
+  totalPages: PropTypes.number,
+  totalItems: PropTypes.number,
+  itemsPerPage: PropTypes.number,
+  onPageChange: PropTypes.func,
+  hasPreviousPage: PropTypes.bool,
+  hasNextPage: PropTypes.bool,
+};

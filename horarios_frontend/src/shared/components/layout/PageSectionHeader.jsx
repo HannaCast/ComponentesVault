@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 // Componente de encabezado para secciones o pantallas, con soporte para título, contexto adicional y acción principal.
@@ -14,17 +15,20 @@ import { ActionButton } from '@shared/components/inputs/ActionButton';
  * - onAction: Callback del boton de accion.
  * - actionVariant: Variante visual del boton.
  */
-export const PageSectionHeader = ({
+const PageSectionHeader = ({
   title,
   contextLabel,
   secondaryContextLabel,
   actionIcon,
   actionLabel,
   onAction,
+  actionLoading = false,
+  actionLoadingLabel = 'Cargando...',
+  actionDisabled = false,
   actionVariant = 'primary',
 }) => {
   return (
-    <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
         <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
           {title}
@@ -49,16 +53,36 @@ export const PageSectionHeader = ({
         </div>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap justify-center">
       {actionLabel && onAction ? (
         <ActionButton
           icon={actionIcon}
           label={actionLabel}
           onClick={onAction}
+          loading={actionLoading}
+          loadingLabel={actionLoadingLabel}
+          disabled={actionDisabled}
           variant={actionVariant}
           size="medium"
           fullWidth={false}
         />
       ) : null}
+      </div>
     </div>
   );
 };
+
+PageSectionHeader.propTypes = {
+  title: PropTypes.node,
+  contextLabel: PropTypes.node,
+  secondaryContextLabel: PropTypes.node,
+  actionIcon: PropTypes.elementType,
+  actionLabel: PropTypes.node,
+  onAction: PropTypes.func,
+  actionLoading: PropTypes.bool,
+  actionLoadingLabel: PropTypes.string,
+  actionDisabled: PropTypes.bool,
+  actionVariant: PropTypes.string,
+};
+
+export { PageSectionHeader };

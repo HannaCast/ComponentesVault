@@ -20,7 +20,9 @@ class CareerPeriodExceptionListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
     @extend_schema(
+ feature/career_period_exceptions
         summary='Lista de excepciones de periodo',
+
         parameters=[
             OpenApiParameter(
                 name='career',
@@ -30,6 +32,7 @@ class CareerPeriodExceptionListView(APIView):
                     'Opcional. Si se envía, solo se devuelven excepciones de esa carrera '
                     '(debe pertenecer a la universidad seleccionada).'
                 ),
+                description='Si se indica, solo excepciones de esta carrera (ID).',
                 required=False,
             ),
         ],
@@ -57,6 +60,18 @@ class CareerPeriodExceptionListView(APIView):
                 )
 
         queryset = queryset.order_by('career_id', 'period_number', 'id')
+
+        career_param = request.query_params.get('career', '').strip()
+        if career_param:
+            try:
+                career_id = int(career_param)
+                if career_id > 0:
+                    queryset = queryset.filter(career_id=career_id)
+            except ValueError:
+                return ApiResponse.error(
+                    message='Parámetro career inválido.',
+                    status_code=400,
+                )
 
         return ApiResponse.success(
             CareerPeriodExceptionListSerializer(queryset, many=True).data

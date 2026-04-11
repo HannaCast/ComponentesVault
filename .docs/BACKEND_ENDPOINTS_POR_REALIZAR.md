@@ -212,6 +212,39 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 
 ---
 
+### 4.5 Prioridades de tipo de aula por universidad
+
+Permite configurar el orden de preferencia de tipos de aula para la **universidad seleccionada**.
+
+Estas prioridades solo aplican cuando la materia **no** esta restringida por `subjects_classroom_types`.
+
+Si una universidad no tiene configuraciones en esta tabla, el generador usa fallback hardcodeado: para materias no restringidas por tipo intenta primero `Aula` y luego evalua el resto de reglas duras.
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/classroom-type-priorities/` | Lista prioridades activas de la universidad seleccionada. |
+| `POST` | `/api/v1/university/classroom-type-priorities/` | Crea una configuracion de prioridad por tipo de aula. |
+| `GET` | `/api/v1/university/classroom-type-priorities/{pk}/` | Detalle de una configuracion. |
+| `PUT` | `/api/v1/university/classroom-type-priorities/{pk}/` | Actualiza prioridad y/o tipo de aula de una configuracion. |
+| `DELETE` | `/api/v1/university/classroom-type-priorities/{pk}/` | Soft delete de la configuracion. |
+
+**Body (POST / PUT):**
+```json
+{
+  "classroom_type_id": 1,
+  "priority": 10
+}
+```
+
+Reglas:
+
+- `priority` debe ser >= 1.
+- Solo acepta `classroom_type_id` activos y no eliminados.
+- Debe existir a lo mas una configuracion activa por combinacion `universidad + tipo_de_aula`.
+- `DELETE` realiza borrado logico (`is_deleted = 1`).
+
+---
+
 ## 5. Carreras
 
 La creacion incluye las excepciones de periodos en la misma transaccion.
@@ -254,15 +287,15 @@ La creacion incluye las excepciones de periodos en la misma transaccion.
 
 ## 6. Materias
 
-La creacion incluye la asignacion a carrera(s) con numero de periodo y la asignacion de profesores, en una sola transaccion.
+La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignacion de profesores y (cuando aplica) la asignacion de tipos de aula permitidos, en una sola transaccion.
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
 | `GET` | `/api/v1/university/subjects/` | Lista **todas** las materias sin paginar. Usado en select de **Nuevo Profesor** -> "Materias que puede impartir". |
 | `GET` | `/api/v1/university/subjects/paginated/` | Lista paginada con filtros (vista de lista de Materias). |
-| `POST` | `/api/v1/university/subjects/` | **Transaccion completa:** crea materia + relacion con carreras (con numero de periodo) + profesores asignados. |
-| `GET` | `/api/v1/university/subjects/{pk}/` | Detalle de la materia (incluye carreras y profesores). |
-| `PUT` | `/api/v1/university/subjects/{pk}/` | Actualiza materia + carreras + profesores (reemplaza las listas completas). |
+| `POST` | `/api/v1/university/subjects/` | **Transaccion completa:** crea materia + relacion con carreras (con numero de periodo) + profesores asignados + tipos de aula permitidos (si aplica). |
+| `GET` | `/api/v1/university/subjects/{pk}/` | Detalle de la materia (incluye carreras, profesores y tipos de aula permitidos). |
+| `PUT` | `/api/v1/university/subjects/{pk}/` | Actualiza materia + carreras + profesores + tipos de aula (sincroniza listas recibidas y conserva las no enviadas). |
 | `PUT` | `/api/v1/university/subjects/{pk}/toggle-status/` | Activa o desactiva la materia. |
 | `DELETE` | `/api/v1/university/subjects/{pk}/` | Soft delete. |
 
@@ -281,19 +314,32 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo y la asigna
   "description": "Descripcion opcional",
   "hours_per_week": 4,
   "color_id": 1,
+  "is_restricted_to_classroom_types": true,
   "is_mandatory": true,
   "careers": [
     { "career_id": 1, "period_number": 3 }
   ],
   "teachers": [
     { "teacher_id": 5 }
+  ],
+  "classroom_types": [
+    { "classroom_type_id": 2 }
   ]
 }
 ```
 
+> Si `is_restricted_to_classroom_types = true`, se debe enviar al menos un elemento en `classroom_types`.
+
+> Si `is_restricted_to_classroom_types = false`, `classroom_types` puede omitirse o enviarse vacio (en update, esto limpia las relaciones activas).
+
+> Si `classroom_types` llega con elementos, el backend marca automaticamente `is_restricted_to_classroom_types = true`.
+
+> Si `classroom_types` llega vacio en el payload, el backend marca `is_restricted_to_classroom_types = false` y limpia relaciones activas.
+
 > Selects que alimentan este formulario:
 > - `GET /api/v1/university/careers/` -> "Carreras a las que pertenece"
 > - `GET /api/v1/university/teachers/` -> "Profesores que pueden impartir"
+> - `GET /api/v1/classroom-types/` -> "Tipos de aula permitidos" (cuando aplica)
 > - `GET /api/v1/colors/` -> selector visual de color
 
 ---
@@ -383,15 +429,15 @@ La creacion incluye intervalos de disponibilidad horaria y materias que puede im
 
 ## 9. Aulas
 
-La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en la misma transaccion.
+La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la asignacion de materias cuando `is_restricted_to_subjects = true`, en la misma transaccion.
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
 | `GET` | `/api/v1/university/classrooms/` | Lista **todas** las aulas sin paginar (para selects si se requiere). |
 | `GET` | `/api/v1/university/classrooms/paginated/` | Lista paginada con filtros (vista de lista de Aulas). |
-| `POST` | `/api/v1/university/classrooms/` | **Transaccion completa:** crea aula + carreras con acceso (si es restringida). |
-| `GET` | `/api/v1/university/classrooms/{pk}/` | Detalle del aula (incluye carreras si es restringida). |
-| `PUT` | `/api/v1/university/classrooms/{pk}/` | Actualiza aula + carreras (reemplaza la lista completa de carreras). |
+| `POST` | `/api/v1/university/classrooms/` | **Transaccion completa:** crea aula + carreras con acceso (si `is_restricted = 1`) + materias permitidas (si `is_restricted_to_subjects = 1`). |
+| `GET` | `/api/v1/university/classrooms/{pk}/` | Detalle del aula (incluye carreras y materias segun sus banderas de restriccion). |
+| `PUT` | `/api/v1/university/classrooms/{pk}/` | Actualiza aula + carreras + materias (sincroniza listas recibidas y conserva las no enviadas). |
 | `PUT` | `/api/v1/university/classrooms/{pk}/toggle-status/` | Activa o desactiva el aula. |
 | `DELETE` | `/api/v1/university/classrooms/{pk}/` | Soft delete. |
 
@@ -412,28 +458,68 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
   "building": "Docencia 4",
   "building_code": "D2",
   "is_restricted": true,
+  "is_restricted_to_subjects": true,
   "careers": [
     { "career_id": 1 }
+  ],
+  "subjects": [
+    { "subject_id": 3 }
   ]
 }
 ```
 
 > Si `is_restricted = false`, el campo `careers` se omite o se envia vacio.
 
+> Si `is_restricted_to_subjects = false`, el campo `subjects` se omite o se envia vacio.
+
+> Al activar `is_restricted = true` o `is_restricted_to_subjects = true` por primera vez, se debe enviar su lista correspondiente y con al menos un elemento.
+
 > Selects que alimentan este formulario:
 > - `GET /api/v1/classroom-types/` -> "Tipo de Aula"
 > - `GET /api/v1/university/careers/` -> "Carreras con acceso" (cuando es restringida)
+> - `GET /api/v1/university/subjects/` -> "Materias permitidas" (cuando `is_restricted_to_subjects = 1`)
 
 ---
 
-## 10. Generacion de Horario
+## 10. Generacion y Versionamiento de Horario
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `POST` | `/api/v1/university/schedules/generate/` | Dispara la generacion del horario para la universidad seleccionada. |
-| `GET` | `/api/v1/university/schedules/` | Lista todos los horarios generados (sin paginar). |
-| `GET` | `/api/v1/university/schedules/paginated/` | Lista paginada de horarios generados. |
-| `GET` | `/api/v1/university/schedules/{pk}/` | Detalle de un horario generado. |
+| `POST` | `/api/v1/university/schedules/generate/` | Genera horario y crea/actualiza el borrador activo de la universidad seleccionada (conserva label en regeneracion). |
+| `PUT` | `/api/v1/university/schedules/drafts/{pk}/` | Actualiza campos de un borrador no confirmado (incluye label cuando se requiere cambio junto con otros campos). |
+| `DELETE` | `/api/v1/university/schedules/drafts/{pk}/` | Elimina logicamente un borrador no confirmado. |
+| `PUT` | `/api/v1/university/schedules/{pk}/confirm/` | Confirma una version de horario. |
+| `PUT` | `/api/v1/university/schedules/{pk}/label/` | Ruta dedicada para actualizar exclusivamente el label de la version. |
+| `GET` | `/api/v1/university/schedules/paginated/` | Lista paginada del historial de versiones por universidad seleccionada. |
+| `GET` | `/api/v1/university/schedules/{pk}/` | Detalle de una version de horario. |
+| `POST` | `/api/schedule-generator/preview/` | Genera preview en memoria sin persistir version. |
+
+Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
+
+**Body opcional de generacion:**
+```json
+{
+  "parameters": {
+    "allow_multiple_teachers_per_group_subject": false,
+    "randomize_generation": false,
+    "random_seed": null
+  }
+}
+```
+
+- En la primera generacion, el backend asigna label por defecto con formato `Borrador YYYY-MM-DD HH:MM`.
+- En regeneracion de borrador existente, el endpoint conserva el label actual.
+- `parameters.uses_period_groups` siempre se define desde backend segun la configuracion institucional.
+- `parameters.allow_multiple_teachers_per_group_subject` controla si una materia de un grupo puede ser impartida por varios profesores dentro del mismo horario generado.
+- Si no se envia `allow_multiple_teachers_per_group_subject`, el backend usa `false` por defecto (un solo profesor por combinacion `grupo + materia`).
+- Si `allow_multiple_teachers_per_group_subject = true`, el solver puede asignar distintos profesores para bloques diferentes de la misma materia en el mismo grupo.
+- `parameters.randomize_generation` controla si el solver usa desempates aleatorios.
+- Si no se envia `randomize_generation`, el backend usa `false` por defecto (comportamiento determinista actual).
+- Si `randomize_generation = true` y no se envia `random_seed`, el backend genera una semilla automaticamente y la persiste en `schedule_versions.parameters.random_seed`.
+- Si `randomize_generation = true` y se envia `random_seed`, se puede reproducir el mismo resultado con la misma semilla (manteniendo datos y logica sin cambios).
+- `data.active_academic_period` guarda el periodo activo institucional (si existe).
+- Cada elemento de `data.groups[]` incluye metadata enriquecida: `career`, `shift`, `academic_period`, `allowed_days`.
+- Para representar correctamente la rejilla en frontend, usar `data.groups[].shift.start_time/end_time` como ventana del turno y completar slots vacios del intervalo aunque no vengan bloques asignados para todos.
 
 ---
 
@@ -445,6 +531,7 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 | Nueva Carrera | Modalidad | `GET /api/v1/university/modalities/` |
 | Nueva Materia | Carreras a las que pertenece | `GET /api/v1/university/careers/` |
 | Nueva Materia | Profesores que pueden impartir | `GET /api/v1/university/teachers/` |
+| Nueva Materia | Tipos de aula permitidos | `GET /api/v1/classroom-types/` |
 | Nueva Materia | Color de la Materia | `GET /api/v1/colors/` |
 | Nuevo Grupo | Carrera | `GET /api/v1/university/careers/` |
 | Nuevo Grupo | Turno | `GET /api/v1/university/shifts/` |
@@ -452,6 +539,7 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 | Nuevo Profesor | Materias que puede impartir | `GET /api/v1/university/subjects/` |
 | Nueva Aula | Tipo de Aula | `GET /api/v1/classroom-types/` |
 | Nueva Aula | Carreras con acceso | `GET /api/v1/university/careers/` |
+| Nueva Aula | Materias permitidas | `GET /api/v1/university/subjects/` |
 
 ---
 
@@ -463,10 +551,11 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 | Universidad -> Modalidades | `GET /api/v1/university/modalities/` al entrar a la pestana | `PUT /api/v1/university/modalities/{modality_pk}/` por modalidad individual |
 | Universidad -> Turnos | `GET /api/v1/university/shifts/` al entrar a la pestana | `PUT /api/v1/university/shifts/{shift_pk}/` por turno individual |
 | Universidad -> Periodos | `GET /api/v1/university/academic-periods/` al entrar a la pestana | `PUT /api/v1/university/academic-periods/{period_pk}/` por periodo individual |
+| Universidad -> Prioridades de tipo de aula | `GET /api/v1/university/classroom-type-priorities/` para ver configuracion institucional | `PUT /api/v1/university/classroom-type-priorities/{pk}/` para ajustar prioridad/tipo; `DELETE` hace borrado logico |
 | Carrera | Un solo GET trae todo (datos + excepciones, formulario simple) | PUT reemplaza excepciones completas junto con los datos (comparando cambios para evitar escrituras innecesarias) |
-| Materia | Un solo GET trae todo (datos + carreras + profesores) | PUT reemplaza listas completas (comparando cambios para evitar escrituras innecesarias) |
+| Materia | Un solo GET trae todo (datos + carreras + profesores + tipos de aula permitidos) | PUT sincroniza carreras/profesores/tipos de aula: reemplaza la lista solo cuando se envia; conserva la que no se envia |
 | Profesor | Un solo GET trae todo (datos + disponibilidades + materias) | PUT reemplaza listas completas (comparando cambios para evitar escrituras innecesarias) |
-| Aula | Un solo GET trae todo (datos + carreras si es restringida) | PUT reemplaza lista completa de carreras (comparando cambios para evitar escrituras innecesarias) |
+| Aula | Un solo GET trae todo (datos + carreras + materias segun restricciones) | PUT sincroniza carreras/materias: reemplaza la lista solo cuando se envia; conserva la que no se envia |
 
 ---
 
@@ -476,6 +565,6 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true`, en 
 |---------|------------------------------------------|
 | Universidad | Datos generales + modalidades + turnos + periodos academicos |
 | Carrera | Datos de la carrera + excepciones de periodo |
-| Materia | Datos de la materia + carreras con numero de periodo + profesores |
+| Materia | Datos de la materia + carreras con numero de periodo + profesores + tipos de aula permitidos (si aplica) |
 | Profesor | Datos del profesor + intervalos de disponibilidad + materias |
-| Aula | Datos del aula + carreras con acceso (si es restringida) |
+| Aula | Datos del aula + carreras con acceso (si `is_restricted = 1`) + materias permitidas (si `is_restricted_to_subjects = 1`) |

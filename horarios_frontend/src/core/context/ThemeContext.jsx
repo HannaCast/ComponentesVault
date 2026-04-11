@@ -1,39 +1,92 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
 
-const ALLOWED_THEMES = new Set(['light', 'dark']);
+const ALLOWED_THEMES = new Set(['light', 'dark', 'system']);
 const ALLOWED_ACCENTS = new Set(['blue', 'red', 'green', 'purple']);
 
 const normalizeTheme = (theme) => (ALLOWED_THEMES.has(theme) ? theme : 'light');
 const normalizeAccent = (accent) => (ALLOWED_ACCENTS.has(accent) ? accent : 'blue');
 
+const getSystemTheme = () => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const resolveTheme = (theme) => (theme === 'system' ? getSystemTheme() : theme);
+
 export const ThemeProvider = ({ children }) => {
   const rootElement = document.documentElement;
 
-  const [theme, setTheme] = useState(() => normalizeTheme(rootElement.getAttribute('data-theme')));
-  const [accent, setAccent] = useState(() => normalizeAccent(rootElement.getAttribute('data-accent')));
+  const [theme, setTheme] = useState(() =>
+    normalizeTheme(rootElement.dataset.themeMode || rootElement.dataset.theme)
+  );
+  const [accent, setAccent] = useState(() => normalizeAccent(rootElement.dataset.accent));
+  const [resolvedTheme, setResolvedTheme] = useState(() =>
+    resolveTheme(normalizeTheme(rootElement.dataset.themeMode || rootElement.dataset.theme))
+  );
 
   useEffect(() => {
-    rootElement.setAttribute('data-theme', theme);
-    rootElement.setAttribute('data-accent', accent);
-  }, [rootElement, theme, accent]);
+    setResolvedTheme(resolveTheme(theme));
+  }, [theme]);
+
+  useEffect(() => {
+    if (theme !== 'system' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = (event) => {
+      setResolvedTheme(event.matches ? 'dark' : 'light');
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+      return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    }
+
+    mediaQuery.addListener(handleSystemThemeChange);
+    return () => mediaQuery.removeListener(handleSystemThemeChange);
+  }, [theme]);
+
+  useEffect(() => {
+    rootElement.dataset.theme = resolvedTheme;
+    rootElement.dataset.themeMode = theme;
+    rootElement.dataset.accent = accent;
+  }, [rootElement, theme, resolvedTheme, accent]);
 
   useEffect(() => {
     return () => {
-      rootElement.setAttribute('data-theme', 'light');
-      rootElement.setAttribute('data-accent', 'blue');
+      rootElement.dataset.theme = 'light';
+      delete rootElement.dataset.themeMode;
+      rootElement.dataset.accent = 'blue';
     };
   }, [rootElement]);
 
-  const applyTheme = (nextTheme, nextAccent) => {
+  const applyTheme = useCallback((nextTheme, nextAccent) => {
     setTheme(normalizeTheme(nextTheme));
     setAccent(normalizeAccent(nextAccent));
-  };
+  }, []);
 
-  const value = useMemo(() => ({ theme, accent, applyTheme }), [theme, accent]);
+  const value = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      accent,
+      applyTheme,
+    }),
+    [theme, resolvedTheme, accent, applyTheme]
+  );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+ThemeProvider.propTypes = {
+  children: PropTypes.node,
 };
 
 export const useTheme = () => {

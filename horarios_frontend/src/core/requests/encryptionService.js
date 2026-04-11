@@ -8,18 +8,21 @@ const toBase64 = (bufferOrBytes) => {
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
+    binary += String.fromCodePoint(...chunk);
   }
 
   return btoa(binary);
 };
 
 // Normaliza el PEM eliminando comillas, reemplazando \n y recortando espacios
-const normalizePem = (value = "") =>
-  value
-    .replace(/^"|"$/g, "")
-    .replace(/\\n/g, "\n")
-    .trim();
+const normalizePem = (value = "") => {
+  const trimmedValue = value.trim();
+  const unwrappedValue = trimmedValue.startsWith('"') && trimmedValue.endsWith('"')
+    ? trimmedValue.slice(1, -1)
+    : trimmedValue;
+
+  return unwrappedValue.replaceAll(String.raw`\n`, '\n');
+};
 
 // Importa la clave pública RSA desde formato PEM a CryptoKey
 const importRsaPublicKey = async (pemPublicKey) => {
@@ -30,13 +33,13 @@ const importRsaPublicKey = async (pemPublicKey) => {
   }
 
   const pemBody = normalizedPem
-    .replace("-----BEGIN PUBLIC KEY-----", "")
-    .replace("-----END PUBLIC KEY-----", "")
-    .replace(/\s+/g, "");
+    .replaceAll("-----BEGIN PUBLIC KEY-----", "")
+    .replaceAll("-----END PUBLIC KEY-----", "")
+    .replaceAll(/\s+/g, "");
 
   let der;
   try {
-    der = Uint8Array.from(atob(pemBody), (char) => char.charCodeAt(0));
+    der = Uint8Array.from(atob(pemBody), (char) => char.codePointAt(0) ?? 0);
   } catch {
     throw new Error("VITE_RSA_PUBLIC_KEY contiene datos base64 invalidos");
   }

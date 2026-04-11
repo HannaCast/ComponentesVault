@@ -167,3 +167,88 @@
   --accent-hover:    #d8b4fe;
   --accent-subtle:   #3b0764;
 }
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm;
+  }
+
+  html,
+  body,
+  #root {
+    background: #ffffff !important;
+    height: auto !important;
+  }
+
+  .no-print,
+  .screen-only,
+  .app-shell-header,
+  .app-shell-sidebar {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .app-shell,
+  .app-shell-main,
+  .app-shell-content {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .app-shell-content {
+    padding: 0 !important;
+  }
+
+  .print-schedule-content {
+    padding: 0 !important;
+  }
+
+  .print-schedule-wrapper {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .print-schedule-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 2mm !important;
+  }
+
+  .print-schedule-page .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  .print-schedule-page table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .print-schedule-page th,
+  .print-schedule-page td {
+    word-break: break-word;
+  }
+
+  .print-break-after {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

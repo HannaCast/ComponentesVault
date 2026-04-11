@@ -28,13 +28,33 @@ export const getSubjectsPaginated = ({ page = 1, limit = 10, search = '', status
 export const getSubject = (id) => 
   apiToken.get(`/api/v1/university/subjects/${id}/`);
 
+// Obtener colores activos para seleccionar color de materia (envia id al backend)
+export const getColors = () =>
+  apiToken.get('/api/v1/subjects/colors/');
+
+// Obtener carreras activas para asociarlas a una materia
+export const getCareers = () =>
+  apiToken.get('/api/v1/university/careers/');
+
+// Obtener profesores activos para asociarlos a una materia
+export const getTeachers = () =>
+  apiToken.get('/api/v1/university/teachers/');
+
+// Obtener tipos de aula activos para restriccion por materia
+export const getClassroomTypes = () =>
+  apiToken.get('/api/v1/classroom-types/');
+
 // Crear una nueva materia
 export const createSubject = (data) => 
   apiToken.post("/api/v1/university/subjects/", data);
 
 // Actualizar una materia
 export const updateSubject = (id, data) => 
-  apiToken.patch(`/api/v1/university/subjects/${id}/`, data);
+  apiToken.put(`/api/v1/university/subjects/${id}/`, data);
+
+// Cambiar estado (activo/inactivo) de una materia
+export const toggleSubjectStatus = (id) =>
+  apiToken.put(`/api/v1/university/subjects/${id}/toggle-status/`);
 
 // Eliminar una materia
 export const deleteSubject = (id) => 

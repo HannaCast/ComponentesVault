@@ -39,11 +39,9 @@ ALLOWED_HOSTS = [s.strip() for s in _allowed.split(',') if s.strip()]
 # Definición de aplicaciones
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
@@ -53,6 +51,10 @@ INSTALLED_APPS = [
     'subjects',
     'universities',
     'careers',
+    'teachers',
+    'classrooms',
+    'audit',
+    'schedule_generator',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +64,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -77,7 +78,6 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
@@ -117,20 +117,24 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        },
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
 ]
 
 AUTH_USER_MODEL = 'user_accounts.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 PASSWORD_HASHERS = [ # Usar bcrypt para encriptar contraseñas
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',

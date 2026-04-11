@@ -22,13 +22,14 @@ horarios_backend/              ← raíz del proyecto Django
   horarios_backend/            ← configuración Django
     settings.py
     urls.py                    ← URL raíz del proyecto
-  user_accounts/               ← app: autenticación y usuarios
-  subjects/                    ← app: materias y colores (referencia implementada)
-  universities/                ← app: universidades y configuración (por implementar)
-  careers/                     ← app: carreras y grupos (por implementar)
-  teachers/                    ← app: profesores (por implementar)
-  classrooms/                  ← app: salones (por implementar)
-  audit/                       ← app: logs de auditoría (por implementar)
+    user_accounts/               ← app: autenticación y usuarios
+    subjects/                    ← app: materias y colores (referencia implementada)
+    universities/                ← app: universidades y configuración (por implementar)
+    careers/                     ← app: carreras y grupos (por implementar)
+    teachers/                    ← app: profesores (por implementar)
+    classrooms/                  ← app: salones (por implementar)
+    schedule_generator/          ← app: generacion y versionamiento de horarios
+    audit/                       ← app: logs de auditoria (modelo y soporte de auditoria)
 ```
 
 ---
@@ -78,6 +79,7 @@ INSTALLED_APPS = [
     'careers',        # agregar
     'teachers',       # agregar
     'classrooms',     # agregar
+    'schedule_generator',
     'audit',          # agregar
 ]
 ```
@@ -92,9 +94,11 @@ urlpatterns = [
     path('api/', include('careers.urls')),
     path('api/', include('teachers.urls')),
     path('api/', include('classrooms.urls')),
-    path('api/', include('audit.urls')),
+    path('api/', include('schedule_generator.urls')),
 ]
 ```
+
+> Nota: actualmente `audit` no expone rutas API propias; el registro se realiza por triggers SQL y helpers de `core.audit_context`.
 
 ---
 
@@ -577,15 +581,25 @@ careers (FK → careers), classrooms (FK → classrooms)
 
 ---
 
-### App: `audit` (por implementar)
-Modelo único: `audit_logs`
+### App: `audit` (implementada)
+Modelo principal: `audit_logs`
 
 ```
-user_id, table_name, record_id, action (INSERT/UPDATE/DELETE),
-former_data (JSON), new_data (JSON), ip_address, user_agent, created_at
+user_id, username, source, transaction_id,
+table_name, record_id, action,
+old_data (JSON), new_data (JSON),
+ip_address, user_agent, is_succesfull, error_message, created_at
 ```
 
-> Esta app es de solo lectura. Solo se implementa `GET` (lista y paginado). No tiene POST/PUT/DELETE propio — los registros los genera el sistema automáticamente.
+Comportamiento:
+
+- Exitos de operaciones de datos: registrados por triggers MySQL.
+- Errores de aplicacion en endpoints decorados: registrados desde backend con `with_audit_context(...)`, usando `is_succesfull = 0` y `error_message`.
+- Acciones puntuales (ejemplo `CHANGE_STATUS`): via `with_audit_action(...)`.
+
+Referencia completa:
+
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
 
 ---
 

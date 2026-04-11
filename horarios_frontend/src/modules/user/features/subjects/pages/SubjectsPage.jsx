@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, Eye, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
@@ -17,20 +16,113 @@ import { useSubjects } from '../hooks/useSubjects';
 import { SubjectForm } from '../components/SubjectForm';
 import { SubjectDetail } from '../components/SubjectDetail';
 
+const getDrawerTitle = (mode, selectedSubject) => {
+  if (mode === 'create') return 'Crear Nueva Materia';
+  if (mode === 'edit') return 'Editar Materia';
+  return selectedSubject?.name || 'Detalle';
+};
+
+const getDrawerHeaderIcon = (mode) => {
+  if (mode === 'create') return Plus;
+  if (mode === 'edit') return Pencil;
+  return Eye;
+};
+
+const getDrawerHeaderBadge = (mode) => {
+  if (mode === 'create') return 'Crear';
+  if (mode === 'edit') return 'Editar';
+  return 'Ver';
+};
+
+const getSubjectTitle = (subject) => {
+  if (subject.short_name) {
+    return `${subject.name} (${subject.short_name})`;
+  }
+
+  return subject.name;
+};
+
+const getEmptyState = (searchTerm, estadoFiltro, onCreate) => {
+  const isDefaultState = !searchTerm && estadoFiltro === 'todos';
+
+  if (isDefaultState) {
+    return {
+      icon: BookOpen,
+      title: 'No hay materias registradas',
+      description: 'Comienza agregando tu primera materia',
+      actionIcon: Plus,
+      actionLabel: 'Agregar Materia',
+      onAction: onCreate,
+    };
+  }
+
+  return {
+    icon: BookOpen,
+    title: 'No se encontraron materias',
+    description: 'Intenta con otros terminos de busqueda',
+    actionIcon: undefined,
+    actionLabel: undefined,
+    onAction: undefined,
+  };
+};
+
+const getSaveModalContent = (mode) => {
+  if (mode === 'edit') {
+    return {
+      title: 'Confirmar Guardado',
+      message: '¿Deseas guardar los cambios de esta materia?',
+      confirmLabel: 'Guardar',
+    };
+  }
+
+  return {
+    title: 'Confirmar Creación',
+    message: '¿Deseas crear esta materia con la información capturada?',
+    confirmLabel: 'Crear',
+  };
+};
+
+const getToggleModalContent = (isCurrentlyActive) => {
+  if (isCurrentlyActive) {
+    return {
+      title: 'Desactivar Materia',
+      message: 'Al desactivar esta materia no se tomará en cuenta para la generación de horarios. ¿Deseas continuar?',
+      confirmLabel: 'Desactivar',
+    };
+  }
+
+  return {
+    title: 'Activar Materia',
+    message: 'Esta materia volverá a considerarse para la generación de horarios. ¿Deseas continuar?',
+    confirmLabel: 'Activar',
+  };
+};
+
 export const SubjectsPage = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunColorRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState('create'); // 'create', 'edit', 'view'
-  const [drawerSubject, setDrawerSubject] = useState(null);
   const [rowActionState, setRowActionState] = useState({ subjectId: null, action: null });
+  const [isOpeningCreate, setIsOpeningCreate] = useState(false);
+  const [saveModal, setSaveModal] = useState({
+    isOpen: false,
+    mode: 'create',
+    formData: null,
+  });
+  const [toggleModal, setToggleModal] = useState({
+    isOpen: false,
+    id: null,
+    name: '',
+    isCurrentlyActive: false,
+  });
 
   const {
     subjectsPage,
@@ -55,6 +147,14 @@ export const SubjectsPage = () => {
     fetchSubjectById,
     handleCreateSubject,
     handleUpdateSubject,
+    colorOptions,
+    fetchColorOptions,
+    careerOptions,
+    fetchCareerOptions,
+    professorOptions,
+    fetchProfessorOptions,
+    classroomTypeOptions,
+    fetchClassroomTypeOptions,
   } = useSubjects();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -64,6 +164,9 @@ export const SubjectsPage = () => {
     || 'Universidad seleccionada';
 
   const isAnyRowActionRunning = rowActionState.subjectId !== null;
+  const saveModalContent = getSaveModalContent(saveModal.mode);
+  const toggleModalContent = getToggleModalContent(toggleModal.isCurrentlyActive);
+  const emptyState = getEmptyState(searchTerm, estadoFiltro, handleOpenDrawerCreate);
 
   const runRowAction = async (subjectId, action, task) => {
     if (isAnyRowActionRunning) {
@@ -79,11 +182,39 @@ export const SubjectsPage = () => {
     }
   };
 
-  const handleOpenDrawerCreate = () => {
-    setDrawerMode('create');
-    setDrawerSubject(null);
-    setSelectedSubject(null);
-    setDrawerOpen(true);
+  async function handleOpenDrawerCreate() {
+    if (isOpeningCreate) {
+      return;
+    }
+
+    setIsOpeningCreate(true);
+
+    try {
+      await loadCatalogsForModal('create');
+      setDrawerMode('create');
+      setSelectedSubject(null);
+      setDrawerOpen(true);
+    } finally {
+      setIsOpeningCreate(false);
+    }
+  }
+
+  const loadCatalogsForModal = async (modalMode) => {
+    const catalogsSignature = buildRequestSignature(
+      { resource: 'subjects-catalogs', mode: modalMode },
+      ['resource', 'mode']
+    );
+
+    if (!shouldRunColorRequest(catalogsSignature)) {
+      return;
+    }
+
+    await Promise.all([
+      fetchColorOptions(),
+      fetchCareerOptions(),
+      fetchProfessorOptions(),
+      fetchClassroomTypeOptions(),
+    ]);
   };
 
   const handleOpenDrawerView = async (id) => {
@@ -99,6 +230,7 @@ export const SubjectsPage = () => {
   const handleOpenDrawerEdit = async (id) => {
     await runRowAction(id, 'edit', async () => {
       setDrawerMode('edit');
+      await loadCatalogsForModal('edit');
       const subjectData = await fetchSubjectById(id);
       if (subjectData) {
         setDrawerOpen(true);
@@ -109,27 +241,68 @@ export const SubjectsPage = () => {
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setDrawerMode('create');
-    setDrawerSubject(null);
     setSelectedSubject(null);
+    setSaveModal({ isOpen: false, mode: 'create', formData: null });
   };
 
-  const handleDrawerEditClick = () => {
+  const handleOpenToggleModal = (subject) => {
+    setToggleModal({
+      isOpen: true,
+      id: subject.id,
+      name: subject.name || 'la materia',
+      isCurrentlyActive: Number(subject.status) === 1,
+    });
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!toggleModal.id) {
+      return;
+    }
+
+    const wasActive = toggleModal.isCurrentlyActive;
+
+    await runRowAction(toggleModal.id, 'toggle', async () => {
+      await handleToggleStatus(toggleModal.id);
+    });
+
+    toast.success(
+      `Materia ${wasActive ? 'desactivada' : 'activada'} exitosamente`
+    );
+  };
+
+  const handleDrawerEditClick = async () => {
     if (selectedSubject) {
+      await loadCatalogsForModal('edit');
       setDrawerMode('edit');
     }
   };
 
-  const handleFormSubmit = async (formData) => {
+  const handleFormSubmit = (formData) => {
+    setSaveModal({
+      isOpen: true,
+      mode: drawerMode === 'edit' ? 'edit' : 'create',
+      formData,
+    });
+  };
+
+  const handleConfirmSave = async () => {
+    const pendingData = saveModal.formData;
+    const pendingMode = saveModal.mode;
+
+    if (!pendingData) {
+      return;
+    }
+
     try {
       let result;
-      if (drawerMode === 'create') {
-        result = await handleCreateSubject(formData);
-      } else if (drawerMode === 'edit') {
-        result = await handleUpdateSubject(selectedSubject.id, formData);
+      if (pendingMode === 'create') {
+        result = await handleCreateSubject(pendingData);
+      } else if (pendingMode === 'edit' && selectedSubject?.id) {
+        result = await handleUpdateSubject(selectedSubject.id, pendingData);
       }
 
       if (result) {
-        const action = drawerMode === 'create' ? 'creada' : 'actualizada';
+        const action = pendingMode === 'create' ? 'creada' : 'actualizada';
         toast.success(`Materia ${action} exitosamente`);
         handleCloseDrawer();
       }
@@ -168,8 +341,12 @@ export const SubjectsPage = () => {
       return;
     }
 
+    if (drawerOpen && drawerMode !== 'view') {
+      return;
+    }
+
     toast.error(error, { id: 'subjects-page-error' });
-  }, [error]);
+  }, [error, drawerOpen, drawerMode]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -217,6 +394,9 @@ export const SubjectsPage = () => {
         contextLabel={`Materias de: ${selectedUniversityName}`}
         actionIcon={Plus}
         actionLabel="Nueva Materia"
+        actionLoading={isOpeningCreate}
+        actionLoadingLabel="Cargando..."
+        actionDisabled={isOpeningCreate}
         onAction={handleOpenDrawerCreate}
       />
 
@@ -240,6 +420,7 @@ export const SubjectsPage = () => {
             }}
             options={statusOptions}
             placeholder="Todas"
+            showPlaceholderOption={false}
             reserveHelperSpace={false}
           />
 
@@ -266,30 +447,19 @@ export const SubjectsPage = () => {
         loadingMessage="Cargando materias..."
         items={subjectsPage}
         getItemKey={(subject) => subject.id}
-        emptyState={{
-          icon: BookOpen,
-          title: !searchTerm && estadoFiltro === 'todos' ? 'No hay materias registradas' : 'No se encontraron materias',
-          description: !searchTerm && estadoFiltro === 'todos' ? 'Comienza agregando tu primera materia' : 'Intenta con otros terminos de busqueda',
-          actionIcon: !searchTerm && estadoFiltro === 'todos' ? Plus : undefined,
-          actionLabel: !searchTerm && estadoFiltro === 'todos' ? 'Agregar Materia' : undefined,
-          onAction: !searchTerm && estadoFiltro === 'todos' ? handleOpenDrawerCreate : undefined,
-        }}
+        emptyState={emptyState}
         renderItem={(subject, index) => (
           <EntityListItem
             icon={BookOpen}
-            title={subject.name}
+            title={getSubjectTitle(subject)}
             metaItems={[
               `Codigo: ${subject.code || '-'}`,
               subject.credits ? `${subject.credits} creditos` : null,
             ]}
-            isActive={subject.is_active}
+            isActive={Number(subject.status) === 1}
             activeText="Activa"
             inactiveText="Inactiva"
-            onToggleStatus={() => runRowAction(
-              subject.id,
-              'toggle',
-              async () => handleToggleStatus(subject.id, Boolean(subject.is_active)),
-            )}
+            onToggleStatus={() => handleOpenToggleModal(subject)}
             onView={() => handleOpenDrawerView(subject.id)}
             onEdit={() => handleOpenDrawerEdit(subject.id)}
             onDelete={() => setDeleteModal({ isOpen: true, id: subject.id })}
@@ -310,16 +480,10 @@ export const SubjectsPage = () => {
       <SideDrawer
         isOpen={drawerOpen}
         onClose={handleCloseDrawer}
-        title={
-          drawerMode === 'create'
-            ? 'Crear Nueva Materia'
-            : drawerMode === 'edit'
-            ? 'Editar Materia'
-            : `${selectedSubject?.name || 'Detalle'}`
-        }
-        size="md"
-        headerIcon={drawerMode === 'create' ? Plus : drawerMode === 'edit' ? Pencil : Eye}
-        headerBadge={drawerMode === 'create' ? 'Crear' : drawerMode === 'edit' ? 'Editar' : 'Ver'}
+        title={getDrawerTitle(drawerMode, selectedSubject)}
+        size="lg"
+        headerIcon={getDrawerHeaderIcon(drawerMode)}
+        headerBadge={getDrawerHeaderBadge(drawerMode)}
       >
         {drawerMode === 'view' ? (
           <SubjectDetail
@@ -334,9 +498,32 @@ export const SubjectsPage = () => {
             onSubmit={handleFormSubmit}
             onCancel={handleCloseDrawer}
             mode={drawerMode}
+            colorOptions={colorOptions}
+            careerOptions={careerOptions}
+            professorOptions={professorOptions}
+            classroomTypeOptions={classroomTypeOptions}
           />
         )}
       </SideDrawer>
+
+      <ConfirmModal
+        isOpen={saveModal.isOpen}
+        onClose={() => setSaveModal({ isOpen: false, mode: 'create', formData: null })}
+        onConfirm={handleConfirmSave}
+        title={saveModalContent.title}
+        message={saveModalContent.message}
+        confirmLabel={saveModalContent.confirmLabel}
+        closeOnConfirm={true}
+      />
+
+      <ConfirmModal
+        isOpen={toggleModal.isOpen}
+        onClose={() => setToggleModal({ isOpen: false, id: null, name: '', isCurrentlyActive: false })}
+        onConfirm={handleConfirmToggleStatus}
+        title={toggleModalContent.title}
+        message={toggleModalContent.message}
+        confirmLabel={toggleModalContent.confirmLabel}
+      />
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
@@ -344,6 +531,7 @@ export const SubjectsPage = () => {
         onConfirm={handleDelete}
         title="Eliminar Materia"
         message="Esta seguro que desea eliminar esta materia? Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
       />
     </div>
   );

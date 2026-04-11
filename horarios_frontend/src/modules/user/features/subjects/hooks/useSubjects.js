@@ -1,5 +1,16 @@
 import { useCallback, useRef, useState } from 'react';
-import { getSubjectsPaginated, getSubject, updateSubject, deleteSubject, createSubject } from '../api/subjectsApi';
+import {
+  getSubjectsPaginated,
+  getSubject,
+  updateSubject,
+  toggleSubjectStatus,
+  deleteSubject,
+  createSubject,
+  getColors,
+  getCareers,
+  getTeachers,
+  getClassroomTypes,
+} from '../api/subjectsApi';
 
 export const useSubjects = () => {
   const [subjectsPage, setSubjectsPage] = useState([]);
@@ -12,6 +23,10 @@ export const useSubjects = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
+  const [colorOptions, setColorOptions] = useState([]);
+  const [careerOptions, setCareerOptions] = useState([]);
+  const [professorOptions, setProfessorOptions] = useState([]);
+  const [classroomTypeOptions, setClassroomTypeOptions] = useState([]);
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
   const statusOptions = [
@@ -31,12 +46,12 @@ export const useSubjects = () => {
       setLoading(true);
       setError(null);
 
-      const status =
-        estado === 'todos'
-          ? undefined
-          : estado === 'activos'
-          ? 'true'
-          : 'false';
+      let status;
+      if (estado === 'activos') {
+        status = 'true';
+      } else if (estado === 'inactivos') {
+        status = 'false';
+      }
 
       const order = asc ? 'ASC' : 'DESC';
 
@@ -60,9 +75,9 @@ export const useSubjects = () => {
     }
   }, []);
 
-  const handleToggleStatus = async (id, currentStatus) => {
+  const handleToggleStatus = async (id) => {
     try {
-      await updateSubject(id, { is_active: !currentStatus });
+      await toggleSubjectStatus(id);
       await fetchSubjects(lastQueryRef.current);
     } catch (err) {
       console.error('Error al actualizar materia:', err);
@@ -131,6 +146,72 @@ export const useSubjects = () => {
     }
   };
 
+  const fetchColorOptions = useCallback(async () => {
+    try {
+      const response = await getColors();
+      const colors = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setColorOptions(
+        colors.map((color) => ({
+          value: String(color.id),
+          label: color.name,
+          hex: color.hex,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar colores:', err);
+    }
+  }, []);
+
+  const fetchCareerOptions = useCallback(async () => {
+    try {
+      const response = await getCareers();
+      const careers = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setCareerOptions(
+        careers.map((career) => ({
+          value: String(career.id),
+          label: career.name,
+          total_periods: Number(career.total_periods) || 0,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar carreras:', err);
+    }
+  }, []);
+
+  const fetchProfessorOptions = useCallback(async () => {
+    try {
+      const response = await getTeachers();
+      const teachers = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setProfessorOptions(
+        teachers.map((teacher) => ({
+          value: String(teacher.id),
+          label: teacher.full_name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar profesores:', err);
+    }
+  }, []);
+
+  const fetchClassroomTypeOptions = useCallback(async () => {
+    try {
+      const response = await getClassroomTypes();
+      const classroomTypes = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setClassroomTypeOptions(
+        classroomTypes.map((classroomType) => ({
+          value: String(classroomType.id),
+          label: classroomType.name,
+        }))
+      );
+    } catch (err) {
+      console.error('Error al cargar tipos de aula:', err);
+    }
+  }, []);
+
   return {
     subjectsPage,
     totalItems,
@@ -155,5 +236,13 @@ export const useSubjects = () => {
     fetchSubjectById,
     handleCreateSubject,
     handleUpdateSubject,
+    colorOptions,
+    fetchColorOptions,
+    careerOptions,
+    fetchCareerOptions,
+    professorOptions,
+    fetchProfessorOptions,
+    classroomTypeOptions,
+    fetchClassroomTypeOptions,
   };
 };

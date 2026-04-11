@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { AlertCircle } from 'lucide-react';
 
 // Componente de alerta para mostrar cuando no hay universidad seleccionada, con mensaje personalizable.
@@ -25,4 +26,8 @@ export const SelectedUniversityAlert = ({
       </p>
     </div>
   );
+};
+
+SelectedUniversityAlert.propTypes = {
+  message: PropTypes.node,
 };

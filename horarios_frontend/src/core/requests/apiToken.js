@@ -42,12 +42,12 @@ apiToken.interceptors.response.use(
 
     // Evita bucle infinito si falla el propio refresh
     if (requestUrl.includes('/api/v1/auth/refresh/')) {
-      window.location.href = "/login";
-      return Promise.reject(error);
+      globalThis.location.href = "/login";
+      throw error;
     }
 
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(error);
+      throw error;
     }
 
     if (isRefreshing) {
@@ -76,8 +76,8 @@ apiToken.interceptors.response.use(
       onRefreshFailed(error);
       refreshSubscribers = [];
       isRefreshing = false;
-      window.location.href = "/login";
-      return Promise.reject(error);
+      globalThis.location.href = "/login";
+      throw error;
     }
   }
 );

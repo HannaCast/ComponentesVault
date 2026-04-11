@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 import { EmptyStatePanel } from './EmptyStatePanel';
@@ -59,4 +60,31 @@ export const EntityListStateRenderer = ({
       ) : null}
     </div>
   );
+};
+
+EntityListStateRenderer.propTypes = {
+  loading: PropTypes.bool,
+  loadingMessage: PropTypes.node,
+  items: PropTypes.array,
+  getItemKey: PropTypes.func,
+  renderItem: PropTypes.func,
+  emptyState: PropTypes.shape({
+    icon: PropTypes.elementType,
+    title: PropTypes.node,
+    description: PropTypes.node,
+    actionIcon: PropTypes.elementType,
+    actionLabel: PropTypes.node,
+    onAction: PropTypes.func,
+  }),
+  pagination: PropTypes.shape({
+    currentPage: PropTypes.number,
+    totalPages: PropTypes.number,
+    totalItems: PropTypes.number,
+    itemsPerPage: PropTypes.number,
+    onPageChange: PropTypes.func,
+    hasPreviousPage: PropTypes.bool,
+    hasNextPage: PropTypes.bool,
+  }),
+  containerClassName: PropTypes.string,
+  listPanelPadding: PropTypes.string,
 };

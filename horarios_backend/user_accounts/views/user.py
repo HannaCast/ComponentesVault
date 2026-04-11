@@ -1,8 +1,11 @@
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.api_response import ApiResponse
+from core.audit_context import with_audit_context
 from user_accounts.models import UserConfiguration
 from user_accounts.serializers import (
     ConfigurationSerializer,
@@ -47,6 +50,7 @@ class SelectedUniversityConfigurationView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(request=SelectedUniversityUpdateSerializer)
+    @with_audit_context(table_name='user_configurations')
     def put(self, request):
         """Asigna o limpia la universidad seleccionada del usuario autenticado."""
         serializer = SelectedUniversityUpdateSerializer(data=request.data)
@@ -66,6 +70,9 @@ class SelectedUniversityConfigurationView(APIView):
             defaults={
                 'theme': 'light',
                 'accent': 'blue',
+                'schedule_generation': {
+                    'draft_schedule_university_ids': [],
+                },
                 'status': 1,
             },
         )
@@ -80,3 +87,4 @@ class SelectedUniversityConfigurationView(APIView):
             data=response_serializer.data,
             message='Universidad seleccionada actualizada exitosamente',
         )
+

@@ -14,12 +14,13 @@ class UserConfiguration(models.Model):
     )
     theme = models.CharField(
         max_length=10,
-        help_text='Tema de la aplicacion: dark o light.',
+        db_comment='El tema de la aplicación, ya sea oscuro (dark) o blanco (light)',
     )
     accent = models.CharField(
         max_length=10,
-        help_text='Color de acento de la interfaz: red, green, blue, purple, etc.',
+        db_comment='el color de la interfaz, ejemplo, rojo, verde, azul',
     )
+    schedule_generation = models.JSONField()
     status = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)

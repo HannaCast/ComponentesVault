@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import { ChevronDown, Info, X } from 'lucide-react';
 
 /**
@@ -24,6 +25,8 @@ import { ChevronDown, Info, X } from 'lucide-react';
 export const Select = ({
   id,
   label,
+  labelClassName = '',
+  labelStyle,
   error,
   helperText,
   options,
@@ -37,6 +40,7 @@ export const Select = ({
   clearable = false,
   showPlaceholderOption = true,
   reserveHelperSpace = true,
+  selectClassName = '',
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -57,10 +61,23 @@ export const Select = ({
     onChange?.({ target: { value: '' } });
   };
 
+  const selectBackgroundColor = error
+    ? 'var(--error-subtle, #fef2f2)'
+    : 'var(--bg-surface, #f3f4f6)';
+  const selectBorderColor = error
+    ? 'var(--error, #dc2626)'
+    : 'var(--border-default, #d1d5db)';
+  const selectTextColor = disabled
+    ? 'var(--text-disabled, #94a3b8)'
+    : 'var(--text-primary, #111827)';
+
   return (
     <div className={`w-full ${className}`}>
       {label && (
-        <label className="flex items-center justify-between text-sm font-medium mb-2" style={{ color: 'var(--text-primary, #111827)' }}>
+        <label
+          className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
+          style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
+        >
           <span>
             {label}
             {required && <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>*</span>}
@@ -100,15 +117,11 @@ export const Select = ({
           value={value ?? ''}
           onChange={handleChange}
           disabled={disabled}
-          className="w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200"
+          className={`w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200 ${selectClassName}`}
           style={{
-            backgroundColor: error
-              ? 'var(--error-subtle, #fef2f2)'
-              : disabled
-              ? 'var(--bg-surface, #f3f4f6)'
-              : 'var(--bg-surface, #f3f4f6)',
-            borderColor: error ? 'var(--error, #dc2626)' : 'var(--border-default, #d1d5db)',
-            color: disabled ? 'var(--text-disabled, #94a3b8)' : 'var(--text-primary, #111827)',
+            backgroundColor: selectBackgroundColor,
+            borderColor: selectBorderColor,
+            color: selectTextColor,
           }}
           onFocus={(e) => {
             if (!error && !disabled) {
@@ -119,10 +132,8 @@ export const Select = ({
           }}
           onBlur={(e) => {
             if (!disabled) {
-              e.currentTarget.style.backgroundColor = error
-                ? 'var(--error-subtle, #fef2f2)'
-                : 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = error ? 'var(--error, #dc2626)' : 'var(--border-default, #d1d5db)';
+              e.currentTarget.style.backgroundColor = selectBackgroundColor;
+              e.currentTarget.style.borderColor = selectBorderColor;
               e.currentTarget.style.boxShadow = 'none';
             }
           }}
@@ -161,4 +172,29 @@ export const Select = ({
       )}
     </div>
   );
+};
+
+Select.propTypes = {
+  id: PropTypes.string,
+  label: PropTypes.node,
+  labelClassName: PropTypes.string,
+  labelStyle: PropTypes.object,
+  error: PropTypes.node,
+  helperText: PropTypes.node,
+  options: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+    label: PropTypes.node,
+    disabled: PropTypes.bool,
+  })),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func,
+  placeholder: PropTypes.string,
+  required: PropTypes.bool,
+  disabled: PropTypes.bool,
+  className: PropTypes.string,
+  infoMessage: PropTypes.node,
+  clearable: PropTypes.bool,
+  showPlaceholderOption: PropTypes.bool,
+  reserveHelperSpace: PropTypes.bool,
+  selectClassName: PropTypes.string,
 };

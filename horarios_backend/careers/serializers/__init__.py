@@ -10,3 +10,14 @@ from .career_period_exceptions import (
     CareerPeriodExceptionListSerializer,
     CareerPeriodExceptionWriteSerializer,
 )
+
+from .career_subjects import (
+    CareerSubjectDetailSerializer,
+    CareerSubjectListSerializer,
+    CareerSubjectWriteSerializer,
+)
+from .groups import (
+    GroupDetailSerializer,
+    GroupListSerializer,
+    GroupWriteSerializer,
+)

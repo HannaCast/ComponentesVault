@@ -1,4 +1,3 @@
-from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
@@ -9,16 +8,27 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     # Rutas de la aplicación
-    path('admin/', admin.site.urls),
     path('api/v1/', include('user_accounts.urls')),
 
     # RUTAS DE ASIGNATURAS
     path('api/', include('subjects.urls')),
     
     #RUTAS DE UNIVERSIDADES
-    path('api/v1/universities/', include('universities.urls')),
+    path('api/', include('universities.urls')),
 
-    # RUTAS DE MODALIDADES
+    # RUTAS DE CARRERAS / MODALIDADES
     path('api/', include('careers.urls')),
+
+    # RUTAS DE PROFESORES
+    path('api/', include('teachers.urls')),
+
+    # RUTAS DE AULAS
+    path('api/', include('classrooms.urls')),
+
+    # RUTAS DE AUDITORIA
+    path('api/', include('audit.urls')),
+
+    # RUTAS DE GENERADOR DE HORARIOS
+    path('api/', include('schedule_generator.urls')),
 
 ]

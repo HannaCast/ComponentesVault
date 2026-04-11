@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
@@ -49,4 +50,13 @@ export const EmptyStatePanel = ({
       ) : null}
     </SurfacePanel>
   );
+};
+
+EmptyStatePanel.propTypes = {
+  icon: PropTypes.elementType,
+  title: PropTypes.node,
+  description: PropTypes.node,
+  actionIcon: PropTypes.elementType,
+  actionLabel: PropTypes.node,
+  onAction: PropTypes.func,
 };

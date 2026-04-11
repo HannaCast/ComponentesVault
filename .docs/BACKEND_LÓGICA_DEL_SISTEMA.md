@@ -23,12 +23,18 @@ Cada usuario tiene un rol asignado, el cual determina sus permisos.
 
 La tabla `user_configurations` contiene `selected_university_id`, que indica la universidad activa del usuario.
 
+Tambien contiene el campo JSON `schedule_generation`, usado por el backend para guardar estado de borradores por universidad:
+
+- `draft_schedule_university_ids`: lista de universidades donde el usuario tiene un borrador activo de horario.
+
 A partir de ese campo:
 
 - Todos los listados paginados deben devolver informacion de la universidad seleccionada.
 - Todas las creaciones deben asociarse automaticamente a esa universidad.
 
 Ejemplo: al crear una carrera, queda ligada a la universidad seleccionada.
+
+En el modulo de horarios, la universidad seleccionada define el alcance de versionamiento para la tabla `schedule_versions`.
 
 ---
 
@@ -78,7 +84,12 @@ La tabla `subjects` contiene las materias ofertadas por la universidad e incluye
 - Codigo.
 - Horas por semana.
 - Color.
+- Indicador `is_restricted_to_classroom_types`.
 - Indicador de obligatoriedad.
+
+### `subjects_classroom_types`
+
+Cuando `subjects.is_restricted_to_classroom_types = 1`, esta tabla define los tipos de aula permitidos para impartir la materia.
 
 ---
 
@@ -145,6 +156,14 @@ Campo relevante:
 
 Este campo se considera en la generacion de horarios. Por ejemplo, en modalidad en linea, un profesor puede requerir aula si no cuenta con espacio adecuado.
 
+Regla de generacion por defecto:
+
+- Para una combinacion `grupo + materia`, el generador intenta mantener un solo profesor en todos los bloques.
+- Esta regla puede relajarse por request con `parameters.allow_multiple_teachers_per_group_subject = true` al generar horario.
+- El comportamiento del solver es determinista por defecto (`parameters.randomize_generation = false`).
+- Se puede habilitar variacion por ejecucion con `parameters.randomize_generation = true`; los desempates del solver pasan a ser aleatorios.
+- Para reproducibilidad, se puede enviar `parameters.random_seed`; si no se envia, el backend genera una semilla y la guarda en `schedule_versions.parameters`.
+
 ### Otras tablas relacionadas
 
 - `teacher_availabilities`: disponibilidad por dia y horario.
@@ -184,10 +203,25 @@ Define espacios fisicos e incluye:
 - Piso.
 - Edificio.
 - Indicador `is_restricted`.
+- Indicador `is_restricted_to_subjects`.
 
 ### `classroom_careers`
 
 Cuando `is_restricted = true`, esta tabla indica a que carreras pertenece el aula.
+
+### `classroom_subjects`
+
+Cuando `is_restricted_to_subjects = true`, esta tabla indica que materias pueden ocupar el aula.
+
+### `university_classroom_type_priorities`
+
+Esta tabla permite configurar, por universidad, la prioridad de tipos de aula para la asignacion del generador.
+
+Regla funcional:
+
+- Si una materia **no** tiene restriccion por tipo (`is_restricted_to_classroom_types = 0`), el solver usa esta prioridad para elegir entre aulas factibles.
+- Si una materia **si** tiene restriccion por tipo, primero se respetan esas restricciones duras.
+- Si la universidad no tiene filas activas en `university_classroom_type_priorities`, se aplica fallback hardcodeado del solver (opcion 1): preferir `Aula` para materias sin restriccion por tipo.
 
 ---
 
@@ -216,18 +250,28 @@ Puede incluir configuracion JSON, por ejemplo:
 
 ## Auditoria
 
-La tabla `audit_logs` registra acciones sobre datos:
+La auditoria usa un enfoque mixto (BD + backend):
 
-- `CREATE`
-- `UPDATE`
-- `DELETE`
+- Triggers MySQL registran operaciones exitosas sobre tablas de negocio.
+- El backend setea variables de sesion (`@app_user_id`, `@app_username`, `@app_ip`, `@app_user_agent`, `@app_transaction_id`, `@app_action`).
+- Para acciones especiales (por ejemplo cambio de estado) se usa `CHANGE_STATUS` de forma acotada.
+- Cuando hay error de aplicacion en endpoints decorados, el backend inserta un log con `is_succesfull = 0` y `error_message`.
 
-Tambien guarda:
+Valores comunes de `action`:
 
-- Datos anteriores y nuevos.
-- Usuario.
-- Direccion IP.
-- Dispositivo o navegador.
+- `CREATE`, `UPDATE`, `DELETE` (flujo BD)
+- `INSERT`, `CHANGE_STATUS` (flujo app)
+
+Campos clave registrados:
+
+- `old_data`, `new_data`
+- `user_id`, `username`, `source`
+- `ip_address`, `user_agent`
+- `transaction_id`, `is_succesfull`, `error_message`
+
+Detalle tecnico:
+
+- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
 
 ---
 
@@ -263,7 +307,7 @@ Por otro lado, cuando `uses_period_groups` es verdadero, los grupos si estan rel
 
 El sistema tambien cuenta con la tabla `images`, que almacena la informacion de las imagenes utilizadas, y la tabla `colors`, que define colores representativos que pueden utilizarse para identificar visualmente las materias dentro de los horarios.
 
-La tabla `subjects` contiene las materias que ofrece la universidad, incluyendo informacion como nombre, codigo, horas por semana y si son obligatorias.
+La tabla `subjects` contiene las materias que ofrece la universidad, incluyendo informacion como nombre, codigo, horas por semana y si son obligatorias. Tambien maneja la bandera `is_restricted_to_classroom_types`, que habilita restricciones por tipo de aula. Cuando esa bandera esta activa, la tabla `subjects_classroom_types` guarda los tipos de aula permitidos para la materia.
 
 Los periodos academicos se manejan mediante la tabla `academic_periods`, donde se definen elementos como el nombre del periodo (por ejemplo, "Mayo - Agosto"), su orden dentro del anio y el anio correspondiente. Cuando los grupos estan relacionados con periodos, el campo `is_active` indica cual es el periodo vigente en el que se esta trabajando.
 
@@ -277,10 +321,10 @@ En cuanto a los profesores, la tabla `teachers` contiene su informacion basica, 
 
 Los turnos se definen en la tabla `shifts`, donde se establecen opciones como matutino, vespertino o mixto, junto con sus horarios correspondientes.
 
-Las aulas se gestionan mediante varias tablas. `classroom_types` define los tipos de aula, como salon, laboratorio o compuaula. `classrooms` contiene la informacion de los espacios fisicos, incluyendo nombre, codigo, ubicacion y si son restringidos. Cuando un aula es restringida, la tabla `classroom_careers` indica a que carreras pertenece exclusivamente.
+Las aulas se gestionan mediante varias tablas. `classroom_types` define los tipos de aula, como salon, laboratorio o compuaula. `classrooms` contiene la informacion de los espacios fisicos, incluyendo nombre, codigo, ubicacion y si son restringidos por carrera o por materia. Cuando un aula es restringida por carrera (`is_restricted = 1`), la tabla `classroom_careers` indica a que carreras pertenece exclusivamente. Cuando un aula es restringida por materia (`is_restricted_to_subjects = 1`), la tabla `classroom_subjects` indica que materias pueden usarla.
 
 Las modalidades se almacenan en la tabla `modalities`, donde se definen tipos como presencial, en linea, mixta o fines de semana. Estas pueden incluir configuraciones adicionales en formato JSON, como los dias permitidos para clases y la cantidad de dias que requieren el uso de un aula.
 
-El sistema tambien incluye una tabla de auditoria llamada `audit_logs`, que registra las acciones realizadas sobre los datos, como inserciones, actualizaciones y eliminaciones, junto con informacion del usuario, la direccion IP y el dispositivo utilizado.
+El sistema tambien incluye una tabla de auditoria llamada `audit_logs`, la cual registra tanto operaciones exitosas (via triggers) como errores de aplicacion (via backend), incorporando informacion de usuario, IP, user-agent, accion, transaccion y mensaje de error cuando aplica.
 
 Finalmente, es importante considerar que las tablas marcadas en color naranja corresponden a catalogos o entidades cuya informacion rara vez cambia. Por ello, en la mayoria de los casos solo requieren operaciones de consulta (`GET`). De manera opcional, pueden permitir operaciones de creacion, actualizacion o eliminacion, pero unicamente para usuarios con rol de administrador. La unica excepcion es la tabla `roles`, la cual no debe modificarse bajo ninguna circunstancia.

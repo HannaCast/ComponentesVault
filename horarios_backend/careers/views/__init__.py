@@ -16,3 +16,14 @@ from .career_period_exceptions import (
     CareerPeriodExceptionDetailView,
     CareerPeriodExceptionListView,
 )
+
+from .career_subjects import (
+    CareerSubjectDetailView,
+    CareerSubjectListView,
+)
+from .groups import (
+    GroupDetailView,
+    GroupListView,
+    GroupPaginatedView,
+    GroupToggleStatusView,
+)

@@ -5,12 +5,12 @@ import App from './App.jsx'
 
 const rootElement = document.documentElement;
 
-if (!rootElement.getAttribute('data-theme')) {
-  rootElement.setAttribute('data-theme', 'light');
+if (!rootElement.dataset.theme) {
+  rootElement.dataset.theme = 'light';
 }
 
-if (!rootElement.getAttribute('data-accent')) {
-  rootElement.setAttribute('data-accent', 'blue');
+if (!rootElement.dataset.accent) {
+  rootElement.dataset.accent = 'blue';
 }
 
 createRoot(document.getElementById('root')).render(

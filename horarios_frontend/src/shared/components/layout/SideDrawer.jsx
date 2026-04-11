@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { X } from 'lucide-react';
 
@@ -124,4 +125,15 @@ export const SideDrawer = ({
       </div>
     </Dialog>
   );
+};
+
+SideDrawer.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  title: PropTypes.node,
+  children: PropTypes.node,
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  showCloseButton: PropTypes.bool,
+  headerIcon: PropTypes.elementType,
+  headerBadge: PropTypes.node,
 };

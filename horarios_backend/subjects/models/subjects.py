@@ -11,6 +11,7 @@ class Subjects(models.Model):
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
     university = models.ForeignKey(Universities, models.DO_NOTHING)
+    is_restricted_to_classroom_types = models.IntegerField()
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()

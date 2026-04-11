@@ -30,13 +30,18 @@ class AcademicPeriods(models.Model):
 class AuditLogs(models.Model):
     id = models.BigAutoField(primary_key=True)
     user_id = models.IntegerField(blank=True, null=True)
+    username = models.CharField(max_length=100, blank=True, null=True)
+    source = models.CharField(max_length=20, blank=True, null=True)
+    transaction_id = models.CharField(max_length=36, blank=True, null=True)
     table_name = models.CharField(max_length=100)
     record_id = models.IntegerField(blank=True, null=True)
-    action = models.CharField(max_length=6)
-    former_data = models.JSONField()
+    action = models.CharField(max_length=13)
+    old_data = models.JSONField()
     new_data = models.JSONField(blank=True, null=True)
     ip_address = models.CharField(max_length=45, blank=True, null=True)
     user_agent = models.CharField(max_length=255, blank=True, null=True)
+    is_succesfull = models.IntegerField(blank=True, null=True)
+    error_message = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField()
 
     class Meta:
@@ -108,6 +113,20 @@ class ClassroomCareers(models.Model):
         db_table = 'classroom_careers'
 
 
+class ClassroomSubjects(models.Model):
+    subject = models.ForeignKey('Subjects', models.DO_NOTHING)
+    classroom = models.ForeignKey('Classrooms', models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'classroom_subjects'
+
+
 class ClassroomTypes(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
@@ -132,6 +151,7 @@ class Classrooms(models.Model):
     building_code = models.CharField(max_length=20, blank=True, null=True)
     universities = models.ForeignKey('Universities', models.DO_NOTHING)
     is_restricted = models.IntegerField()
+    is_restricted_to_subjects = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
@@ -204,7 +224,7 @@ class Modalities(models.Model):
     require_classroom = models.IntegerField()
     status = models.IntegerField()
     configurations = models.JSONField()
-    universitiy = models.ForeignKey('Universities', models.DO_NOTHING)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
@@ -242,6 +262,28 @@ class Roles(models.Model):
         db_table = 'roles'
 
 
+class ScheduleVersions(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    label = models.CharField(max_length=100)
+    university = models.ForeignKey('Universities', models.DO_NOTHING)
+    academic_period = models.ForeignKey(AcademicPeriods, models.DO_NOTHING, blank=True, null=True)
+    parameters = models.JSONField()
+    data = models.JSONField()
+    assigned_count = models.IntegerField()
+    unassigned_count = models.IntegerField()
+    is_confirmed = models.IntegerField()
+    confirmed_at = models.DateTimeField(blank=True, null=True)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'schedule_versions'
+
+
 class Shifts(models.Model):
     name = models.CharField(max_length=100)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
@@ -268,6 +310,7 @@ class Subjects(models.Model):
     hours_per_week = models.IntegerField()
     color = models.ForeignKey(Colors, models.DO_NOTHING)
     university = models.ForeignKey('Universities', models.DO_NOTHING)
+    is_restricted_to_classroom_types = models.IntegerField()
     is_mandatory = models.IntegerField()
     status = models.IntegerField()
     is_deleted = models.IntegerField()
@@ -279,6 +322,20 @@ class Subjects(models.Model):
     class Meta:
         managed = False
         db_table = 'subjects'
+
+
+class SubjectsClassroomTypes(models.Model):
+    subject = models.ForeignKey(Subjects, models.DO_NOTHING)
+    classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'subjects_classroom_types'
 
 
 class TeacherAvailabilities(models.Model):
@@ -349,7 +406,7 @@ class Universities(models.Model):
     name = models.CharField(max_length=100)
     short_name = models.CharField(max_length=10, blank=True, null=True)
     institution_code = models.CharField(max_length=45, blank=True, null=True)
-    image = models.ForeignKey(Images, models.DO_NOTHING)
+    image = models.ForeignKey(Images, models.DO_NOTHING, blank=True, null=True)
     user = models.ForeignKey('Users', models.DO_NOTHING)
     start_time = models.TimeField()
     end_time = models.TimeField()
@@ -367,11 +424,27 @@ class Universities(models.Model):
         db_table = 'universities'
 
 
+class UniversityClassroomTypePriorities(models.Model):
+    university = models.ForeignKey(Universities, models.DO_NOTHING)
+    classroom_type = models.ForeignKey(ClassroomTypes, models.DO_NOTHING)
+    priority = models.IntegerField()
+    is_deleted = models.IntegerField()
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'university_classroom_type_priorities'
+
+
 class UserConfigurations(models.Model):
     user = models.ForeignKey('Users', models.DO_NOTHING)
     selected_university = models.ForeignKey(Universities, models.DO_NOTHING, blank=True, null=True)
     theme = models.CharField(max_length=10, db_comment='El tema de la aplicación, ya sea oscuro (dark) o blanco (light)')
     accent = models.CharField(max_length=10, db_comment='el color de la interfaz, ejemplo, rojo, verde, azul')
+    schedule_generation = models.JSONField()
     status = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)

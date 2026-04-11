@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * AppLoadingScreen
@@ -25,4 +26,8 @@ export const AppLoadingScreen = ({ message = 'Cargando aplicacion...' }) => {
       </div>
     </div>
   );
+};
+
+AppLoadingScreen.propTypes = {
+  message: PropTypes.node,
 };
