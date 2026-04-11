@@ -47,7 +47,14 @@ export const CareerForm = ({
   const [newExceptionPeriod, setNewExceptionPeriod] = useState('');
   const [newExceptionReason, setNewExceptionReason] = useState('');
   const [exceptionBusyId, setExceptionBusyId] = useState(null);
+  /** Excepciones locales al crear carrera (se envían en el mismo POST). */
+  const [pendingPeriodExceptions, setPendingPeriodExceptions] = useState([]);
   const previousModeRef = useRef(mode);
+
+  const newTempId = () =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   useEffect(() => {
     if (!initialData) {
@@ -81,6 +88,7 @@ export const CareerForm = ({
       setFormData(createDefaultFormData());
       setFormErrors({});
       setShowAddException(false);
+      setPendingPeriodExceptions([]);
     }
   }, [mode, initialData]);
 
@@ -142,12 +150,56 @@ export const CareerForm = ({
     if (sn) payload.short_name = sn;
     if (code) payload.code = code;
 
+    if (mode === 'create' && pendingPeriodExceptions.length > 0) {
+      payload.period_exceptions = pendingPeriodExceptions.map((ex) => ({
+        period_number: Number(ex.period_number),
+        reason: (ex.reason || '').trim(),
+      }));
+    } else if (careerId && !periodExceptionsLoading) {
+      payload.period_exceptions = (periodExceptions || []).map((ex) => ({
+        period_number: Number(ex.period_number),
+        reason: (ex.reason || '').trim(),
+      }));
+    }
+
     onSubmit(payload);
   };
 
   const handleAddException = async () => {
     const period = Number.parseInt(newExceptionPeriod, 10);
-    if (!careerId || !Number.isFinite(period) || period <= 0) {
+    if (!Number.isFinite(period) || period <= 0) {
+      return;
+    }
+
+    const totalPeriods = Number.parseInt(formData.total_periods, 10);
+    if (Number.isFinite(totalPeriods) && period > totalPeriods) {
+      setFormErrors((prev) => ({
+        ...prev,
+        total_periods:
+          'El número de periodo de la excepción no puede ser mayor que el total de periodos.',
+      }));
+      return;
+    }
+
+    if (mode === 'create') {
+      if (pendingPeriodExceptions.some((p) => Number(p.period_number) === period)) {
+        return;
+      }
+      setPendingPeriodExceptions((prev) => [
+        ...prev,
+        {
+          tempId: newTempId(),
+          period_number: period,
+          reason: newExceptionReason.trim(),
+        },
+      ]);
+      setNewExceptionPeriod('');
+      setNewExceptionReason('');
+      setShowAddException(false);
+      return;
+    }
+
+    if (!careerId) {
       return;
     }
 
@@ -167,23 +219,24 @@ export const CareerForm = ({
   };
 
   const handleRemoveException = async (exception) => {
+    if (mode === 'create' && exception?.tempId) {
+      setPendingPeriodExceptions((prev) => prev.filter((x) => x.tempId !== exception.tempId));
+      return;
+    }
     if (!careerId || !exception?.id) return;
     setExceptionBusyId(exception.id);
     await onDeletePeriodException(exception.id, careerId);
     setExceptionBusyId(null);
   };
 
-  const canManageExceptions = Boolean(careerId);
+  const canManageExceptions = Boolean(careerId) || mode === 'create';
+  const displayExceptions =
+    mode === 'create' ? pendingPeriodExceptions : periodExceptions;
+
   let periodExceptionsContent = null;
-  if (periodExceptionsLoading) {
+  if (careerId && periodExceptionsLoading) {
     periodExceptionsContent = <p className="text-sm text-[var(--text-secondary)]">Cargando excepciones…</p>;
-  } else if (!canManageExceptions) {
-    periodExceptionsContent = (
-      <p className="text-sm italic text-[var(--text-tertiary)]">
-        No hay excepciones configuradas
-      </p>
-    );
-  } else if (periodExceptions.length === 0) {
+  } else if (displayExceptions.length === 0) {
     periodExceptionsContent = (
       <p className="text-sm italic text-[var(--text-tertiary)]">
         No hay excepciones configuradas
@@ -192,32 +245,32 @@ export const CareerForm = ({
   } else {
     periodExceptionsContent = (
       <ul className="space-y-2">
-        {periodExceptions.map((ex) => (
-          <li
-            key={ex.id}
-            className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
-          >
-            <span>
-              <span className="font-medium">Periodo {ex.period_number}</span>
-              {ex.reason ? (
-                <span className="text-[var(--text-secondary)]"> — {ex.reason}</span>
-              ) : null}
-            </span>
-            <button
-              type="button"
-              className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)]"
-              onClick={() => handleRemoveException(ex)}
-              disabled={exceptionBusyId != null}
-              aria-label="Eliminar excepción"
+        {displayExceptions.map((ex) => {
+          const rowKey = mode === 'create' ? ex.tempId : ex.id;
+          const busy = mode === 'create' ? false : exceptionBusyId === ex.id;
+          return (
+            <li
+              key={rowKey}
+              className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
             >
-              {exceptionBusyId === ex.id ? (
-                <span className="text-xs">…</span>
-              ) : (
-                <Trash2 size={16} />
-              )}
-            </button>
-          </li>
-        ))}
+              <span>
+                <span className="font-medium">Periodo {ex.period_number}</span>
+                {ex.reason ? (
+                  <span className="text-[var(--text-secondary)]"> — {ex.reason}</span>
+                ) : null}
+              </span>
+              <button
+                type="button"
+                className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)]"
+                onClick={() => handleRemoveException(ex)}
+                disabled={exceptionBusyId != null}
+                aria-label="Eliminar excepción"
+              >
+                {busy ? <span className="text-xs">…</span> : <Trash2 size={16} />}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     );
   }
@@ -299,15 +352,11 @@ export const CareerForm = ({
                 type="button"
                 className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50 disabled:no-underline"
                 onClick={() => setShowAddException((v) => !v)}
-                disabled={isLoading || periodExceptionsLoading}
+                disabled={isLoading || (Boolean(careerId) && periodExceptionsLoading)}
               >
                 + Agregar Excepción
               </button>
-            ) : (
-              <p className="text-xs text-[var(--text-tertiary)]">
-                Guarda la carrera para configurar excepciones de periodos.
-              </p>
-            )}
+            ) : null}
           </div>
 
           {canManageExceptions && showAddException && (
