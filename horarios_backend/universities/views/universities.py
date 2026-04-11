@@ -1,18 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
-from drf_spectacular.openapi import OpenApiTypes
 from core.api_response import ApiResponse
 from universities.models import Universities
 from universities.serializers import UniversityWriteSerializer
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.utils import timezone
 
 
 @extend_schema(tags=['Universities'])
 class UniversityCreate(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     @extend_schema(
         request=UniversityWriteSerializer,
@@ -56,7 +55,7 @@ class UniversityList(APIView):
 @extend_schema(tags=['Universities'])
 class UniversityDetail(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def get_object(self, university_id):
         try:
