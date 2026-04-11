@@ -25,8 +25,16 @@
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
+| `POST` | `/api/v1/auth/register/` | Registrar usuario. Crea la cuenta y genera un token de verificacion (sin envio de correo). |
+| `POST` | `/api/v1/auth/register-admin/` | Registrar administrador (solo admin autenticado). Genera token de verificacion. |
+| `POST` | `/api/v1/auth/verify-account/` | Verificar cuenta con token y activar `is_verificated = 1`. |
 | `POST` | `/api/v1/auth/login/` | Iniciar sesion (email + password). Retorna token. |
+| `POST` | `/api/v1/auth/refresh/` | Renovar access token usando refresh token en cookie HttpOnly. |
 | `POST` | `/api/v1/auth/logout/` | Cerrar sesion. Invalida el token. |
+
+Notas:
+- `login` solo permite acceso cuando `status = 1` e `is_verificated = 1`.
+- El token de verificacion se almacena en `user_tokens` con tipo `email_verification`.
 
 ---
 

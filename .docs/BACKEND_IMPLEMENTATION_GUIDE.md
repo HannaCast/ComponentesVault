@@ -424,6 +424,7 @@ Endpoints activos:
 - `POST /api/v1/auth/login/`
 - `POST /api/v1/auth/register/`
 - `POST /api/v1/auth/register-admin/`
+- `POST /api/v1/auth/verify-account/`
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/refresh/`
 - `GET  /api/v1/user/my-info/`
@@ -438,6 +439,12 @@ Endpoints activos:
 Variables de entorno requeridas para descifrado en backend:
 - `RSA_PRIVATE_KEY` (contenido PEM)
 - `RSA_PRIVATE_KEY_PATH` (ruta al archivo PEM)
+
+Flujo de verificacion de cuenta:
+- Al registrar (`register` / `register-admin`) se crea un token en `user_tokens` con tipo `email_verification`.
+- No se envia correo de forma automatica; el token queda disponible para verificacion manual en backend.
+- `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo, y marca `users.is_verificated = 1`.
+- `login` y cualquier endpoint autenticado rechazan usuarios con `status != 1` o `is_verificated != 1`.
 
 ---
 

@@ -1,8 +1,17 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 
 class CookieJWTAuthentication(JWTAuthentication):
     """ Autentica usando el header Authorization o la cookie access_token. """
+
+    @staticmethod
+    def _ensure_user_is_active_and_verified(user):
+        if getattr(user, 'status', 0) != 1:
+            raise AuthenticationFailed('La cuenta esta inactiva')
+
+        if getattr(user, 'is_verificated', 0) != 1:
+            raise AuthenticationFailed('La cuenta no ha sido verificada')
 
     def authenticate(self, request):
         header = self.get_header(request)
@@ -16,4 +25,6 @@ class CookieJWTAuthentication(JWTAuthentication):
             return None
 
         validated_token = self.get_validated_token(raw_token)
-        return self.get_user(validated_token), validated_token
+        user = self.get_user(validated_token)
+        self._ensure_user_is_active_and_verified(user)
+        return user, validated_token

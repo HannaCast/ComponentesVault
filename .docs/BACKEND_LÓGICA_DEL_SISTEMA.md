@@ -10,10 +10,19 @@ El sistema genera horarios academicos en funcion de la estructura organizacional
 
 Existen las tablas `users` y `roles`, ambas parte de la gestion de acceso:
 
-- `users`: almacena nombre, correo, contrasena, estado y ultimo acceso.
+- `users`: almacena nombre, correo, contrasena, estado, bandera de verificacion de cuenta (`is_verificated`) y ultimo acceso.
 - `roles`: define tipos de usuario (administrador, coordinador, etc.).
 
 Cada usuario tiene un rol asignado, el cual determina sus permisos.
+
+### Verificacion de cuenta
+
+La verificacion de cuenta se apoya en la tabla `user_tokens`:
+
+- `user_tokens`: guarda tokens de un solo uso, con expiracion, para flujos como `email_verification`.
+- Al crear un usuario (`register` o `register-admin`), se genera un token de verificacion y se persiste en `user_tokens`.
+- El endpoint `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo; si es valido marca `users.is_verificated = 1` y marca el token como usado (`used_at`).
+- El login y cualquier endpoint autenticado solo permiten acceso cuando `users.status = 1` y `users.is_verificated = 1`.
 
 > La tabla `roles` es un catalogo de solo lectura: solo permite operaciones `GET`.
 
