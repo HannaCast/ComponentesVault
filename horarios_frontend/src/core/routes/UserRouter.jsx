@@ -6,7 +6,8 @@ import { AccountSettingsPage } from '../../modules/user/features/settings/pages/
 import { ScheduleGeneratorPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleGeneratorPage';
 import { ScheduleVersionDetailPage } from '../../modules/user/features/scheduleGenerator/pages/ScheduleVersionDetailPage';
 import { CareersPage } from '../../modules/user/features/careers/pages/CareersPage';
-import {GroupsPage} from '../../modules/user/features/groups/pages/GroupsPage';
+import { GroupsPage } from '../../modules/user/features/groups/pages/GroupsPage';
+import { ClassroomsPage } from '../../modules/user/features/classrooms/pages/ClassroomsPage';
 
 const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
 const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
@@ -24,7 +25,7 @@ export const userRoutes = (
     <Route path="universidad/materias/editar/:id" element={<UserPlaceholderPage />} />
     <Route path="universidad/grupos" element={<GroupsPage />} />
     <Route path="universidad/profesores" element={<TeachersPage />} />
-    <Route path="universidad/aulas" element={<UserPlaceholderPage />} />
+    <Route path="universidad/aulas" element={<ClassroomsPage />} />
     <Route path="ajustes" element={<AccountSettingsPage />} />
   </Route>
 );
