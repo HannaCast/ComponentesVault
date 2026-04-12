@@ -16,6 +16,7 @@ const extractDataFromResponse = (response) => ({
   selected_university: response.data.data.selected_university,
   theme: response.data.data.theme || 'light',
   accent: response.data.data.accent || 'blue',
+  schedule_generation: response.data.data.schedule_generation || {},
 });
 
 export const AuthProvider = ({ children }) => {
