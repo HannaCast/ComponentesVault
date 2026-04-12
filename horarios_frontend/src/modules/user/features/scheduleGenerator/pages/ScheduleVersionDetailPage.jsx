@@ -5,7 +5,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
-import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { ScheduleGeneratedPanel } from '../components/ScheduleGeneratedPanel';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
@@ -175,10 +174,6 @@ export const ScheduleVersionDetailPage = () => {
 
   const isDraftVersion = Boolean(selectedVersion) && Number(selectedVersion?.is_confirmed) !== 1;
   const isRegenerating = pendingAction?.type === 'generate';
-
-  if (!selectedUniversity) {
-    return <SelectedUniversityAlert />;
-  }
 
   return (
     <div className="space-y-6">

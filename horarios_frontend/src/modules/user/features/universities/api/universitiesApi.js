@@ -9,6 +9,9 @@ export const deleteUniversity = (universityId) =>
 export const getUniversityProfile = (universityId) =>
   apiToken.get(`/api/v1/universities/${universityId}/profile/`);
 
+/**
+ * @param {number|null} universityId - Id de universidad o `null` para dejar sin universidad activa.
+ */
 export const putSelectedUniversity = (universityId) =>
   apiToken.put('/api/v1/user/configurations/selected-university/', {
     selected_university_id: universityId,
