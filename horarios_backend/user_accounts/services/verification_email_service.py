@@ -12,7 +12,7 @@ _EMAIL_TEMPLATE_CONFIG = {
 
 def _build_verification_url(token: str) -> str:
     """Build account verification URL from LINK_FRONTEND + written path."""
-    return build_frontend_url('/login', {'verifyToken': token})
+    return build_frontend_url('/verificar-cuenta', {'token': token})
 
 
 def send_auth_email(
