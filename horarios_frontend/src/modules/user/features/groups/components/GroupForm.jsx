@@ -153,37 +153,38 @@ export const GroupForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 p-6" noValidate>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-12">
           <Input
-            label="Nombre del Grupo *"
+            label="Nombre del grupo"
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="Ej: 3D"
             error={formErrors.name}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-12">
           <Select
-            label="Carrera *"
+            label="Carrera"
             options={careerOptions}
             value={formData.career}
             onChange={(e) => handleInputChange('career', e.target.value)}
-            placeholder="Seleccionar carrera"
             error={formErrors.career}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-6">
           <Input
-            label="Periodo *"
+            label="Periodo"
             type="number"
             min="1"
             value={formData.period_number}
@@ -191,13 +192,14 @@ export const GroupForm = ({
             placeholder="Ej: 1"
             error={formErrors.period_number}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-6">
           <Input
-            label="Letra del Grupo"
+            label="Letra del grupo"
             type="text"
             value={formData.letter}
             onChange={handleLetterChange}
@@ -205,19 +207,20 @@ export const GroupForm = ({
             maxLength={1}
             error={formErrors.letter}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-12">
           <Select
-            label="Turno *"
+            label="Turno"
             options={shiftOptions}
             value={formData.shift}
             onChange={(e) => handleInputChange('shift', e.target.value)}
-            placeholder="Seleccionar turno"
             error={formErrors.shift}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
