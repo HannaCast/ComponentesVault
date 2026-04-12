@@ -1,7 +1,26 @@
 import apiToken from '@requests/apiToken';
 
-export const getUniversities = () =>
-  apiToken.get('/api/v1/universities/');
+// Obtener universidades paginadas con filtros/orden desde backend
+export const getUniversitiesPaginated = ({
+  page = 1,
+  limit = 10,
+  search = '',
+  sortBy = 'name',
+  order = 'ASC',
+} = {}) => {
+  const params = {
+    page,
+    limit,
+    sortBy,
+    order,
+  };
+
+  if (search) {
+    params.search = search;
+  }
+
+  return apiToken.get('/api/v1/universities/', { params });
+};
 
 export const deleteUniversity = (universityId) =>
   apiToken.delete(`/api/v1/universities/${universityId}/`);

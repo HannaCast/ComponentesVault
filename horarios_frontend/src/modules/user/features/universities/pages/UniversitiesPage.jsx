@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, School, Trash2 } from 'lucide-react';
 import { UniversityLogoMark } from '../components/UniversityLogoMark';
@@ -13,6 +13,7 @@ import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 import { EmptyStatePanel } from '@shared/components/tables/EmptyStatePanel';
 import { Pagination } from '@shared/components/tables/Pagination';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { useUniversities } from '../hooks/useUniversities';
 import { parseUniversityApiError } from '../utils/parseUniversityApiError';
 
@@ -63,6 +64,7 @@ export const UniversitiesPage = () => {
   const [selectingId, setSelectingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageChangeTimeoutRef = useRef(null);
+  const { shouldRun } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, university: null });
@@ -77,17 +79,31 @@ export const UniversitiesPage = () => {
     ordenAscendente,
     setOrdenAscendente,
     fetchUniversities,
-    filteredUniversities,
+    universities,
+    universitiesMeta,
     deleteUniversity,
   } = useUniversities();
 
-  const totalItems = filteredUniversities.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const totalItems = Number(universitiesMeta?.total) || 0;
+  const totalPages = Math.max(1, Number(universitiesMeta?.totalPages) || 1);
 
-  const pagedUniversities = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredUniversities.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredUniversities, currentPage, ITEMS_PER_PAGE]);
+  const buildListParams = useCallback((overrides = {}) => ({
+    page: overrides.page ?? currentPage,
+    limit: overrides.limit ?? ITEMS_PER_PAGE,
+    search: overrides.search ?? searchTerm,
+    asc: overrides.asc ?? ordenAscendente,
+  }), [currentPage, ITEMS_PER_PAGE, searchTerm, ordenAscendente]);
+
+  const fetchUniversitiesList = useCallback(async (overrides = {}) => {
+    const params = buildListParams(overrides);
+    const signature = buildRequestSignature(params, ['page', 'limit', 'search', 'asc']);
+
+    if (!shouldRun(signature)) {
+      return;
+    }
+
+    await fetchUniversities(params);
+  }, [buildListParams, shouldRun, fetchUniversities]);
 
   const goToCreate = () => navigate('/usuario/universidades/nueva');
   const goToDetail = (id) => navigate(`/usuario/universidades/${id}`);
@@ -160,7 +176,7 @@ export const UniversitiesPage = () => {
       const label = uni.name || uni.short_name || 'Universidad';
       toast.success(`Se eliminó correctamente «${label}».`);
       setDeleteModal({ isOpen: false, university: null });
-      await fetchUniversities();
+      await fetchUniversitiesList();
       if (Number(user?.selected_university?.id) === Number(uni.id)) {
         try {
           await putSelectedUniversity(null);
@@ -178,8 +194,8 @@ export const UniversitiesPage = () => {
   };
 
   useEffect(() => {
-    fetchUniversities();
-  }, [fetchUniversities]);
+    fetchUniversitiesList();
+  }, [fetchUniversitiesList]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -193,8 +209,13 @@ export const UniversitiesPage = () => {
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
+      return;
     }
-  }, [currentPage, totalPages]);
+
+    if (totalItems > 0 && Array.isArray(universities) && universities.length === 0 && currentPage > 1) {
+      setCurrentPage((prev) => Math.max(1, prev - 1));
+    }
+  }, [currentPage, totalPages, totalItems, universities]);
 
   useEffect(() => {
     if (error) {
@@ -253,7 +274,7 @@ export const UniversitiesPage = () => {
 
       {loading ? (
         <LoadingStatePanel message="Cargando universidades..." />
-      ) : !filteredUniversities.length ? (
+      ) : !universities.length ? (
         <EmptyStatePanel
           icon={emptyState.icon}
           title={emptyState.title}
@@ -265,7 +286,7 @@ export const UniversitiesPage = () => {
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pagedUniversities.map((u) => {
+            {universities.map((u) => {
               const selected = isSelected(u.id);
               const selectionBusy = selectingId != null;
               const busy = selectingId === u.id;

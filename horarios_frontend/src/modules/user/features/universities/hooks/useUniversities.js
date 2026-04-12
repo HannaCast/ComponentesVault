@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
-  getUniversities,
+  getUniversitiesPaginated,
   getUniversityProfile,
   getPeriodTypes,
   postFullUniversitySetup,
@@ -11,6 +11,12 @@ import {
 
 export const useUniversities = () => {
   const [universities, setUniversities] = useState([]);
+  const [universitiesMeta, setUniversitiesMeta] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,17 +26,59 @@ export const useUniversities = () => {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [universityProfile, setUniversityProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const lastQueryRef = useRef({
+    page: 1,
+    limit: 10,
+    search: '',
+    asc: true,
+  });
 
-  const fetchUniversities = useCallback(async () => {
+  const fetchUniversities = useCallback(async ({
+    page = 1,
+    limit = 10,
+    search = '',
+    asc = true,
+  } = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getUniversities();
+
+      const order = asc ? 'ASC' : 'DESC';
+
+      const response = await getUniversitiesPaginated({
+        page,
+        limit,
+        search,
+        sortBy: 'name',
+        order,
+      });
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const meta = response.data?.meta;
+
+      if (meta && typeof meta === 'object') {
+        setUniversitiesMeta({
+          page: Number(meta.page) || 1,
+          limit: Number(meta.limit) || limit,
+          total: Number(meta.total) || 0,
+          totalPages: Number(meta.totalPages) || 1,
+        });
+      } else {
+        const fallbackLimit = Number(limit) || rows.length || 1;
+        setUniversitiesMeta({
+          page: Number(page) || 1,
+          limit: fallbackLimit,
+          total: rows.length,
+          totalPages: fallbackLimit > 0 ? Math.max(1, Math.ceil(rows.length / fallbackLimit)) : 1,
+        });
+      }
+
       setUniversities(rows);
+      lastQueryRef.current = { page, limit, search, asc };
     } catch (err) {
       console.error('Error al cargar universidades:', err);
       setError('No se pudieron cargar las universidades. Intenta de nuevo.');
+      setUniversities([]);
+      setUniversitiesMeta({ page: 1, limit: 10, total: 0, totalPages: 1 });
     } finally {
       setLoading(false);
     }
@@ -100,28 +148,9 @@ export const useUniversities = () => {
     return response;
   }, []);
 
-  const filteredUniversities = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    let rows = Array.isArray(universities) ? [...universities] : [];
-
-    if (q) {
-      rows = rows.filter((u) => {
-        const name = String(u.name || '').toLowerCase();
-        const shortName = String(u.short_name || '').toLowerCase();
-        return name.includes(q) || shortName.includes(q);
-      });
-    }
-
-    rows.sort((a, b) => {
-      const an = String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' });
-      return ordenAscendente ? an : -an;
-    });
-
-    return rows;
-  }, [universities, searchTerm, ordenAscendente]);
-
   return {
     universities,
+    universitiesMeta,
     loading,
     error,
     setError,
@@ -130,7 +159,6 @@ export const useUniversities = () => {
     ordenAscendente,
     setOrdenAscendente,
     fetchUniversities,
-    filteredUniversities,
     periodTypeOptions,
     fetchPeriodTypes,
     createUniversityFullSetup,
