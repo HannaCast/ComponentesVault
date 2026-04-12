@@ -3,15 +3,14 @@ import PropTypes from 'prop-types';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Landing } from '../../modules/auth/pages/Landing';
 import { Login } from '../../modules/auth/pages/Login';
+import { Register } from '../../modules/auth/pages/Register';
+import { VerifyAccount } from '../../modules/auth/pages/VerifyAccount';
 import { useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { adminRoutes } from './AdminRouter';
 import { userRoutes } from './UserRouter';
 import { AppLoadingScreen } from '@shared/pages/AppLoadingScreen';
 import { AppNotFoundScreen } from '@shared/pages/AppNotFoundScreen';
-
-// Placeholders — reemplazar con los componentes reales cuando estén listos
-const RegistroPage = () => <div>Registro — próximamente</div>;
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
@@ -132,7 +131,15 @@ export const AppRouter = () => {
             </RequireGuest>
           )}
         />
-        <Route path="/registro" element={<RegistroPage />} />
+        <Route
+          path="/registro"
+          element={(
+            <RequireGuest>
+              <Register />
+            </RequireGuest>
+          )}
+        />
+        <Route path="/verificar-cuenta" element={<VerifyAccount />} />
 
         {/* Privadas */}
         <Route element={<RequireAuth />}>

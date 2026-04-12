@@ -15,5 +15,9 @@ export const refreshSession = () => api.post('/api/v1/auth/refresh/');
 export const getUserConfiguration = () => api.get('/api/v1/user/configurations/');
 
 // Registrarse como nuevo usuario
-export const register = (email, password, role) =>
-	api.post("/api/v1/auth/register/", { email, password, role }, { encrypt: true });
+export const register = (payload) =>
+	api.post('/api/v1/auth/register/', payload, { encrypt: true });
+
+// Verificar cuenta desde token de correo
+export const verifyAccount = (token) =>
+	api.post('/api/v1/auth/verify-account/', { token }, { encrypt: true });

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
 import { useLogin } from '../hooks/useLogin';
 import { AuthTopBar } from '../components/AuthTopBar';
+import Input from '@shared/components/inputs/InputText';
+import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 const installLoginFonts = () => {
   const fontLinks = [
@@ -43,13 +44,14 @@ const applySystemThemeToRoot = () => {
   root.dataset.systemTheme = 'academic';
 };
 
+const INPUT_LABEL_STYLE = {
+  fontFamily: 'Manrope, sans-serif',
+};
+
 export const Login = () => {
   const navigate = useNavigate();
-  const emailInputId = 'login-email';
-  const passwordInputId = 'login-password';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isNavigatingToRegister, setIsNavigatingToRegister] = useState(false);
   const { loading, error, loginUser } = useLogin();
 
@@ -101,53 +103,27 @@ export const Login = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label
-                  htmlFor={emailInputId}
-                  className="ml-1 block text-sm font-semibold text-[var(--text-primary)]"
-                  style={{ fontFamily: 'Manrope, sans-serif' }}
-                >
-                  Correo Electrónico
-                </label>
-                <input
-                  id={emailInputId}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
-                  placeholder="correo@ejemplo.com"
-                  required
-                />
-              </div>
+              <Input
+                label="Correo Electrónico"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="correo@ejemplo.com"
+                required
+                colorVariant="default"
+                labelStyle={INPUT_LABEL_STYLE}
+              />
 
-              <div className="space-y-2">
-                <label
-                  htmlFor={passwordInputId}
-                  className="ml-1 block text-sm font-semibold text-[var(--text-primary)]"
-                  style={{ fontFamily: 'Manrope, sans-serif' }}
-                >
-                  Contraseña
-                </label>
-                <div className="relative">
-                  <input
-                    id={passwordInputId}
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 py-2.5 pr-11 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all duration-200 focus:border-[var(--accent)] focus:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent-subtle)]"
-                    placeholder="••••••••"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute top-1/2 right-4 -translate-y-1/2 cursor-pointer text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
-                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-              </div>
+              <Input
+                label="Contraseña"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                colorVariant="default"
+                labelStyle={INPUT_LABEL_STYLE}
+              />
 
               {error && (
                 <div
@@ -162,14 +138,15 @@ export const Login = () => {
                 </div>
               )}
 
-              <button
+              <ActionButton
                 type="submit"
+                label="Iniciar Sesión"
+                loading={loading}
+                loadingLabel="Iniciando sesión..."
                 disabled={loading}
-                className="w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
-              >
-                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-              </button>
+                variant="default"
+                className="shadow-lg shadow-[var(--accent-subtle)]"
+              />
             </form>
 
             <div className="mt-6 text-center">
