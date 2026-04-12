@@ -424,6 +424,7 @@ Endpoints activos:
 - `POST /api/v1/auth/login/`
 - `POST /api/v1/auth/register/`
 - `POST /api/v1/auth/register-admin/`
+- `POST /api/v1/auth/verify-account/`
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/refresh/`
 - `GET  /api/v1/user/my-info/`
@@ -438,6 +439,28 @@ Endpoints activos:
 Variables de entorno requeridas para descifrado en backend:
 - `RSA_PRIVATE_KEY` (contenido PEM)
 - `RSA_PRIVATE_KEY_PATH` (ruta al archivo PEM)
+
+Flujo de verificacion de cuenta:
+- Al registrar (`register` / `register-admin`) se crea un token en `user_tokens` con tipo `email_verification`.
+- El backend envia correo automaticamente usando template Django HTML (`emails/verification_account.html`).
+- `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo, marca `users.is_verificated = 1` y crea `user_configurations` por defecto (`theme=light`, `accent=blue`, `schedule_generation={"draft_schedule_university_ids":[]}`, `selected_university_id=NULL`, `status=1`).
+- Al verificar exitosamente, se limpian cookies `access_token` y `refresh_token` para evitar auto-login no intencional.
+- `login` y cualquier endpoint autenticado rechazan usuarios con `status != 1` o `is_verificated != 1`.
+- Las respuestas de `register` y `register-admin` ya no exponen el token de verificacion; solo confirman el correo destino.
+- Los links de correo se construyen de forma hardcodeada por modulo usando `LINK_FRONTEND` como base.
+- Los endpoints publicos de auth (`login`, `refresh`, `register`, `verify-account`, `logout`) no usan autenticacion por defecto para evitar errores por cookies access viejas o invalidas.
+
+Variables de entorno para envio de correo:
+- `EMAIL_BACKEND`
+- `EMAIL_HOST`
+- `EMAIL_PORT`
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `EMAIL_USE_TLS`
+- `EMAIL_USE_SSL`
+- `EMAIL_TIMEOUT`
+- `DEFAULT_FROM_EMAIL`
+- `LINK_FRONTEND`
 
 ---
 

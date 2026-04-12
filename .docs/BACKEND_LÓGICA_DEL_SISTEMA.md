@@ -10,10 +10,21 @@ El sistema genera horarios academicos en funcion de la estructura organizacional
 
 Existen las tablas `users` y `roles`, ambas parte de la gestion de acceso:
 
-- `users`: almacena nombre, correo, contrasena, estado y ultimo acceso.
+- `users`: almacena nombre, correo, contrasena, estado, bandera de verificacion de cuenta (`is_verificated`) y ultimo acceso.
 - `roles`: define tipos de usuario (administrador, coordinador, etc.).
 
 Cada usuario tiene un rol asignado, el cual determina sus permisos.
+
+### Verificacion de cuenta
+
+La verificacion de cuenta se apoya en la tabla `user_tokens`:
+
+- `user_tokens`: guarda tokens de un solo uso, con expiracion, para flujos como `email_verification`.
+- Al crear un usuario (`register` o `register-admin`), se genera un token de verificacion y se persiste en `user_tokens`.
+- Durante el registro tambien se envia automaticamente un correo con plantilla de verificacion, siguiendo el estilo visual del acceso publico (Landing/Login).
+- El endpoint `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo; si es valido marca `users.is_verificated = 1`, crea `user_configurations` por defecto y marca el token como usado (`used_at`).
+- El login y cualquier endpoint autenticado solo permiten acceso cuando `users.status = 1` y `users.is_verificated = 1`.
+- Para evitar que cookies de acceso obsoletas rompan el registro/login/verificacion, los endpoints publicos de auth no aplican autenticacion por defecto.
 
 > La tabla `roles` es un catalogo de solo lectura: solo permite operaciones `GET`.
 
@@ -22,6 +33,8 @@ Cada usuario tiene un rol asignado, el cual determina sus permisos.
 ## Configuracion de usuario y contexto
 
 La tabla `user_configurations` contiene `selected_university_id`, que indica la universidad activa del usuario.
+
+Para nuevos usuarios, `selected_university_id` inicia en `NULL` hasta que el usuario elija universidad.
 
 Tambien contiene el campo JSON `schedule_generation`, usado por el backend para guardar estado de borradores por universidad:
 

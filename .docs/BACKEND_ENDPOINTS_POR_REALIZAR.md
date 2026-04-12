@@ -25,8 +25,18 @@
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
+| `POST` | `/api/v1/auth/register/` | Registrar usuario. Crea la cuenta, genera token de verificacion y envia correo. |
+| `POST` | `/api/v1/auth/register-admin/` | Registrar administrador (solo admin autenticado). Genera token y envia correo de verificacion. |
+| `POST` | `/api/v1/auth/verify-account/` | Verificar cuenta con token, activar `is_verificated = 1`, crear `user_configurations` por defecto e invalidar cookies de sesion. |
 | `POST` | `/api/v1/auth/login/` | Iniciar sesion (email + password). Retorna token. |
+| `POST` | `/api/v1/auth/refresh/` | Renovar access token usando refresh token en cookie HttpOnly. |
 | `POST` | `/api/v1/auth/logout/` | Cerrar sesion. Invalida el token. |
+
+Notas:
+- `login` solo permite acceso cuando `status = 1` e `is_verificated = 1`.
+- El token de verificacion se almacena en `user_tokens` con tipo `email_verification`.
+- El token no se expone en la respuesta de registro; se entrega por correo usando plantilla HTML.
+- La configuracion inicial de usuario se crea al verificar la cuenta con `theme=light`, `accent=blue`, `schedule_generation={"draft_schedule_university_ids":[]}`, `selected_university_id=NULL`, `status=1`.
 
 ---
 

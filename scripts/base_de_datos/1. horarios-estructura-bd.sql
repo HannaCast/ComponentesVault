@@ -41,12 +41,14 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`users` (
   `status` TINYINT NOT NULL DEFAULT 1,
   `role_id` INT NOT NULL,
   `last_login` DATETIME NULL,
+  `is_verificated` TINYINT NOT NULL DEFAULT 0,
   `created_at` DATETIME NULL,
   `created_by` VARCHAR(100) NULL,
   `updated_at` DATETIME NULL,
   `updated_by` VARCHAR(100) NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_user_role_idx` (`role_id` ASC) VISIBLE,
+  UNIQUE INDEX `email_UNIQUE` (`email` ASC) VISIBLE,
   CONSTRAINT `fk_user_role`
     FOREIGN KEY (`role_id`)
     REFERENCES `cdi_horarios`.`roles` (`id`)
@@ -748,6 +750,31 @@ CREATE TABLE IF NOT EXISTS `cdi_horarios`.`university_classroom_type_priorities`
   CONSTRAINT `fk_university_classroom_type_priorities_classroom_types1`
     FOREIGN KEY (`classroom_type_id`)
     REFERENCES `cdi_horarios`.`classroom_types` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `cdi_horarios`.`user_tokens`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `cdi_horarios`.`user_tokens` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `token` VARCHAR(64) NOT NULL,
+  `type` ENUM('email_verification', 'password_reset', 'email_change') NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `used_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  `created_by` VARCHAR(100) NULL,
+  `updated_at` DATETIME NULL,
+  `updated_by` VARCHAR(100) NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_user_tokens_users1_idx` (`user_id` ASC) VISIBLE,
+  UNIQUE INDEX `token_UNIQUE` (`token` ASC) VISIBLE,
+  CONSTRAINT `fk_user_tokens_users1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `cdi_horarios`.`users` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

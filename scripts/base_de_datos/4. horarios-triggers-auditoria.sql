@@ -1477,4 +1477,228 @@ BEGIN
     NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
 END$$
 
+
+-- ============================================================
+--  classroom_subjects
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trg_audit_classroom_subjects_after_insert$$
+CREATE TRIGGER trg_audit_classroom_subjects_after_insert
+AFTER INSERT ON `classroom_subjects` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'INSERT'),'CREATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'classroom_subjects',NEW.id,v_action,JSON_OBJECT(),
+    JSON_OBJECT('id',NEW.id,'subject_id',NEW.subject_id,'classroom_id',NEW.classroom_id,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_classroom_subjects_after_update$$
+CREATE TRIGGER trg_audit_classroom_subjects_after_update
+AFTER UPDATE ON `classroom_subjects` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'UPDATE'),'UPDATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'classroom_subjects',NEW.id,v_action,
+    JSON_OBJECT('id',OLD.id,'subject_id',OLD.subject_id,'classroom_id',OLD.classroom_id,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    JSON_OBJECT('id',NEW.id,'subject_id',NEW.subject_id,'classroom_id',NEW.classroom_id,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_classroom_subjects_after_delete$$
+CREATE TRIGGER trg_audit_classroom_subjects_after_delete
+AFTER DELETE ON `classroom_subjects` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'classroom_subjects',OLD.id,'DELETE',
+    JSON_OBJECT('id',OLD.id,'subject_id',OLD.subject_id,'classroom_id',OLD.classroom_id,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+
+-- ============================================================
+--  subjects_classroom_types
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trg_audit_subjects_classroom_types_after_insert$$
+CREATE TRIGGER trg_audit_subjects_classroom_types_after_insert
+AFTER INSERT ON `subjects_classroom_types` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'INSERT'),'CREATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'subjects_classroom_types',NEW.id,v_action,JSON_OBJECT(),
+    JSON_OBJECT('id',NEW.id,'subject_id',NEW.subject_id,'classroom_type_id',NEW.classroom_type_id,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_subjects_classroom_types_after_update$$
+CREATE TRIGGER trg_audit_subjects_classroom_types_after_update
+AFTER UPDATE ON `subjects_classroom_types` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'UPDATE'),'UPDATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'subjects_classroom_types',NEW.id,v_action,
+    JSON_OBJECT('id',OLD.id,'subject_id',OLD.subject_id,'classroom_type_id',OLD.classroom_type_id,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    JSON_OBJECT('id',NEW.id,'subject_id',NEW.subject_id,'classroom_type_id',NEW.classroom_type_id,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_subjects_classroom_types_after_delete$$
+CREATE TRIGGER trg_audit_subjects_classroom_types_after_delete
+AFTER DELETE ON `subjects_classroom_types` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'subjects_classroom_types',OLD.id,'DELETE',
+    JSON_OBJECT('id',OLD.id,'subject_id',OLD.subject_id,'classroom_type_id',OLD.classroom_type_id,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+
+-- ============================================================
+--  university_classroom_type_priorities
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trg_audit_university_classroom_type_priorities_after_insert$$
+CREATE TRIGGER trg_audit_university_classroom_type_priorities_after_insert
+AFTER INSERT ON `university_classroom_type_priorities` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'INSERT'),'CREATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'university_classroom_type_priorities',NEW.id,v_action,JSON_OBJECT(),
+    JSON_OBJECT('id',NEW.id,'university_id',NEW.university_id,'classroom_type_id',NEW.classroom_type_id,
+      'priority',NEW.priority,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_university_classroom_type_priorities_after_update$$
+CREATE TRIGGER trg_audit_university_classroom_type_priorities_after_update
+AFTER UPDATE ON `university_classroom_type_priorities` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'UPDATE'),'UPDATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'university_classroom_type_priorities',NEW.id,v_action,
+    JSON_OBJECT('id',OLD.id,'university_id',OLD.university_id,'classroom_type_id',OLD.classroom_type_id,
+      'priority',OLD.priority,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    JSON_OBJECT('id',NEW.id,'university_id',NEW.university_id,'classroom_type_id',NEW.classroom_type_id,
+      'priority',NEW.priority,'is_deleted',NEW.is_deleted,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_university_classroom_type_priorities_after_delete$$
+CREATE TRIGGER trg_audit_university_classroom_type_priorities_after_delete
+AFTER DELETE ON `university_classroom_type_priorities` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'university_classroom_type_priorities',OLD.id,'DELETE',
+    JSON_OBJECT('id',OLD.id,'university_id',OLD.university_id,'classroom_type_id',OLD.classroom_type_id,
+      'priority',OLD.priority,'is_deleted',OLD.is_deleted,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+
+-- ============================================================
+--  user_tokens (token protegido)
+-- ============================================================
+
+DROP TRIGGER IF EXISTS trg_audit_user_tokens_after_insert$$
+CREATE TRIGGER trg_audit_user_tokens_after_insert
+AFTER INSERT ON `user_tokens` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'INSERT'),'CREATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'user_tokens',NEW.id,v_action,JSON_OBJECT(),
+    JSON_OBJECT('id',NEW.id,'user_id',NEW.user_id,'token','[PROTECTED]','type',NEW.type,
+      'expires_at',NEW.expires_at,'used_at',NEW.used_at,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_user_tokens_after_update$$
+CREATE TRIGGER trg_audit_user_tokens_after_update
+AFTER UPDATE ON `user_tokens` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_action VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  SET v_action = IF(v_is_app,COALESCE(@app_action,'UPDATE'),'UPDATE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'user_tokens',NEW.id,v_action,
+    JSON_OBJECT('id',OLD.id,'user_id',OLD.user_id,'token','[PROTECTED]','type',OLD.type,
+      'expires_at',OLD.expires_at,'used_at',OLD.used_at,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    JSON_OBJECT('id',NEW.id,'user_id',NEW.user_id,'token','[PROTECTED]','type',NEW.type,
+      'expires_at',NEW.expires_at,'used_at',NEW.used_at,
+      'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
+    IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
+DROP TRIGGER IF EXISTS trg_audit_user_tokens_after_delete$$
+CREATE TRIGGER trg_audit_user_tokens_after_delete
+AFTER DELETE ON `user_tokens` FOR EACH ROW
+BEGIN
+  DECLARE v_source VARCHAR(20); DECLARE v_is_app TINYINT;
+  SET v_is_app = IF(SUBSTRING_INDEX(USER(),'@',1)='api_user',1,0);
+  SET v_source = IF(v_is_app,'APPLICATION','DATABASE');
+  INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
+  VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
+    'user_tokens',OLD.id,'DELETE',
+    JSON_OBJECT('id',OLD.id,'user_id',OLD.user_id,'token','[PROTECTED]','type',OLD.type,
+      'expires_at',OLD.expires_at,'used_at',OLD.used_at,
+      'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
+    NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
+END$$
+
 DELIMITER ;

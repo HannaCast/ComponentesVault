@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
  * - variant: 'primary' | 'secondary' | 'outline'.
  *   Compatibilidad: 'user' | 'default' como atajo de variante primaria.
  * - colorVariant: 'user' | 'default' para elegir paleta de color (usuario/sistema).
- * - size: 'small' | 'medium' | 'large'.
+ * - size: 'small' | 'medium' | 'large' | 'hero'.
  * - align: 'center' | 'left'.
  * - iconPosition: 'left' | 'right'.
  * - iconSize: Tamano del icono (opcional).
@@ -57,15 +57,15 @@ export function ActionButton({
 
   const palette = useSystemColors
     ? {
-        accent: 'var(--system-accent, #0f766e)',
-        accentHover: 'var(--system-accent-hover, #115e59)',
-        accentSubtle: 'var(--system-accent-subtle, #dff5f2)',
+        accent: 'var(--system-accent, var(--accent, #2563eb))',
+        accentHover: 'var(--system-accent-hover, var(--accent-hover, #1d4ed8))',
+        accentSubtle: 'var(--system-accent-subtle, var(--accent-subtle, #eff6ff))',
         textOnAccent: 'var(--system-text-on-accent, #ffffff)',
         outlineBg: 'var(--system-button-outline-bg, transparent)',
         outlineText: 'var(--system-button-outline-text, var(--text-primary, #111827))',
         outlineBorder: 'var(--system-button-outline-border, var(--border-strong, #9ca3af))',
-        outlineHoverBg: 'var(--system-button-outline-hover-bg, var(--system-accent-subtle, #dff5f2))',
-        outlineHoverBorder: 'var(--system-button-outline-hover-border, var(--system-accent, #0f766e))',
+        outlineHoverBg: 'var(--system-button-outline-hover-bg, var(--system-accent-subtle, var(--accent-subtle, #eff6ff)))',
+        outlineHoverBorder: 'var(--system-button-outline-hover-border, var(--system-accent, var(--accent, #2563eb)))',
         outlineHoverText: 'var(--system-button-outline-hover-text, var(--text-primary, #111827))',
         secondaryBorder: 'var(--system-secondary-border, var(--border-default, #d1d5db))',
         secondaryHoverBorder: 'var(--system-secondary-hover-border, var(--border-strong, #9ca3af))',
@@ -108,13 +108,19 @@ export function ActionButton({
       gap: '0.625rem',
       iconSize: iconSize || 22,
     },
+    hero: {
+      padding: '1rem 2rem',
+      fontSize: '1rem',
+      gap: '0.625rem',
+      iconSize: iconSize || 22,
+    },
   };
 
   const currentSize = sizeConfig[size] || sizeConfig.medium;
 
   const baseStyles = {
     display: 'flex',
-    width: fullWidth ? '100%' : 'auto',
+    width: fullWidth ? '100%' : undefined,
     alignItems: 'center',
     justifyContent: align === 'center' ? 'center' : 'flex-start',
     gap: currentSize.gap,
@@ -248,7 +254,7 @@ ActionButton.propTypes = {
   onClick: PropTypes.func,
   variant: PropTypes.oneOf(['primary', 'secondary', 'outline', 'user', 'default']),
   colorVariant: PropTypes.oneOf(['user', 'default']),
-  size: PropTypes.oneOf(['small', 'medium', 'large']),
+  size: PropTypes.oneOf(['small', 'medium', 'large', 'hero']),
   align: PropTypes.oneOf(['center', 'left']),
   iconPosition: PropTypes.oneOf(['left', 'right']),
   iconSize: PropTypes.number,

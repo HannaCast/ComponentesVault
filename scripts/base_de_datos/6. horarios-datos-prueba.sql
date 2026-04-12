@@ -8,7 +8,7 @@ USE cdi_horarios;
 /*  1) USUARIOS Y CONFIGURACION BASE                  */
 -- -----------------------------------------------------
 
-INSERT INTO users (name, surname, last_name, email, password, status, role_id)
+INSERT INTO users (name, surname, last_name, email, password, status, role_id, is_verificated)
 SELECT
   'Admin',
   'Sistema',
@@ -16,13 +16,14 @@ SELECT
   'admin@gmail.com',
   'bcrypt_sha256$$2b$12$Bnk3UjyRKuiD4JxccE4gZ.gE37pdF6swpTHtAhVzsEPIwNuoXtv6O',
   1,
-  (SELECT id FROM roles WHERE name = 'admin' LIMIT 1)
+  (SELECT id FROM roles WHERE name = 'admin' LIMIT 1),
+  1
 FROM DUAL
 WHERE NOT EXISTS (
   SELECT 1 FROM users WHERE email = 'admin@gmail.com'
 );
 
-INSERT INTO users (name, surname, last_name, email, password, status, role_id)
+INSERT INTO users (name, surname, last_name, email, password, status, role_id, is_verificated)
 SELECT
   'Usuario',
   'Sistema',
@@ -30,7 +31,8 @@ SELECT
   'usuario@gmail.com',
   'bcrypt_sha256$$2b$12$sg6nN/Ltj.kxwSd29afbXOf2fhyDYcnWBS5q04wPAWSqE/S2lw.i2',
   1,
-  (SELECT id FROM roles WHERE name = 'usuario' LIMIT 1)
+  (SELECT id FROM roles WHERE name = 'usuario' LIMIT 1),
+  1
 FROM DUAL
 WHERE NOT EXISTS (
   SELECT 1 FROM users WHERE email = 'usuario@gmail.com'

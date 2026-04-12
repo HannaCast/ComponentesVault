@@ -34,6 +34,7 @@ class User(AbstractBaseUser):
     last_name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(max_length=100, unique=True)
     status = models.IntegerField(default=1)
+    is_verificated = models.IntegerField(default=0)
     role = models.ForeignKey(Role, on_delete=models.DO_NOTHING, null=True, blank=True)
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
