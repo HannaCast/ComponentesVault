@@ -368,43 +368,50 @@ export const TeachersPage = () => {
       />
 
       <SurfacePanel>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="Buscar profesor"
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Nombre o apellidos"
-            reserveHelperSpace={false}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="md:col-span-6">
+            <Input
+              label="Buscar profesor"
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Nombre o apellidos"
+              reserveHelperSpace={false}
+            />
+          </div>
 
-          <Select
-            label="Estado"
-            value={estadoFiltro}
-            onChange={(e) => {
-              setEstadoFiltro(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={statusOptions}
-            placeholder="Todos"
-            showPlaceholderOption={false}
-            reserveHelperSpace={false}
-          />
+          <div className="md:col-span-3">
+            <Select
+              label="Estado"
+              value={estadoFiltro}
+              onChange={(e) => {
+                setEstadoFiltro(e.target.value);
+                setCurrentPage(1);
+              }}
+              options={statusOptions}
+              placeholder="Todos"
+              showPlaceholderOption={false}
+              reserveHelperSpace={false}
+            />
+          </div>
 
-          <Select
-            label="Orden"
-            value={ordenAscendente ? 'asc' : 'desc'}
-            onChange={(e) => {
-              setOrdenAscendente(e.target.value === 'asc');
-              setCurrentPage(1);
-            }}
-            options={[
-              { value: 'asc', label: 'A-Z (nombre)' },
-              { value: 'desc', label: 'Z-A (nombre)' },
-            ]}
-            showPlaceholderOption={false}
-            reserveHelperSpace={false}
-          />
+          <div className="md:col-span-3">
+            <Select
+              label="Orden"
+              value={ordenAscendente ? 'asc' : 'desc'}
+              onChange={(e) => {
+                setOrdenAscendente(e.target.value === 'asc');
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: 'asc', label: 'A-Z (nombre)' },
+                { value: 'desc', label: 'Z-A (nombre)' },
+              ]}
+              showPlaceholderOption={false}
+              reserveHelperSpace={false}
+            />
+          </div>
+          
         </div>
       </SurfacePanel>
 
