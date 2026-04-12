@@ -69,9 +69,25 @@ const periodSchema = yup.object({
 });
 
 export const universityValidationSchema = yup.object({
-  name: yup.string().trim().required('El nombre de la universidad es obligatorio'),
-  short_name: yup.string().trim().required('El nombre corto es obligatorio'),
-  institution_code: yup.string().nullable(),
+  name: yup
+    .string()
+    .trim()
+    .required('El nombre de la universidad es obligatorio')
+    .max(150, 'El nombre admite como máximo 150 caracteres'),
+  short_name: yup
+    .string()
+    .trim()
+    .required('El nombre corto es obligatorio')
+    .max(40, 'El nombre corto admite como máximo 40 caracteres'),
+  institution_code: yup
+    .string()
+    .transform((v) => (v == null ? '' : String(v).trim()))
+    .max(50, 'El código institucional admite como máximo 50 caracteres')
+    .matches(
+      /^$|^[A-Za-z0-9._\- ]+$/,
+      'Usa solo letras, números, espacios, guiones o puntos',
+    )
+    .nullable(),
   start_time: yup
     .string()
     .matches(timePattern, 'Hora de apertura inválida')
@@ -87,7 +103,10 @@ export const universityValidationSchema = yup.object({
     .of(modalitySchema)
     .min(1, 'Debe existir al menos una modalidad')
     .required(),
-  shifts: yup.array().of(shiftSchema),
+  shifts: yup
+    .array()
+    .of(shiftSchema)
+    .min(1, 'Agrega al menos un turno'),
   academic_periods: yup.mixed().when('uses_period_groups', {
     is: true,
     then: () => yup
@@ -160,6 +179,9 @@ export const validateUniversityCrossRules = (data) => {
     const activeCount = (data.academic_periods || []).filter((p) => p.is_active).length;
     if (activeCount > 1) {
       errors.periods_active = 'Solo un periodo puede estar activo';
+    }
+    if ((data.academic_periods || []).length > 0 && activeCount === 0) {
+      errors.periods_active = 'Debes marcar un periodo como activo';
     }
   }
 
