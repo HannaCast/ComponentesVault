@@ -166,7 +166,7 @@ export const GroupsPage = () => {
       (universityId) => String(universityId) === String(selectedUniversityId),
     );
   const scheduleDraftNotice = hasDraftScheduleInProgress
-    ? 'Actualmente se esta gestionando una version de horario de una universidad.'
+    ? 'Actualmente se esta gestionando una version de horario de esta universidad.'
     : null;
 
   const isAnyRowActionRunning = rowActionState.groupId !== null;
