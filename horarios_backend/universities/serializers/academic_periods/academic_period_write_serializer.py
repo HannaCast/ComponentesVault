@@ -1,27 +1,7 @@
-from django.db import connection, transaction
+from django.db import transaction
 from rest_framework import serializers
 
 from universities.models import AcademicPeriods, Universities
-
-
-def _get_uses_period_groups(university_id: int) -> bool:
-    """
-    No se lee desde el modelo Universities porque este repositorio puede no
-    tener el campo mapeado. Se consulta directo a BD si la columna existe.
-    """
-    with connection.cursor() as cursor:
-        cursor.execute("SHOW COLUMNS FROM universities LIKE 'uses_period_groups'")
-        if cursor.fetchone() is None:
-            return False
-
-        cursor.execute(
-            "SELECT uses_period_groups FROM universities WHERE id = %s LIMIT 1",
-            [university_id],
-        )
-        row = cursor.fetchone()
-        if not row:
-            return False
-        return int(row[0] or 0) == 1
 
 
 class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
@@ -53,12 +33,17 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
                 {'university': 'Debe tener una universidad seleccionada primero'}
             )
 
-        if not Universities.objects.filter(id=selected_university_id).exists():
+        university = Universities.objects.only(
+            'id',
+            'uses_period_groups',
+        ).filter(id=selected_university_id).first()
+
+        if university is None:
             raise serializers.ValidationError(
                 {'university': 'La universidad seleccionada no existe.'}
             )
 
-        uses_period_groups = _get_uses_period_groups(selected_university_id)
+        uses_period_groups = int(university.uses_period_groups or 0) == 1
 
         year = attrs.get('year')
         order = attrs.get('order')

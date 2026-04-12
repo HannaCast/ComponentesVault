@@ -5,9 +5,6 @@ from careers.models.groups import Groups
 from universities.models.academic_periods import AcademicPeriods
 from universities.models.shifts import Shifts
 from universities.models.universities import Universities
-from universities.serializers.academic_periods.academic_period_write_serializer import (
-    _get_uses_period_groups,
-)
 
 
 class GroupWriteSerializer(serializers.ModelSerializer):
@@ -73,17 +70,18 @@ class GroupWriteSerializer(serializers.ModelSerializer):
                 {'university': 'Debe tener una universidad seleccionada primero'}
             )
 
-        if not Universities.objects.filter(id=selected_university_id).exists():
+        university = Universities.objects.only(
+            'id',
+            'uses_period_groups',
+        ).filter(id=selected_university_id).first()
+
+        if university is None:
             raise serializers.ValidationError(
                 {'university': 'La universidad seleccionada no existe.'}
             )
 
         career = attrs.get('career') or getattr(self.instance, 'career', None)
         shift = attrs.get('shift') or getattr(self.instance, 'shift', None)
-        academic_period = attrs.get('academic_period', serializers.empty)
-        if academic_period is serializers.empty:
-            academic_period = getattr(self.instance, 'academic_period', None)
-
         if career and career.university_id != selected_university_id:
             raise serializers.ValidationError(
                 {'career': 'La carrera no pertenece a la universidad seleccionada.'}
@@ -94,22 +92,31 @@ class GroupWriteSerializer(serializers.ModelSerializer):
                 {'shift': 'El turno no pertenece a la universidad seleccionada.'}
             )
 
-        uses_period_groups = _get_uses_period_groups(selected_university_id)
+        uses_period_groups = int(university.uses_period_groups or 0) == 1
 
+        # Si la universidad no usa periodos para grupos, no exigir ni persistir academic_period.
         if not uses_period_groups:
             # No exigir que el cliente omita la clave: null, formularios y PUT
             # parcial suelen enviar academic_period; se normaliza a None.
             attrs['academic_period'] = None
-        elif academic_period is not None and (
-            academic_period.university_id != selected_university_id
-        ):
-            raise serializers.ValidationError(
-                {
-                    'academic_period': (
-                        'El periodo académico no pertenece a la universidad seleccionada.'
-                    )
-                }
-            )
+        else:
+            active_period = AcademicPeriods.objects.filter(
+                university_id=selected_university_id,
+                is_deleted=0,
+                is_active=1,
+            ).order_by('id').first()
+
+            if active_period is None:
+                raise serializers.ValidationError(
+                    {
+                        'academic_period': (
+                            'No existe un periodo académico activo para la universidad seleccionada.'
+                        )
+                    }
+                )
+
+            # Cuando la universidad usa periodos, siempre se persiste el periodo activo.
+            attrs['academic_period'] = active_period
 
         return attrs
 

@@ -14,6 +14,24 @@ from careers.serializers.groups import (
 from core.audit_context import with_audit_action, with_audit_context
 from core.api_response import ApiResponse
 from core.permissions import RequireSelectedUniversity
+from universities.models.universities import Universities
+
+
+def _apply_active_period_scope_if_needed(queryset, university_id):
+    """Limita grupos al periodo activo cuando la universidad segmenta por periodos."""
+    university = Universities.objects.only(
+        'id',
+        'uses_period_groups',
+    ).filter(id=university_id).first()
+
+    if university is None or int(university.uses_period_groups or 0) != 1:
+        return queryset
+
+    return queryset.filter(
+        academic_period__is_deleted=0,
+        academic_period__is_active=1,
+        academic_period__university_id=university_id,
+    )
 
 
 @extend_schema(tags=['Groups'])
@@ -35,8 +53,12 @@ class GroupListView(APIView):
                 university_id=selected_university_id,
             )
             .select_related('career', 'shift')
-            .order_by('career_id', 'period_number', 'letter', 'id')
         )
+
+        groups = _apply_active_period_scope_if_needed(
+            groups,
+            selected_university_id,
+        ).order_by('career_id', 'period_number', 'letter', 'id')
 
         return ApiResponse.success(
             GroupListSerializer(groups, many=True).data
@@ -158,6 +180,11 @@ class GroupPaginatedView(APIView):
             university_id=selected_university_id,
         ).select_related('career', 'shift')
 
+        queryset = _apply_active_period_scope_if_needed(
+            queryset,
+            selected_university_id,
+        )
+
         if status_param is not None:
             queryset = queryset.filter(
                 status=1 if status_param.lower() == 'true' else 0
@@ -188,24 +215,30 @@ class GroupPaginatedView(APIView):
 class GroupDetailView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
-    def get_object(self, pk, university_id):
-        try:
-            return Groups.objects.select_related(
-                'career',
-                'shift',
-                'academic_period',
-                'university',
-            ).get(
-                pk=pk,
-                is_deleted=0,
-                university_id=university_id,
-            )
-        except Groups.DoesNotExist:
-            return None
+    def get_object(self, pk, university_id, apply_period_scope=False):
+        queryset = Groups.objects.select_related(
+            'career',
+            'shift',
+            'academic_period',
+            'university',
+        ).filter(
+            pk=pk,
+            is_deleted=0,
+            university_id=university_id,
+        )
+
+        if apply_period_scope:
+            queryset = _apply_active_period_scope_if_needed(queryset, university_id)
+
+        return queryset.first()
 
     @extend_schema(responses=GroupDetailSerializer, summary='Obtener grupo')
     def get(self, request, pk):
-        group = self.get_object(pk, request.selected_university_id)
+        group = self.get_object(
+            pk,
+            request.selected_university_id,
+            apply_period_scope=True,
+        )
         if group is None:
             return ApiResponse.not_found()
         return ApiResponse.success(GroupDetailSerializer(group).data)
@@ -214,7 +247,11 @@ class GroupDetailView(APIView):
     @with_audit_context(table_name='groups')
     @transaction.atomic
     def put(self, request, pk):
-        group = self.get_object(pk, request.selected_university_id)
+        group = self.get_object(
+            pk,
+            request.selected_university_id,
+            apply_period_scope=True,
+        )
         if group is None:
             return ApiResponse.not_found()
 
@@ -237,7 +274,11 @@ class GroupDetailView(APIView):
     @with_audit_context(table_name='groups')
     @transaction.atomic
     def delete(self, request, pk):
-        group = self.get_object(pk, request.selected_university_id)
+        group = self.get_object(
+            pk,
+            request.selected_university_id,
+            apply_period_scope=True,
+        )
         if group is None:
             return ApiResponse.not_found()
 
@@ -254,18 +295,24 @@ class GroupToggleStatusView(APIView):
     @with_audit_context(table_name='groups')
     @transaction.atomic
     def put(self, request, pk):
-        try:
-            group = Groups.objects.select_related(
-                'career',
-                'shift',
-                'academic_period',
-                'university',
-            ).get(
-                pk=pk,
-                is_deleted=0,
-                university_id=request.selected_university_id,
-            )
-        except Groups.DoesNotExist:
+        queryset = Groups.objects.select_related(
+            'career',
+            'shift',
+            'academic_period',
+            'university',
+        ).filter(
+            pk=pk,
+            is_deleted=0,
+            university_id=request.selected_university_id,
+        )
+
+        queryset = _apply_active_period_scope_if_needed(
+            queryset,
+            request.selected_university_id,
+        )
+
+        group = queryset.first()
+        if group is None:
             return ApiResponse.not_found()
 
         group.status = 0 if group.status == 1 else 1
