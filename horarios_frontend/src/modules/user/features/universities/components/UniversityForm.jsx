@@ -16,6 +16,7 @@ import {
   universityValidationSchema,
   validateUniversityCrossRules,
 } from '../validations/universityValidationSchema';
+import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 const WEEKDAYS = [
   { day: 1, label: 'L' },
@@ -83,7 +84,16 @@ export const UniversityForm = ({
   const [activeTab, setActiveTab] = useState('general');
   const [formErrors, setFormErrors] = useState({});
   const [logoFile, setLogoFile] = useState(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) {
+        URL.revokeObjectURL(logoPreviewUrl);
+      }
+    };
+  }, [logoPreviewUrl]);
 
   useEffect(() => {
     if (mode === 'edit') {
@@ -271,8 +281,17 @@ export const UniversityForm = ({
       e.target.value = '';
       return;
     }
+    setLogoPreviewUrl(URL.createObjectURL(file));
     setLogoFile(file);
     e.target.value = '';
+  };
+
+  const clearLogoSelection = () => {
+    setLogoFile(null);
+    setLogoPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const runValidation = async () => {
@@ -346,6 +365,12 @@ export const UniversityForm = ({
         : 'text-[var(--text-secondary,#6b7280)] border-transparent hover:text-[var(--text-primary)]'
     }`;
   };
+
+  const existingLogoSrc =
+    mode === 'edit' && initialProfile?.image_url
+      ? resolveMediaUrl(initialProfile.image_url)
+      : null;
+  const logoDisplaySrc = logoPreviewUrl || (!logoFile && existingLogoSrc) || null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full pb-4 sm:pb-6">
@@ -457,39 +482,65 @@ export const UniversityForm = ({
             />
           </div>
 
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Input
-                label="Logo (archivo)"
-                value={logoFile ? logoFile.name : ''}
-                onChange={() => {}}
-                placeholder="Selecciona un archivo de imagen"
-                disabled={isLoading}
-                readOnly
-                reserveHelperSpace={false}
+          <div className="space-y-3">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Input
+                  label="Logo (archivo)"
+                  value={logoFile ? logoFile.name : ''}
+                  onChange={() => {}}
+                  placeholder="Selecciona un archivo de imagen"
+                  disabled={isLoading}
+                  readOnly
+                  reserveHelperSpace={false}
+                />
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  {mode === 'edit'
+                    ? 'Si eliges un archivo, reemplazará el logo actual al guardar.'
+                    : 'Tras guardar, si eliges un archivo se subirá automáticamente como logo de la universidad.'}
+                </p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/"
+                className="hidden"
+                onChange={handleLogoPick}
               />
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                {mode === 'edit'
-                  ? 'Si eliges un archivo, reemplazará el logo actual al guardar.'
-                  : 'Tras guardar, si eliges un archivo se subirá automáticamente como logo de la universidad.'}
-              </p>
+              <button
+                type="button"
+                className="mb-0.5 p-2 rounded-lg border border-[var(--border-default)] hover:bg-[var(--bg-surface)]"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                aria-label="Seleccionar imagen"
+              >
+                <Upload className="w-5 h-5 text-[var(--accent,#2563eb)]" />
+              </button>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/"
-              className="hidden"
-              onChange={handleLogoPick}
-            />
-            <button
-              type="button"
-              className="mb-0.5 p-2 rounded-lg border border-[var(--border-default)] hover:bg-[var(--bg-surface)]"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              aria-label="Seleccionar imagen"
-            >
-              <Upload className="w-5 h-5 text-[var(--accent,#2563eb)]" />
-            </button>
+            {logoDisplaySrc ? (
+              <div className="flex flex-wrap items-start gap-3">
+                <div
+                  className="rounded-xl border overflow-hidden bg-[var(--bg-surface,#fff)] p-2"
+                  style={{ borderColor: 'var(--border-default,#e5e7eb)' }}
+                >
+                  <img
+                    src={logoDisplaySrc}
+                    alt="Vista previa del logo"
+                    className="max-h-36 max-w-[min(100%,280px)] w-auto object-contain block mx-auto"
+                  />
+                </div>
+                {logoFile ? (
+                  <button
+                    type="button"
+                    onClick={clearLogoSelection}
+                    disabled={isLoading}
+                    className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-2 hover:underline"
+                  >
+                    Quitar imagen seleccionada
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       )}
