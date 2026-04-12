@@ -27,7 +27,7 @@
 |--------|----------|-------------|
 | `POST` | `/api/v1/auth/register/` | Registrar usuario. Crea la cuenta, genera token de verificacion y envia correo. |
 | `POST` | `/api/v1/auth/register-admin/` | Registrar administrador (solo admin autenticado). Genera token y envia correo de verificacion. |
-| `POST` | `/api/v1/auth/verify-account/` | Verificar cuenta con token, activar `is_verificated = 1`, crear `user_configurations` por defecto e invalidar cookies de sesion (idempotente: si ya estaba verificada responde exito). |
+| `POST` | `/api/v1/auth/verify-account/` | Verificar cuenta con token, activar `is_verificated = 1`, crear `user_configurations` por defecto e invalidar cookies de sesion. |
 | `POST` | `/api/v1/auth/login/` | Iniciar sesion (email + password). Retorna token. |
 | `POST` | `/api/v1/auth/refresh/` | Renovar access token usando refresh token en cookie HttpOnly. |
 | `POST` | `/api/v1/auth/logout/` | Cerrar sesion. Invalida el token. |

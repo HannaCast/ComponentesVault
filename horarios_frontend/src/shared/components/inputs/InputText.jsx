@@ -1,6 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Info } from 'lucide-react';
+import { Eye, EyeOff, Info } from 'lucide-react';
 
 /**
  * InputText
@@ -27,6 +27,7 @@ const InputText = forwardRef(
       labelStyle,
       className = '',
       type = 'text',
+      enablePasswordToggle = false,
       colorVariant = 'user',
       reserveHelperSpace = false,
       ...props
@@ -35,7 +36,12 @@ const InputText = forwardRef(
   ) => {
     const isBaseDisabled = props.disabled;
     const [showTooltip, setShowTooltip] = useState(false);
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const hasError = Boolean(error);
+    const canTogglePassword = type === 'password' && enablePasswordToggle;
+    const effectiveInputType = canTogglePassword
+      ? (isPasswordVisible ? 'text' : 'password')
+      : type;
     const effectivePlaceholder =
       isBaseDisabled && !props.value ? '—' : props.placeholder;
     const inputBackgroundColor = hasError
@@ -110,40 +116,58 @@ const InputText = forwardRef(
             )}
           </label>
         )}
-        <input
-          ref={ref}
-          type={type}
-          style={{
-            backgroundColor: inputBackgroundColor,
-            borderColor: inputBorderColor,
-            color: inputTextColor,
-          }}
-          className={`
-            w-full px-4 py-2.5 border rounded-lg text-sm
-            transition-all duration-200
-            outline-none
-            disabled:cursor-not-allowed
-            ${className}
-          `}
-          onFocus={(e) => {
-            if (!error && !isBaseDisabled) {
-              e.currentTarget.style.backgroundColor = 'var(--bg-surface, #f3f4f6)';
-              e.currentTarget.style.borderColor = focusAccent;
-              e.currentTarget.style.boxShadow = `0 0 0 3px ${focusAccentSubtle}`;
-            }
-            props.onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            if (!isBaseDisabled) {
-              e.currentTarget.style.backgroundColor = inputBackgroundColor;
-              e.currentTarget.style.borderColor = inputBorderColor;
-              e.currentTarget.style.boxShadow = 'none';
-            }
-            props.onBlur?.(e);
-          }}
-          {...props}
-          placeholder={effectivePlaceholder}
-        />
+
+        <div className="relative">
+          <input
+            ref={ref}
+            type={effectiveInputType}
+            style={{
+              backgroundColor: inputBackgroundColor,
+              borderColor: inputBorderColor,
+              color: inputTextColor,
+            }}
+            className={`
+              w-full px-4 py-2.5 border rounded-lg text-sm
+              transition-all duration-200
+              outline-none
+              disabled:cursor-not-allowed
+              ${canTogglePassword ? 'pr-11' : ''}
+              ${className}
+            `}
+            onFocus={(e) => {
+              if (!error && !isBaseDisabled) {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface, #f3f4f6)';
+                e.currentTarget.style.borderColor = focusAccent;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${focusAccentSubtle}`;
+              }
+              props.onFocus?.(e);
+            }}
+            onBlur={(e) => {
+              if (!isBaseDisabled) {
+                e.currentTarget.style.backgroundColor = inputBackgroundColor;
+                e.currentTarget.style.borderColor = inputBorderColor;
+                e.currentTarget.style.boxShadow = 'none';
+              }
+              props.onBlur?.(e);
+            }}
+            {...props}
+            placeholder={effectivePlaceholder}
+          />
+
+          {canTogglePassword && (
+            <button
+              type="button"
+              onClick={() => setIsPasswordVisible((current) => !current)}
+              className="absolute inset-y-0 right-3 my-auto flex h-8 w-8 items-center justify-center rounded-md"
+              style={{ color: 'var(--text-secondary, #6b7280)' }}
+              aria-label={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              title={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {isPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          )}
+        </div>
+
         {error && (
           <p
             className="mt-1.5 text-xs"
@@ -179,6 +203,7 @@ InputText.propTypes = {
   labelStyle: PropTypes.object,
   className: PropTypes.string,
   type: PropTypes.string,
+  enablePasswordToggle: PropTypes.bool,
   colorVariant: PropTypes.oneOf(['user', 'default']),
   reserveHelperSpace: PropTypes.bool,
 };

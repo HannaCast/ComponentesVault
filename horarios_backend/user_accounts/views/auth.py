@@ -292,13 +292,6 @@ class VerifyAccountView(APIView):
             return ApiResponse.error(message='Token de verificacion invalido')
 
         if user_token.used_at is not None:
-            if getattr(user_token.user, 'is_verificated', 0) == 1:
-                _ensure_default_user_configuration(user_token.user)
-                response = ApiResponse.success(
-                    data={'user_id': user_token.user.id},
-                    message='La cuenta ya se encontraba verificada',
-                )
-                return _clear_auth_cookies(response)
             return ApiResponse.error(message='Token de verificacion ya utilizado')
 
         if user_token.expires_at < now:

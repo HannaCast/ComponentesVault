@@ -117,6 +117,7 @@ export const Login = () => {
               <Input
                 label="Contraseña"
                 type="password"
+                enablePasswordToggle
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
