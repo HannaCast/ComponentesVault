@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Building2, Eye, Pencil, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
@@ -100,6 +100,8 @@ export const ClassroomsPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunCatalogRequest } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunClassroomCareersRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -158,6 +160,7 @@ export const ClassroomsPage = () => {
   const selectedUniversityName = user?.selected_university?.short_name
     || user?.selected_university?.name
     || user?.selected_university;
+  const selectedUniversityId = user?.selected_university?.id;
 
   const contextLabel = selectedUniversityName
     ? `Aulas de: ${selectedUniversityName}`
@@ -183,7 +186,7 @@ export const ClassroomsPage = () => {
 
     setIsOpeningCreate(true);
     try {
-      await Promise.all([fetchTypeOptions(), fetchCareerOptions()]);
+      await loadCatalogs();
       setDrawerMode('create');
       setSelectedClassroom(null);
       setDrawerOpen(true);
@@ -205,7 +208,7 @@ export const ClassroomsPage = () => {
   const handleOpenDrawerEdit = async (id) => {
     await runRowAction(id, 'edit', async () => {
       setDrawerMode('edit');
-      await Promise.all([fetchTypeOptions(), fetchCareerOptions()]);
+      await loadCatalogs();
       const data = await fetchClassroomById(id);
       if (data) {
         setDrawerOpen(true);
@@ -223,7 +226,7 @@ export const ClassroomsPage = () => {
 
   const handleDrawerEditClick = async () => {
     if (selectedClassroom) {
-      await Promise.all([fetchTypeOptions(), fetchCareerOptions()]);
+      await loadCatalogs();
       setDrawerMode('edit');
     }
   };
@@ -315,6 +318,27 @@ export const ClassroomsPage = () => {
     }, 500);
   };
 
+  const loadCatalogs = useCallback(async () => {
+    const signature = buildRequestSignature(
+      {
+        resource: 'classrooms-catalogs',
+        selectedUniversityId,
+      },
+      ['resource', 'selectedUniversityId'],
+    );
+
+    if (!shouldRunCatalogRequest(signature)) {
+      return;
+    }
+
+    await Promise.all([fetchTypeOptions(), fetchCareerOptions()]);
+  }, [
+    selectedUniversityId,
+    shouldRunCatalogRequest,
+    fetchTypeOptions,
+    fetchCareerOptions,
+  ]);
+
   const handleOpenToggleModal = (classroom) => {
     setToggleModal({
       isOpen: true,
@@ -369,9 +393,8 @@ export const ClassroomsPage = () => {
       return;
     }
 
-    fetchTypeOptions();
-    fetchCareerOptions();
-  }, [user?.selected_university, fetchTypeOptions, fetchCareerOptions]);
+    loadCatalogs();
+  }, [user?.selected_university, loadCatalogs]);
 
   useEffect(() => {
     if (!user?.selected_university) {
@@ -431,9 +454,27 @@ export const ClassroomsPage = () => {
 
     const id = selectedClassroom?.id;
     if (id) {
+      const signature = buildRequestSignature(
+        {
+          resource: 'classroom-careers',
+          classroomId: id,
+        },
+        ['resource', 'classroomId'],
+      );
+
+      if (!shouldRunClassroomCareersRequest(signature)) {
+        return;
+      }
+
       fetchClassroomCareersForClassroom(id);
     }
-  }, [drawerOpen, drawerMode, selectedClassroom?.id, fetchClassroomCareersForClassroom]);
+  }, [
+    drawerOpen,
+    drawerMode,
+    selectedClassroom?.id,
+    fetchClassroomCareersForClassroom,
+    shouldRunClassroomCareersRequest,
+  ]);
 
   return (
     <div className="space-y-6">
