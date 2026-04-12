@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import {
   login as loginApi,
   logout as logoutApi,
@@ -20,28 +21,56 @@ const extractDataFromResponse = (response) => ({
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const userRef = useRef(null);
+  const restoreSessionPromiseRef = useRef(null);
+  const { shouldRun: shouldRunRestoreSession } = useRequestDeduper({ windowMs: 220 });
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const restoreSession = useCallback(async () => {
-    try {
-      // Si access cookie sigue viva, my-info funcionara directo.
-      const initialData = await getUserConfiguration();
-      const userData = extractDataFromResponse(initialData);
-      setUser(userData);
-      return userData;
-    } catch {
+    if (restoreSessionPromiseRef.current) {
+      return restoreSessionPromiseRef.current;
+    }
+
+    const requestSignature = buildRequestSignature(
+      { resource: 'auth-restore-session' },
+      ['resource'],
+    );
+
+    if (!shouldRunRestoreSession(requestSignature)) {
+      return userRef.current;
+    }
+
+    restoreSessionPromiseRef.current = (async () => {
       try {
-        // Si access expiro pero refresh sigue viva, renueva y vuelve a consultar configuracion.
-        await refreshSession();
+        // Si access cookie sigue viva, my-info funcionara directo.
         const initialData = await getUserConfiguration();
         const userData = extractDataFromResponse(initialData);
         setUser(userData);
         return userData;
       } catch {
-        setUser(null);
-        return null;
+        try {
+          // Si access expiro pero refresh sigue viva, renueva y vuelve a consultar configuracion.
+          await refreshSession();
+          const initialData = await getUserConfiguration();
+          const userData = extractDataFromResponse(initialData);
+          setUser(userData);
+          return userData;
+        } catch {
+          setUser(null);
+          return null;
+        }
       }
+    })();
+
+    try {
+      return await restoreSessionPromiseRef.current;
+    } finally {
+      restoreSessionPromiseRef.current = null;
     }
-  }, []);
+  }, [shouldRunRestoreSession]);
 
   useEffect(() => {
     const pathname = globalThis.location.pathname;
