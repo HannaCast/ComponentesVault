@@ -175,8 +175,8 @@ export const Register = () => {
     setCreatedEmail(result?.data?.email || formData.email);
   };
 
-  const handleGoLogin = () => {
-    navigate('/login');
+  const handleGoLanding = () => {
+    navigate('/');
   };
 
   return (
@@ -332,8 +332,8 @@ export const Register = () => {
 
                 <ActionButton
                   type="button"
-                  onClick={handleGoLogin}
-                  label="Ir a iniciar sesión"
+                  onClick={handleGoLanding}
+                  label="Ir a la landing"
                   variant="default"
                   className="shadow-lg shadow-[var(--accent-subtle)]"
                 />
