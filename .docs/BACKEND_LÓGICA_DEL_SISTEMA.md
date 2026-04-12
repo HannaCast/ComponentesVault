@@ -21,6 +21,7 @@ La verificacion de cuenta se apoya en la tabla `user_tokens`:
 
 - `user_tokens`: guarda tokens de un solo uso, con expiracion, para flujos como `email_verification`.
 - Al crear un usuario (`register` o `register-admin`), se genera un token de verificacion y se persiste en `user_tokens`.
+- Durante el registro tambien se envia automaticamente un correo con plantilla de verificacion, siguiendo el estilo visual del acceso publico (Landing/Login).
 - El endpoint `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo; si es valido marca `users.is_verificated = 1` y marca el token como usado (`used_at`).
 - El login y cualquier endpoint autenticado solo permiten acceso cuando `users.status = 1` y `users.is_verificated = 1`.
 

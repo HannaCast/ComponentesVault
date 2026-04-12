@@ -12,9 +12,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from core.api_response import ApiResponse
 from core.audit_context import with_audit_context
+from core.email_service import EmailDeliveryError
 from core.permissions import IsAdmin
 from core.request_decryption import decrypt_request
 from user_accounts.models import UserToken
+from user_accounts.services import send_account_verification_email
 from user_accounts.serializers import (
     LoginSerializer, RegisterSerializer, ChangePasswordSerializer, VerifyAccountSerializer,
 )
@@ -73,6 +75,24 @@ def _create_email_verification_token(user):
             continue
 
     raise ValueError('No fue posible generar un token de verificacion unico')
+
+
+def _send_verification_email_or_rollback(user, verification_token):
+    """Envia correo de verificacion y revierte la transaccion si falla."""
+    try:
+        send_account_verification_email(
+            user=user,
+            token=verification_token.token,
+            expires_at=verification_token.expires_at,
+        )
+    except EmailDeliveryError:
+        transaction.set_rollback(True)
+        return ApiResponse.error(
+            message='No fue posible enviar el correo de verificacion. Intenta nuevamente.',
+            status_code=500,
+        )
+
+    return None
 
 
 @extend_schema(tags=['Auth'])
@@ -178,12 +198,14 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             verification_token = _create_email_verification_token(user)
+
+            email_error_response = _send_verification_email_or_rollback(user, verification_token)
+            if email_error_response:
+                return email_error_response
+
             return ApiResponse.created(
-                message='Usuario creado exitosamente',
-                data={
-                    'verification_token': verification_token.token,
-                    'expires_at': verification_token.expires_at,
-                },
+                message='Usuario creado exitosamente. Revisa tu correo para verificar la cuenta.',
+                data={'email': user.email},
             )
         return ApiResponse.error(errors=serializer.errors)
 
@@ -203,12 +225,14 @@ class RegisterAdminView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             verification_token = _create_email_verification_token(user)
+
+            email_error_response = _send_verification_email_or_rollback(user, verification_token)
+            if email_error_response:
+                return email_error_response
+
             return ApiResponse.created(
-                message='Administrador creado exitosamente',
-                data={
-                    'verification_token': verification_token.token,
-                    'expires_at': verification_token.expires_at,
-                },
+                message='Administrador creado exitosamente. Se envio correo de verificacion.',
+                data={'email': user.email},
             )
         return ApiResponse.error(errors=serializer.errors)
 
