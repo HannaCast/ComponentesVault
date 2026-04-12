@@ -216,7 +216,8 @@ Frontend: `http://localhost:5173` (o el puerto que asigne Vite)
 
 ## Credenciales iniciales de desarrollo
 
-Al ejecutar migraciones se insertan usuarios de prueba:
+Al ejecutar el script SQL `scripts/base_de_datos/6. horarios-datos-prueba.sql` se insertan usuarios de prueba.
+No se insertan mediante migraciones de Django.
 
 - `admin@gmail.com` / `Admin123`
 - `usuario@gmail.com` / `Usuario123`
