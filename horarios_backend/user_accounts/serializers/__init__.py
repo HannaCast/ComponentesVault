@@ -1,4 +1,9 @@
-from .auth import ChangePasswordSerializer, LoginSerializer, RegisterSerializer
+from .auth import (
+	ChangePasswordSerializer,
+	LoginSerializer,
+	RegisterSerializer,
+	VerifyAccountSerializer,
+)
 from .users import (
 	ConfigurationSerializer,
 	MeInfoSerializer,

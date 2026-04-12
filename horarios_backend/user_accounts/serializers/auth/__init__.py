@@ -1,3 +1,4 @@
 from .login_serializer import LoginSerializer
 from .register_serializer import RegisterSerializer
 from .change_password_serializer import ChangePasswordSerializer
+from .verify_account_serializer import VerifyAccountSerializer

@@ -456,15 +456,32 @@ class UserConfigurations(models.Model):
         db_table = 'user_configurations'
 
 
+class UserTokens(models.Model):
+    user = models.ForeignKey('Users', models.DO_NOTHING)
+    token = models.CharField(unique=True, max_length=64)
+    type = models.CharField(max_length=18)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    updated_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'user_tokens'
+
+
 class Users(models.Model):
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
-    email = models.CharField(max_length=100)
+    email = models.CharField(unique=True, max_length=100)
     password = models.CharField(max_length=255)
     status = models.IntegerField()
     role = models.ForeignKey(Roles, models.DO_NOTHING)
     last_login = models.DateTimeField(blank=True, null=True)
+    is_verificated = models.IntegerField()
     created_at = models.DateTimeField(blank=True, null=True)
     created_by = models.CharField(max_length=100, blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
