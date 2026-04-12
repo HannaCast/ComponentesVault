@@ -505,4 +505,88 @@ BEGIN
   SET NEW.updated_by = COALESCE(@app_username, USER());
 END$$
 
+-- ------------------------------------------------------------
+--  classroom_subjects
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_classroom_subjects_before_insert$$
+CREATE TRIGGER trg_classroom_subjects_before_insert
+BEFORE INSERT ON `classroom_subjects` FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.created_by = COALESCE(@app_username, USER());
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+DROP TRIGGER IF EXISTS trg_classroom_subjects_before_update$$
+CREATE TRIGGER trg_classroom_subjects_before_update
+BEFORE UPDATE ON `classroom_subjects` FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+-- ------------------------------------------------------------
+--  subjects_classroom_types
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_subjects_classroom_types_before_insert$$
+CREATE TRIGGER trg_subjects_classroom_types_before_insert
+BEFORE INSERT ON `subjects_classroom_types` FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.created_by = COALESCE(@app_username, USER());
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+DROP TRIGGER IF EXISTS trg_subjects_classroom_types_before_update$$
+CREATE TRIGGER trg_subjects_classroom_types_before_update
+BEFORE UPDATE ON `subjects_classroom_types` FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+-- ------------------------------------------------------------
+--  university_classroom_type_priorities
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_university_classroom_type_priorities_before_insert$$
+CREATE TRIGGER trg_university_classroom_type_priorities_before_insert
+BEFORE INSERT ON `university_classroom_type_priorities` FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.created_by = COALESCE(@app_username, USER());
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+DROP TRIGGER IF EXISTS trg_university_classroom_type_priorities_before_update$$
+CREATE TRIGGER trg_university_classroom_type_priorities_before_update
+BEFORE UPDATE ON `university_classroom_type_priorities` FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+-- ------------------------------------------------------------
+--  user_tokens
+-- ------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_user_tokens_before_insert$$
+CREATE TRIGGER trg_user_tokens_before_insert
+BEFORE INSERT ON `user_tokens` FOR EACH ROW
+BEGIN
+  SET NEW.created_at = NOW();
+  SET NEW.created_by = COALESCE(@app_username, USER());
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
+DROP TRIGGER IF EXISTS trg_user_tokens_before_update$$
+CREATE TRIGGER trg_user_tokens_before_update
+BEFORE UPDATE ON `user_tokens` FOR EACH ROW
+BEGIN
+  SET NEW.updated_at = NOW();
+  SET NEW.updated_by = COALESCE(@app_username, USER());
+END$$
+
 DELIMITER ;
