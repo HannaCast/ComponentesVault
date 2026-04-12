@@ -453,6 +453,7 @@ export const CareersPage = () => {
       <PageSectionHeader
         title="Carreras"
         contextLabel={contextLabel}
+        showScheduleDraftNotice
         actionIcon={Plus}
         actionLabel="Nueva Carrera"
         actionLoading={isOpeningCreate}

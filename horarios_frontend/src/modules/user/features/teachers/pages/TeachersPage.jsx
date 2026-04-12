@@ -359,6 +359,7 @@ export const TeachersPage = () => {
       <PageSectionHeader
         title="Profesores"
         contextLabel={contextLabel}
+        showScheduleDraftNotice
         actionIcon={Plus}
         actionLabel="Nuevo profesor"
         actionLoading={isOpeningCreate}

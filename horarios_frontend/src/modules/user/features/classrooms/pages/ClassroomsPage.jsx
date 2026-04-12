@@ -481,6 +481,7 @@ export const ClassroomsPage = () => {
       <PageSectionHeader
         title="Aulas"
         contextLabel={contextLabel}
+        showScheduleDraftNotice
         actionIcon={Plus}
         actionLabel="Nueva Aula"
         actionLoading={isOpeningCreate}

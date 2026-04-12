@@ -35,9 +35,10 @@ const getSelectedUniversityName = (selectedUniversity) => {
 const getContextLabel = (selectedUniversityName) => `Contexto: ${selectedUniversityName}`;
 
 export const ScheduleGeneratorPage = () => {
-  const { user } = useAuth();
+  const { user, restoreSession } = useAuth();
   const navigate = useNavigate();
   const selectedUniversity = user?.selected_university;
+  const selectedUniversityId = Number(selectedUniversity?.id) || null;
 
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,7 +84,7 @@ export const ScheduleGeneratorPage = () => {
   const totalItems = Number(historyMeta?.total) || 0;
 
   const refreshDraftAvailability = useCallback(async () => {
-    if (!selectedUniversity) {
+    if (!selectedUniversityId) {
       setHasActiveDraft(false);
       setDraftAvailabilityLoading(false);
       return;
@@ -106,7 +107,7 @@ export const ScheduleGeneratorPage = () => {
     } finally {
       setDraftAvailabilityLoading(false);
     }
-  }, [selectedUniversity]);
+  }, [selectedUniversityId]);
 
   const handleViewVersion = (versionId) => {
     navigate(`/usuario/universidad/generar-horario/ver/${versionId}`);
@@ -128,7 +129,12 @@ export const ScheduleGeneratorPage = () => {
     setSearchTerm('');
     setCurrentPage(1);
     setHasActiveDraft(true);
-    refreshDraftAvailability();
+
+    try {
+      await restoreSession();
+    } catch (error) {
+      console.error('No se pudo refrescar configuracion del usuario:', error);
+    }
   };
 
   const handleConfirmVersion = async () => {
@@ -147,7 +153,13 @@ export const ScheduleGeneratorPage = () => {
 
     toast.success(result?.message || 'Version confirmada correctamente.');
     setConfirmModal({ isOpen: false, version: null });
-    refreshDraftAvailability();
+    setHasActiveDraft(false);
+
+    try {
+      await restoreSession();
+    } catch (error) {
+      console.error('No se pudo refrescar configuracion del usuario:', error);
+    }
   };
 
   const handleDeleteDraft = async () => {
@@ -166,7 +178,13 @@ export const ScheduleGeneratorPage = () => {
 
     toast.success('Borrador eliminado correctamente.');
     setDeleteModal({ isOpen: false, version: null });
-    refreshDraftAvailability();
+    setHasActiveDraft(false);
+
+    try {
+      await restoreSession();
+    } catch (error) {
+      console.error('No se pudo refrescar configuracion del usuario:', error);
+    }
   };
 
   const handleRenameVersion = async (version, nextLabel) => {
@@ -201,7 +219,7 @@ export const ScheduleGeneratorPage = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedUniversity) {
+    if (!selectedUniversityId) {
       return;
     }
 
@@ -217,7 +235,7 @@ export const ScheduleGeneratorPage = () => {
     }
 
     fetchHistory(query);
-  }, [currentPage, fetchHistory, searchTerm, selectedUniversity, shouldRun]);
+  }, [currentPage, fetchHistory, searchTerm, selectedUniversityId, shouldRun]);
 
   useEffect(() => {
     refreshDraftAvailability();

@@ -415,6 +415,7 @@ export const GroupsPage = () => {
       <PageSectionHeader
         title="Grupos"
         contextLabel={`Grupos de: ${selectedUniversityName}`}
+        showScheduleDraftNotice
         actionIcon={Plus}
         actionLabel="Nuevo Grupo"
         actionLoading={isOpeningCreate}

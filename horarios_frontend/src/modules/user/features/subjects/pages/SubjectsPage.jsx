@@ -387,6 +387,7 @@ export const SubjectsPage = () => {
       <PageSectionHeader
         title="Materias"
         contextLabel={`Materias de: ${selectedUniversityName}`}
+        showScheduleDraftNotice
         actionIcon={Plus}
         actionLabel="Nueva Materia"
         actionLoading={isOpeningCreate}
