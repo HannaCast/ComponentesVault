@@ -13,8 +13,11 @@ import { X } from 'lucide-react';
  * - onClose: Callback al cerrar el drawer.
  * - title: Titulo del drawer.
  * - children: Contenido del drawer.
- * - size: Tamaño del drawer ('sm' = 35%, 'md' = 50%, 'lg' = 65%). Default: 'md'.
+ * - size: Tamaño del drawer ('sm' | 'md' | 'lg' | 'full'). 'full' ocupa todo el ancho de la ventana. Default: 'md'.
  * - showCloseButton: Mostrar botón de cierre. Default: true.
+ * - headerLayout: 'default' muestra título/icono; 'closeOnly' solo barra con botón cerrar.
+ * - panelClassName: clases extra del panel (p. ej. fondo gris).
+ * - bodyClassName: reemplaza el padding por defecto del cuerpo si se indica (p. ej. p-0).
  */
 export const SideDrawer = ({
   isOpen,
@@ -25,14 +28,26 @@ export const SideDrawer = ({
   showCloseButton = true,
   headerIcon: HeaderIcon,
   headerBadge,
+  headerLayout = 'default',
+  panelClassName = '',
+  bodyClassName,
 }) => {
   const sizeConfig = {
     sm: 'max-w-xs',  // ~35%
     md: 'max-w-md',  // ~50%
     lg: 'max-w-2xl', // ~65%
+    full: 'max-w-full',
   };
 
   const maxWidthClass = sizeConfig[size] || sizeConfig.md;
+  const isFull = size === 'full';
+  const closeOnlyHeader = headerLayout === 'closeOnly';
+  const defaultBodyClass = isFull
+    ? 'relative flex-1 overflow-y-auto min-h-0 px-4 py-4 sm:px-6 lg:px-8'
+    : 'relative flex-1 overflow-y-auto min-h-0 px-4 py-4 sm:px-5';
+  const resolvedBodyClass = bodyClassName != null && String(bodyClassName).trim() !== ''
+    ? bodyClassName
+    : defaultBodyClass;
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -46,18 +61,58 @@ export const SideDrawer = ({
 
       <div className="fixed inset-0 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
+          <div
+            className={
+              isFull
+                ? 'pointer-events-none fixed inset-0 flex max-w-full'
+                : 'pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16'
+            }
+          >
             <DialogPanel
               transition
-              className={`pointer-events-auto relative ${maxWidthClass} w-screen transform transition duration-300 ease-in-out data-closed:translate-x-full`}
-              style={{
-                backgroundColor: 'var(--bg-elevated, #ffffff)',
-              }}
+              className={
+                `${isFull
+                  ? 'pointer-events-auto relative h-full w-full max-w-full transform transition duration-300 ease-in-out data-closed:translate-x-full'
+                  : `pointer-events-auto relative ${maxWidthClass} w-screen transform transition duration-300 ease-in-out data-closed:translate-x-full`} ${panelClassName}`.trim()
+              }
+              style={
+                panelClassName.trim()
+                  ? undefined
+                  : { backgroundColor: 'var(--bg-elevated, #ffffff)' }
+              }
             >
-              <div className="relative flex h-full flex-col overflow-y-auto">
-                {title && (
+              <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+                {closeOnlyHeader ? (
                   <div
-                    className="border-b px-4 py-3 sm:px-5"
+                    className="flex shrink-0 items-center justify-end border-b px-3 py-2.5 sm:px-4"
+                    style={{
+                      borderColor: 'var(--border-default, #d1d5db)',
+                      backgroundColor: 'var(--bg-surface, #f3f4f6)',
+                    }}
+                  >
+                    <DialogTitle className="sr-only">Panel lateral</DialogTitle>
+                    {showCloseButton ? (
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="h-8 w-10 rounded-xl border transition-colors flex items-center justify-center"
+                        style={{
+                          borderColor: 'var(--border-default, #d1d5db)',
+                          color: 'var(--text-secondary, #6b7280)',
+                          backgroundColor: 'var(--bg-elevated, #ffffff)',
+                        }}
+                        aria-label="Cerrar panel"
+                      >
+                        <span className="sr-only">Cerrar panel</span>
+                        <X size={16} />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {!closeOnlyHeader && title ? (
+                  <div
+                    className="border-b px-4 py-3 sm:px-5 shrink-0"
                     style={{
                       borderColor: 'var(--border-default, #d1d5db)',
                     }}
@@ -113,9 +168,9 @@ export const SideDrawer = ({
                       )}
                     </div>
                   </div>
-                )}
+                ) : null}
 
-                <div className="relative flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+                <div className={resolvedBodyClass}>
                   {children}
                 </div>
               </div>
@@ -132,8 +187,11 @@ SideDrawer.propTypes = {
   onClose: PropTypes.func,
   title: PropTypes.node,
   children: PropTypes.node,
-  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg', 'full']),
   showCloseButton: PropTypes.bool,
   headerIcon: PropTypes.elementType,
   headerBadge: PropTypes.node,
+  headerLayout: PropTypes.oneOf(['default', 'closeOnly']),
+  panelClassName: PropTypes.string,
+  bodyClassName: PropTypes.string,
 };
