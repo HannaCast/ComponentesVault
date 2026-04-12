@@ -51,7 +51,10 @@ class UniversityProfileView(APIView):
         ).order_by('order', 'id')
 
         payload = {
-            **UniversityWriteSerializer(university).data,
+            **UniversityWriteSerializer(
+                university,
+                context={'request': request},
+            ).data,
             'modalities': ModalitiesDetailSerializer(modalities, many=True).data,
             'shifts': ShiftListSerializer(shifts, many=True).data,
             'academic_periods': AcademicPeriodListSerializer(academic_periods, many=True).data,
