@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { GraduationCap, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
+
+const DETAIL_TABS = [
+  { id: 'general', label: 'Datos generales' },
+  { id: 'modalities', label: 'Modalidades' },
+  { id: 'shifts', label: 'Turnos' },
+  { id: 'periods', label: 'Periodos académicos' },
+];
 
 const DAY_SHORT = {
   1: 'L',
@@ -32,15 +39,33 @@ const formatAllowedDays = (allowedDays) => {
     .join(', ');
 };
 
+const tabButtonClass = (activeTab, tabId, disabled) => {
+  const active = activeTab === tabId;
+  if (disabled) {
+    return 'whitespace-nowrap pb-2 text-sm font-medium text-[var(--text-disabled,#94a3b8)] cursor-not-allowed';
+  }
+  return `whitespace-nowrap pb-2 text-sm font-medium border-b-2 transition-colors ${
+    active
+      ? 'text-[var(--accent,#2563eb)] border-[var(--accent,#2563eb)]'
+      : 'text-[var(--text-secondary,#6b7280)] border-transparent hover:text-[var(--text-primary)]'
+  }`;
+};
+
 export const UniversityDetail = ({
   profile,
   isLoading = false,
   onClose,
   onEdit,
 }) => {
+  const [activeTab, setActiveTab] = useState('general');
+
+  useEffect(() => {
+    setActiveTab('general');
+  }, [profile?.id]);
+
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="py-2 sm:py-4">
         <LoadingStatePanel message="Cargando información..." />
       </div>
     );
@@ -48,10 +73,10 @@ export const UniversityDetail = ({
 
   if (!profile) {
     return (
-      <div className="p-6">
+      <div className="py-2 sm:py-4 space-y-6">
         <p className="text-sm text-[var(--text-secondary)]">No se encontró la universidad.</p>
-        <div className="flex gap-3 pt-6 border-t border-[var(--border-default)] mt-6">
-          <ActionButton label="Cerrar" onClick={onClose} className="flex-1" />
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-[var(--border-default)]">
+          <ActionButton label="Cerrar" onClick={onClose} className="flex-1 w-full sm:w-auto" />
         </div>
       </div>
     );
@@ -63,176 +88,187 @@ export const UniversityDetail = ({
   const periods = Array.isArray(profile.academic_periods) ? profile.academic_periods : [];
   const activePeriod = profile.active_period;
 
+  const innerCard = 'rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4';
+
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-start gap-4 pb-4 border-b border-[var(--border-default)]">
-        <div
-          className="w-16 h-16 rounded-lg flex-shrink-0 flex items-center justify-center"
-          style={{
-            backgroundColor: 'var(--accent-subtle, #dbeafe)',
-            color: 'var(--accent, #2563eb)',
-          }}
-        >
-          <GraduationCap size={32} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] break-words">
-            {profile.name || '—'}
-          </h2>
-          <p className="text-sm text-[var(--text-secondary)] mt-0.5">
-            {profile.short_name || '—'}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-              Código institucional
-            </p>
-            <p className="text-sm text-[var(--text-primary)]">
-              {profile.institution_code?.trim() || '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-              Horario
-            </p>
-            <p className="text-sm text-[var(--text-primary)]">
-              {formatTimeShort(profile.start_time)}
-              {' '}
-              –
-              {' '}
-              {formatTimeShort(profile.end_time)}
-            </p>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-              Tipo de periodo
-            </p>
-            <p className="text-sm text-[var(--text-primary)]">
-              {profile.period_type_name || '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
-              Gestión de periodos
-            </p>
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                usesGroups
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-default)]'
-              }`}
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-3 sm:gap-4 border-b border-[var(--border-default)] overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
+        {DETAIL_TABS.map((tab) => {
+          const disabled = tab.id === 'periods' && !usesGroups;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={tabButtonClass(activeTab, tab.id, disabled)}
+              disabled={disabled}
+              onClick={() => {
+                if (!disabled) {
+                  setActiveTab(tab.id);
+                }
+              }}
             >
-              {usesGroups ? 'Activa' : 'Inactiva'}
-            </span>
-          </div>
-        </div>
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {usesGroups && (
-        <div>
-          <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
-            Periodo activo
-          </p>
-          {activePeriod ? (
+      {activeTab === 'general' && (
+        <div className="space-y-6">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Código institucional
+              </dt>
+              <dd className="text-sm text-[var(--text-primary)] break-words">
+                {profile.institution_code?.trim() || '—'}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Tipo de periodo
+              </dt>
+              <dd className="text-sm text-[var(--text-primary)] break-words">
+                {profile.period_type_name || '—'}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Horario
+              </dt>
+              <dd className="text-sm text-[var(--text-primary)] tabular-nums">
+                {formatTimeShort(profile.start_time)}
+                {' '}
+                –
+                {' '}
+                {formatTimeShort(profile.end_time)}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Gestión de periodos
+              </dt>
+              <dd>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    usesGroups
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-default)]'
+                  }`}
+                >
+                  {usesGroups ? 'Activa' : 'Inactiva'}
+                </span>
+              </dd>
+            </div>
+          </dl>
+
+          {usesGroups && (
             <div>
-              <p className="text-base font-semibold text-[var(--accent,#2563eb)]">
-                {activePeriod.name || '—'}
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+                Periodo activo
               </p>
-              {activePeriod.display_range && (
-                <p className="text-sm text-[var(--text-secondary)] mt-1">
-                  {activePeriod.display_range}
-                </p>
+              {activePeriod ? (
+                <div className={innerCard}>
+                  <p className="text-base font-semibold text-[var(--accent,#2563eb)]">
+                    {activePeriod.name || '—'}
+                  </p>
+                  {activePeriod.display_range && (
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
+                      {activePeriod.display_range}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--text-secondary)]">Sin periodo activo</p>
               )}
             </div>
-          ) : (
-            <p className="text-sm text-[var(--text-secondary)]">Sin periodo activo</p>
           )}
         </div>
       )}
 
-      <div>
-        <p className="text-sm font-semibold text-[var(--text-primary)] mb-3">
-          Modalidades de estudio
-          {' '}
-          ·
-          {' '}
-          {modalities.length}
-        </p>
-        <div className="space-y-3">
-          {modalities.map((m) => {
-            const cfg = m.configurations || {};
-            const cdpw = cfg.classroom_days_per_week;
-            const days = formatAllowedDays(cfg.allowed_days);
+      {activeTab === 'modalities' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              Modalidades de estudio
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Total:
+              {' '}
+              {modalities.length}
+            </p>
+          </div>
+          <div className="space-y-3">
+            {modalities.map((m) => {
+              const cfg = m.configurations || {};
+              const cdpw = cfg.classroom_days_per_week;
+              const days = formatAllowedDays(cfg.allowed_days);
 
-            return (
+              return (
+                <div key={m.id} className={innerCard}>
+                  <p className="font-semibold text-[var(--text-primary)]">{m.name || '—'}</p>
+                  <p className="text-sm text-[var(--text-secondary)] mt-1">
+                    {cdpw != null ? `${cdpw} días con salón` : '—'}
+                  </p>
+                  <p className="text-sm text-[var(--text-primary)] mt-2">{days}</p>
+                </div>
+              );
+            })}
+          </div>
+          {!modalities.length && (
+            <p className="text-sm text-[var(--text-secondary)]">Sin modalidades registradas.</p>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'shifts' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              Turnos de la Universidad
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Turnos disponibles para la generación de horarios.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {shifts.map((s) => (
               <div
-                key={m.id}
-                className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] p-4"
+                key={s.id}
+                className={`flex flex-wrap items-center justify-between gap-2 ${innerCard}`}
               >
-                <p className="font-semibold text-[var(--text-primary)]">{m.name || '—'}</p>
-                <p className="text-sm text-[var(--text-secondary)] mt-1">
-                  {cdpw != null ? `${cdpw} días con salón` : '—'}
-                </p>
-                <p className="text-sm text-[var(--text-primary)] mt-2">{days}</p>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{s.name}</span>
+                <span className="text-sm text-[var(--text-secondary)] tabular-nums">
+                  {formatTimeShort(s.start_time)}
+                  {' '}
+                  –
+                  {' '}
+                  {formatTimeShort(s.end_time)}
+                </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+          {!shifts.length && (
+            <p className="text-sm text-[var(--text-secondary)]">Sin turnos configurados.</p>
+          )}
         </div>
-        {!modalities.length && (
-          <p className="text-sm text-[var(--text-secondary)]">Sin modalidades registradas.</p>
-        )}
-      </div>
+      )}
 
-      <div>
-        <p className="text-sm font-semibold text-[var(--text-primary)] mb-3">
-          Turnos disponibles
-          {' '}
-          ·
-          {' '}
-          {shifts.length}
-        </p>
-        <div className="space-y-2">
-          {shifts.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] px-4 py-3"
-            >
-              <span className="text-sm font-medium text-[var(--text-primary)]">{s.name}</span>
-              <span className="text-sm text-[var(--text-secondary)]">
-                {formatTimeShort(s.start_time)}
-                {' '}
-                –
-                {' '}
-                {formatTimeShort(s.end_time)}
-              </span>
-            </div>
-          ))}
-        </div>
-        {!shifts.length && (
-          <p className="text-sm text-[var(--text-secondary)]">Sin turnos configurados.</p>
-        )}
-      </div>
-
-      {usesGroups && (
-        <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)] mb-3">
-            Periodos académicos
-            {' '}
-            ·
-            {' '}
-            {periods.length}
-          </p>
+      {activeTab === 'periods' && usesGroups && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              Periodos académicos
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Periodos configurados para la universidad.
+            </p>
+          </div>
           <div className="space-y-2">
             {periods.map((p) => (
               <div
                 key={p.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] px-4 py-3"
+                className={`flex flex-wrap items-center justify-between gap-2 ${innerCard}`}
               >
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <span className="text-sm font-medium text-[var(--text-primary)]">
@@ -256,19 +292,19 @@ export const UniversityDetail = ({
         </div>
       )}
 
-      <div className="flex gap-3 pt-6 border-t border-[var(--border-default)]">
+      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-[var(--border-default)]">
         <ActionButton
-          label="Cerrar"
+          label="Cancelar"
           onClick={onClose}
           variant="secondary"
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         />
         <ActionButton
           label="Editar universidad"
           variant="primary"
           icon={Pencil}
           onClick={onEdit}
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         />
       </div>
     </div>
