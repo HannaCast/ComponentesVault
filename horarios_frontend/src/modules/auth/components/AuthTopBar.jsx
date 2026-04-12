@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 export const AuthTopBar = ({
   showActionButton = true,
@@ -53,14 +54,18 @@ export const AuthTopBar = ({
         )}
 
         {showActionButton ? (
-          <button
+          <ActionButton
             type="button"
             onClick={onActionClick}
+            label={actionLabel}
+            loading={isActionLoading}
+            loadingLabel={actionLoadingLabel}
             disabled={isDisabled}
-            className="cursor-pointer rounded-xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--text-on-accent)] shadow-md transition-all duration-200 hover:brightness-95 hover:shadow-xl active:scale-90 disabled:cursor-not-allowed sm:px-6 sm:text-base"
-          >
-            {isActionLoading ? actionLoadingLabel : actionLabel}
-          </button>
+            variant="default"
+            fullWidth={false}
+            size="medium"
+            className="rounded-xl shadow-md"
+          />
         ) : (
           <div className="w-[98px] sm:w-[130px]" aria-hidden="true" />
         )}

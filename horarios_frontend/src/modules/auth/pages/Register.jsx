@@ -4,6 +4,7 @@ import { MailCheck } from 'lucide-react';
 import { AuthTopBar } from '../components/AuthTopBar';
 import { useRegister } from '../hooks/useRegister';
 import Input from '@shared/components/inputs/InputText';
+import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { PasswordRequirementsChecklist } from '../../user/features/settings/components/PasswordRequirementsChecklist';
 import {
   arePasswordRequirementsMet,
@@ -205,7 +206,7 @@ export const Register = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Input
-                      label="Nombre"
+                      label="Nombre(s)"
                       type="text"
                       value={formData.name}
                       onChange={handleFieldChange('name')}
@@ -291,14 +292,15 @@ export const Register = () => {
                     </div>
                   ) : null}
 
-                  <button
+                  <ActionButton
                     type="submit"
+                    label="Crear cuenta"
+                    loading={loading}
+                    loadingLabel="Creando cuenta..."
                     disabled={!isSubmitEnabled}
-                    className="w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
-                  >
-                    {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-                  </button>
+                    variant="default"
+                    className="shadow-lg shadow-[var(--accent-subtle)]"
+                  />
                 </form>
 
                 <div className="mt-6 text-center">
@@ -328,14 +330,13 @@ export const Register = () => {
                   ) : null}
                 </div>
 
-                <button
+                <ActionButton
                   type="button"
                   onClick={handleGoLogin}
-                  className="w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98]"
-                  style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
-                >
-                  Ir a iniciar sesión
-                </button>
+                  label="Ir a iniciar sesión"
+                  variant="default"
+                  className="shadow-lg shadow-[var(--accent-subtle)]"
+                />
               </div>
             )}
           </div>

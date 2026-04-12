@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../core/context/AuthContext';
 import { AuthTopBar } from '../components/AuthTopBar';
+import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 const getHomePathByRole = (role) => {
   const normalizedRole = String(role || '').toLowerCase();
@@ -139,7 +140,7 @@ export const Landing = () => {
         navigate(getHomePathByRole(restoredUser.role));
         return;
       }
-    } catch (error) {
+    } catch {
       // Ante error de restauracion, se permite continuar al login.
     }
 
@@ -194,22 +195,32 @@ export const Landing = () => {
               </p>
 
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
-                <button
+                <ActionButton
                   onClick={handleRegisterNavigation}
+                  label="Comenzar Gratis"
+                  loading={pendingAction === 'register'}
+                  loadingLabel="Cargando..."
                   disabled={Boolean(pendingAction)}
-                  className="w-full cursor-pointer rounded-xl px-8 py-4 text-base font-bold text-[var(--text-on-accent)] shadow-lg transition-all hover:brightness-95 hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto md:text-lg"
-                  style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))' }}
-                >
-                  {pendingAction === 'register' ? 'Cargando...' : 'Comenzar Gratis'}
-                </button>
+                  variant="default"
+                  size="hero"
+                  fullWidth={false}
+                  className="w-full rounded-xl shadow-lg hover:shadow-xl sm:w-auto"
+                  customStyle={{ fontWeight: '700' }}
+                />
 
-                <button
+                <ActionButton
                   onClick={handleLoginNavigation}
+                  label="Iniciar Sesion"
+                  loading={pendingAction === 'login'}
+                  loadingLabel="Cargando..."
                   disabled={Boolean(pendingAction)}
-                  className="w-full cursor-pointer rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-8 py-4 text-base font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--accent-subtle)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto md:text-lg"
-                >
-                  {pendingAction === 'login' ? 'Cargando...' : 'Iniciar Sesion'}
-                </button>
+                  variant="outline"
+                  colorVariant="default"
+                  size="hero"
+                  fullWidth={false}
+                  className="w-full rounded-xl sm:w-auto"
+                  customStyle={{ fontWeight: '600' }}
+                />
               </div>
             </div>
 
@@ -373,13 +384,25 @@ export const Landing = () => {
                 horas en planificacion cada semestre.
               </p>
 
-              <button
+              <ActionButton
                 onClick={handleRegisterNavigation}
+                label="Comenzar ahora"
+                loading={pendingAction === 'register'}
+                loadingLabel="Cargando..."
                 disabled={Boolean(pendingAction)}
-                className="w-full cursor-pointer rounded-2xl bg-[var(--bg-elevated)] px-12 py-5 text-lg font-bold text-[var(--accent)] shadow-lg transition-all hover:shadow-2xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
-              >
-                {pendingAction === 'register' ? 'Cargando...' : 'Comenzar ahora'}
-              </button>
+                variant="default"
+                size="hero"
+                fullWidth={false}
+                className="w-full rounded-2xl shadow-lg hover:shadow-2xl sm:w-auto"
+                customStyle={{
+                  backgroundColor: 'var(--bg-elevated)',
+                  color: 'var(--accent)',
+                  fontWeight: '700',
+                }}
+                customHoverStyle={{
+                  backgroundColor: 'var(--bg-elevated)',
+                }}
+              />
             </div>
           </div>
         </section>

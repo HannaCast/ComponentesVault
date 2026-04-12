@@ -73,10 +73,10 @@ export const Select = ({
     ? 'var(--text-disabled, #94a3b8)'
     : 'var(--text-primary, #111827)';
   const focusAccent = colorVariant === 'default'
-    ? 'var(--system-accent, #0f766e)'
+    ? 'var(--system-accent, var(--accent, #2563eb))'
     : 'var(--accent, #2563eb)';
   const focusAccentSubtle = colorVariant === 'default'
-    ? 'var(--system-accent-subtle, #dff5f2)'
+    ? 'var(--system-accent-subtle, var(--accent-subtle, rgba(37, 99, 235, 0.1)))'
     : 'var(--accent-subtle, rgba(37, 99, 235, 0.1))';
 
   return (

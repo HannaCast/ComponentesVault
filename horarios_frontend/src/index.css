@@ -21,19 +21,19 @@
   --accent-hover: #1d4ed8;
   --accent-subtle: #eff6ff;
 
-  /* Paleta de sistema (independiente del accent de usuario) */
-  --system-accent: #0f766e;
-  --system-accent-hover: #115e59;
-  --system-accent-subtle: #dff5f2;
-  --system-text-on-accent: #ffffff;
+  /* Paleta de sistema (variant default) sincronizada con accent */
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
   --system-button-outline-bg: transparent;
-  --system-button-outline-text: #102027;
-  --system-button-outline-border: #93b3ac;
-  --system-button-outline-hover-bg: #dff5f2;
-  --system-button-outline-hover-border: #0f766e;
-  --system-button-outline-hover-text: #102027;
-  --system-secondary-border: #c1d5d0;
-  --system-secondary-hover-border: #93b3ac;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
 
   /* Feedback */
   --error: #dc2626;
@@ -184,35 +184,35 @@
 
 /* ─── TEMA ACADEMICO (Landing/Login) ─────────── */
 [data-system-theme="academic"] {
-  --bg-base: #f7fbfa;
-  --bg-surface: #edf6f4;
+  --bg-base: #f8faff;
+  --bg-surface: #eff6ff;
   --bg-elevated: #ffffff;
 
-  --text-primary: #102027;
-  --text-secondary: #4a5c63;
-  --text-disabled: #9aa8ad;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-disabled: #94a3b8;
   --text-on-accent: #ffffff;
 
-  --border-subtle: #d9e6e3;
-  --border-default: #c1d5d0;
-  --border-strong: #93b3ac;
+  --border-subtle: #dbeafe;
+  --border-default: #bfdbfe;
+  --border-strong: #93c5fd;
 
-  --accent: #0f766e;
-  --accent-hover: #115e59;
-  --accent-subtle: #dff5f2;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
 
-  --system-accent: #0f766e;
-  --system-accent-hover: #115e59;
-  --system-accent-subtle: #dff5f2;
-  --system-text-on-accent: #ffffff;
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
   --system-button-outline-bg: transparent;
-  --system-button-outline-text: #102027;
-  --system-button-outline-border: #93b3ac;
-  --system-button-outline-hover-bg: #dff5f2;
-  --system-button-outline-hover-border: #0f766e;
-  --system-button-outline-hover-text: #102027;
-  --system-secondary-border: #c1d5d0;
-  --system-secondary-hover-border: #93b3ac;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
 
   --error: #b91c1c;
   --error-subtle: #fef2f2;

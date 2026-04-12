@@ -138,7 +138,7 @@ export const SelectableListField = ({
   const canAdd = canConfirmAdd || canShowPendingRow;
   const canHidePendingSelector = normalizedSelectedEntries.length > 0;
   const actionAccent = colorVariant === 'default'
-    ? 'var(--system-accent, #0f766e)'
+    ? 'var(--system-accent, var(--accent, #2563eb))'
     : 'var(--accent, #2563eb)';
 
   const handleAdd = () => {

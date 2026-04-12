@@ -41,7 +41,7 @@ const Checkbox = forwardRef(
     const generatedId = useId();
     const checkboxId = id || `checkbox-${generatedId}`;
     const accentColor = colorVariant === 'default'
-      ? 'var(--system-accent, #0f766e)'
+      ? 'var(--system-accent, var(--accent, #2563eb))'
       : 'var(--accent, #2563eb)';
 
     let checkboxBorderColor = 'var(--border-default, #d1d5db)';

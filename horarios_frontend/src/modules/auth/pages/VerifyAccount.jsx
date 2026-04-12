@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, CircleX, Loader2 } from 'lucide-react';
 import { AuthTopBar } from '../components/AuthTopBar';
 import { useVerifyAccount } from '../hooks/useVerifyAccount';
+import { ActionButton } from '@shared/components/inputs/ActionButton';
 
 const installVerifyFonts = () => {
   const fontLinks = [
@@ -101,14 +102,13 @@ export const VerifyAccount = () => {
                   </p>
                 </div>
 
-                <button
+                <ActionButton
                   type="button"
                   onClick={handleGoToLogin}
-                  className="w-full cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-on-accent)] shadow-lg shadow-[var(--accent-subtle)] transition-all duration-200 active:scale-[0.98]"
-                  style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
-                >
-                  Ir a iniciar sesión
-                </button>
+                  label="Ir a iniciar sesión"
+                  variant="default"
+                  className="shadow-lg shadow-[var(--accent-subtle)]"
+                />
               </div>
             ) : null}
 
