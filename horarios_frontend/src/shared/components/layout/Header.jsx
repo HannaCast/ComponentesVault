@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, GraduationCap, Menu } from 'lucide-react';
+import { LogOut, GraduationCap, Menu, User } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 
@@ -17,9 +17,8 @@ export const Header = ({ className = '', onMenuClick }) => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const roleLabel = String(user?.role || '').toLowerCase().includes('admin')
-    ? 'Administrador'
-    : 'Usuario Normal';
+  const isAdmin = String(user?.role || '').toLowerCase().includes('admin');
+  const roleLabel = isAdmin ? 'Administrador' : 'Usuario Normal';
   const secondaryLabel = user?.selected_university?.short_name
     || user?.selected_university?.name
     || 'Sesión activa';
@@ -46,7 +45,7 @@ export const Header = ({ className = '', onMenuClick }) => {
             <button
               type="button"
               onClick={onMenuClick}
-              className="lg:hidden h-9 w-9 rounded-lg border flex items-center justify-center shrink-0"
+              className="lg:hidden h-9 w-9 rounded-lg border flex items-center justify-center shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
               style={{
                 borderColor: 'var(--border-default, #d1d5db)',
                 color: 'var(--text-primary, #111827)',
@@ -73,16 +72,31 @@ export const Header = ({ className = '', onMenuClick }) => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="text-right hidden md:block">
+          <div className="text-right hidden md:block min-w-0">
             <p className="text-sm font-medium text-[var(--text-primary)]">{roleLabel}</p>
-            <p className="text-xs text-[var(--text-secondary)]">{secondaryLabel}</p>
+            <p className="text-xs text-[var(--text-secondary)] truncate">{secondaryLabel}</p>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(isAdmin ? '/admin/perfil' : '/usuario/perfil')}
+            className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg border flex items-center justify-center shrink-0 transition-colors hover:bg-[var(--bg-surface)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
+            style={{
+              borderColor: 'var(--border-default, #d1d5db)',
+              color: 'var(--text-primary, #111827)',
+              backgroundColor: 'var(--bg-elevated, #ffffff)',
+            }}
+            aria-label="Ver mi perfil"
+            title="Mi perfil"
+          >
+            <User className="w-5 h-5" />
+          </button>
 
           <button
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="sm:hidden h-9 w-9 rounded-lg border flex items-center justify-center disabled:opacity-60"
+            className="sm:hidden h-9 w-9 rounded-lg border flex items-center justify-center disabled:opacity-60 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-500,#ef4444)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-elevated)]"
             style={{
               color: 'var(--danger-600, #dc2626)',
               borderColor: 'var(--danger-500, #ef4444)',

@@ -45,7 +45,7 @@ export const SelectableListField = ({
   onAdd,
   onUpdate,
   onRemove,
-  placeholder = 'Seleccionar...',
+  placeholder = '',
   addLabel = 'Agregar',
   infoMessage,
   disabled = false,
