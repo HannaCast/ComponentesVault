@@ -399,10 +399,9 @@ export const TeachersPage = () => {
               setCurrentPage(1);
             }}
             options={[
-              { value: 'asc', label: 'Ascendente (nombre)' },
-              { value: 'desc', label: 'Descendente (nombre)' },
+              { value: 'asc', label: 'A-Z (nombre)' },
+              { value: 'desc', label: 'Z-A (nombre)' },
             ]}
-            placeholder="Ascendente"
             showPlaceholderOption={false}
             reserveHelperSpace={false}
           />
