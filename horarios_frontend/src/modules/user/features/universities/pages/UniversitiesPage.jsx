@@ -100,9 +100,11 @@ export const UniversitiesPage = () => {
     setCurrentPage(1);
   };
 
+  const isSelected = (id) => Number(user?.selected_university?.id) === Number(id);
+
   const handleSelectUniversity = async (e, university) => {
     e.stopPropagation();
-    if (!university?.id || selectingId) {
+    if (!university?.id || selectingId != null || isSelected(university.id)) {
       return;
     }
 
@@ -118,8 +120,6 @@ export const UniversitiesPage = () => {
       setSelectingId(null);
     }
   };
-
-  const isSelected = (id) => Number(user?.selected_university?.id) === Number(id);
 
   const handlePageChange = (nextPage) => {
     const safePage = Math.min(Math.max(nextPage, 1), totalPages);
@@ -162,6 +162,11 @@ export const UniversitiesPage = () => {
       setDeleteModal({ isOpen: false, university: null });
       await fetchUniversities();
       if (Number(user?.selected_university?.id) === Number(uni.id)) {
+        try {
+          await putSelectedUniversity(null);
+        } catch (clearErr) {
+          console.error(clearErr);
+        }
         await restoreSession();
       }
     } catch (err) {
@@ -262,6 +267,7 @@ export const UniversitiesPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pagedUniversities.map((u) => {
               const selected = isSelected(u.id);
+              const selectionBusy = selectingId != null;
               const busy = selectingId === u.id;
 
               return (
@@ -324,9 +330,9 @@ export const UniversitiesPage = () => {
                       type="button"
                       className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
                       onClick={(e) => handleSelectUniversity(e, u)}
-                      disabled={busy || selected}
+                      disabled={selectionBusy || selected}
                     >
-                      {busy ? 'Aplicando…' : selected ? 'Universidad activa' : 'Usar como activa'}
+                      {busy ? 'Aplicando…' : selected ? 'Universidad activa' : 'Seleccionar universidad'}
                     </button>
                   </div>
                 </div>
