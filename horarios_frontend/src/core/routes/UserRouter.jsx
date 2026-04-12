@@ -9,6 +9,10 @@ import { CareersPage } from '../../modules/user/features/careers/pages/CareersPa
 import { GroupsPage } from '../../modules/user/features/groups/pages/GroupsPage';
 import { ClassroomsPage } from '../../modules/user/features/classrooms/pages/ClassroomsPage';
 import { UniversitiesPage } from '../../modules/user/features/universities/pages/UniversitiesPage';
+import { UniversitiesSection } from '../../modules/user/features/universities/pages/UniversitiesSection';
+import { UniversityCreatePage } from '../../modules/user/features/universities/pages/UniversityCreatePage';
+import { UniversityViewPage } from '../../modules/user/features/universities/pages/UniversityViewPage';
+import { UniversityEditPage } from '../../modules/user/features/universities/pages/UniversityEditPage';
 
 const UserHomePage = () => <div>Panel Usuario — próximamente</div>;
 const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
@@ -19,7 +23,12 @@ export const userRoutes = (
     <Route index element={<UserHomePage />} />
     <Route path="universidad/generar-horario" element={<ScheduleGeneratorPage />} />
     <Route path="universidad/generar-horario/ver/:versionId" element={<ScheduleVersionDetailPage />} />
-    <Route path="universidades" element={<UniversitiesPage />} />
+    <Route path="universidades" element={<UniversitiesSection />}>
+      <Route index element={<UniversitiesPage />} />
+      <Route path="nueva" element={<UniversityCreatePage />} />
+      <Route path=":universityId/editar" element={<UniversityEditPage />} />
+      <Route path=":universityId" element={<UniversityViewPage />} />
+    </Route>
     <Route path="universidad/carreras" element={<CareersPage />} />
     <Route path="universidad/materias" element={<SubjectsPage />} />
     <Route path="universidad/materias/crear" element={<UserPlaceholderPage />} />
