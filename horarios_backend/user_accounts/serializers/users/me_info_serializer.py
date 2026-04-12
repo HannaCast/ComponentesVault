@@ -8,4 +8,4 @@ class MeInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'role']
+        fields = ['id', 'name', 'surname', 'last_name', 'email', 'role', 'status']
