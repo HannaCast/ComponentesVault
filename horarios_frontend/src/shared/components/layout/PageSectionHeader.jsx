@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
-import { useAuth } from '@context/AuthContext';
 
 // Componente de encabezado para secciones o pantallas, con soporte para título, contexto adicional y acción principal.
 /**
@@ -11,38 +10,25 @@ import { useAuth } from '@context/AuthContext';
  * - title: Titulo principal de la seccion/pantalla.
  * - contextLabel: Subtitulo principal (ej. "Materias de: UTEZ").
  * - secondaryContextLabel: Subtitulo adicional opcional para contexto secundario.
+ * - contextNotice: Mensaje opcional mostrado debajo del contexto principal.
  * - actionIcon: Icono opcional del boton de accion.
  * - actionLabel: Texto del boton de accion.
  * - onAction: Callback del boton de accion.
- * - showScheduleDraftNotice: Controla si se muestra el aviso de version de horario en gestion.
  * - actionVariant: Variante visual del boton.
  */
 const PageSectionHeader = ({
   title,
   contextLabel,
   secondaryContextLabel,
+  contextNotice,
   actionIcon,
   actionLabel,
   onAction,
   actionLoading = false,
   actionLoadingLabel = 'Cargando...',
   actionDisabled = false,
-  showScheduleDraftNotice = false,
   actionVariant = 'primary',
 }) => {
-  const { user } = useAuth();
-  const selectedUniversityId = user?.selected_university?.id;
-  const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
-  const hasSelectedUniversityId = selectedUniversityId !== null
-    && selectedUniversityId !== undefined
-    && selectedUniversityId !== '';
-  const selectedUniversityIdKey = hasSelectedUniversityId ? String(selectedUniversityId) : null;
-  const hasDraftScheduleInProgress = hasSelectedUniversityId
-    && Array.isArray(draftScheduleUniversityIds)
-    && draftScheduleUniversityIds.some(
-      (universityId) => String(universityId) === selectedUniversityIdKey,
-    );
-
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div>
@@ -68,12 +54,12 @@ const PageSectionHeader = ({
           ) : null}
         </div>
 
-        {showScheduleDraftNotice && hasDraftScheduleInProgress ? (
+        {contextNotice ? (
           <p
             className="mt-1 text-sm"
             style={{ color: 'var(--warning, #b45309)' }}
           >
-            Actualmente se esta gestionando una version de horario de una universidad.
+            {contextNotice}
           </p>
         ) : null}
       </div>
@@ -101,13 +87,13 @@ PageSectionHeader.propTypes = {
   title: PropTypes.node,
   contextLabel: PropTypes.node,
   secondaryContextLabel: PropTypes.node,
+  contextNotice: PropTypes.node,
   actionIcon: PropTypes.elementType,
   actionLabel: PropTypes.node,
   onAction: PropTypes.func,
   actionLoading: PropTypes.bool,
   actionLoadingLabel: PropTypes.string,
   actionDisabled: PropTypes.bool,
-  showScheduleDraftNotice: PropTypes.bool,
   actionVariant: PropTypes.string,
 };
 

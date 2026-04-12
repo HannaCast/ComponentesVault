@@ -161,6 +161,17 @@ export const ClassroomsPage = () => {
     || user?.selected_university?.name
     || user?.selected_university;
   const selectedUniversityId = user?.selected_university?.id;
+  const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
+  const hasDraftScheduleInProgress = selectedUniversityId !== null
+    && selectedUniversityId !== undefined
+    && selectedUniversityId !== ''
+    && Array.isArray(draftScheduleUniversityIds)
+    && draftScheduleUniversityIds.some(
+      (universityId) => String(universityId) === String(selectedUniversityId),
+    );
+  const scheduleDraftNotice = hasDraftScheduleInProgress
+    ? 'Actualmente se esta gestionando una version de horario de una universidad.'
+    : null;
 
   const contextLabel = selectedUniversityName
     ? `Aulas de: ${selectedUniversityName}`
@@ -481,7 +492,7 @@ export const ClassroomsPage = () => {
       <PageSectionHeader
         title="Aulas"
         contextLabel={contextLabel}
-        showScheduleDraftNotice
+        contextNotice={scheduleDraftNotice}
         actionIcon={Plus}
         actionLabel="Nueva Aula"
         actionLoading={isOpeningCreate}

@@ -141,13 +141,25 @@ export const TeachersPage = () => {
   } = useTeachers();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const selectedUniversityId = user?.selected_university?.id;
   const contextUniversity = user?.selected_university?.short_name
     || user?.selected_university?.name
     || user?.selected_university;
+  const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
 
   const contextLabel = contextUniversity
     ? `Contexto: ${contextUniversity}`
     : 'Registro de profesores';
+  const hasDraftScheduleInProgress = selectedUniversityId !== null
+    && selectedUniversityId !== undefined
+    && selectedUniversityId !== ''
+    && Array.isArray(draftScheduleUniversityIds)
+    && draftScheduleUniversityIds.some(
+      (universityId) => String(universityId) === String(selectedUniversityId),
+    );
+  const scheduleDraftNotice = hasDraftScheduleInProgress
+    ? 'Actualmente se esta gestionando una version de horario de una universidad.'
+    : null;
 
   const isAnyRowActionRunning = rowActionState.teacherId !== null;
   const saveModalContent = getSaveModalContent(saveModal.mode);
@@ -359,7 +371,7 @@ export const TeachersPage = () => {
       <PageSectionHeader
         title="Profesores"
         contextLabel={contextLabel}
-        showScheduleDraftNotice
+        contextNotice={scheduleDraftNotice}
         actionIcon={Plus}
         actionLabel="Nuevo profesor"
         actionLoading={isOpeningCreate}

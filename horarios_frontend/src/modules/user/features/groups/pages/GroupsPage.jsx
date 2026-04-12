@@ -157,6 +157,17 @@ export const GroupsPage = () => {
     || user?.selected_university?.name
     || user?.selected_university
     || 'Universidad seleccionada';
+  const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
+  const hasDraftScheduleInProgress = selectedUniversityId !== null
+    && selectedUniversityId !== undefined
+    && selectedUniversityId !== ''
+    && Array.isArray(draftScheduleUniversityIds)
+    && draftScheduleUniversityIds.some(
+      (universityId) => String(universityId) === String(selectedUniversityId),
+    );
+  const scheduleDraftNotice = hasDraftScheduleInProgress
+    ? 'Actualmente se esta gestionando una version de horario de una universidad.'
+    : null;
 
   const isAnyRowActionRunning = rowActionState.groupId !== null;
   const saveModalContent = getSaveModalContent(saveModal.mode);
@@ -415,7 +426,7 @@ export const GroupsPage = () => {
       <PageSectionHeader
         title="Grupos"
         contextLabel={`Grupos de: ${selectedUniversityName}`}
-        showScheduleDraftNotice
+        contextNotice={scheduleDraftNotice}
         actionIcon={Plus}
         actionLabel="Nuevo Grupo"
         actionLoading={isOpeningCreate}
