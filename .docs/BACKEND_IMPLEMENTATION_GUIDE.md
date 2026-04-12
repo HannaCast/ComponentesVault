@@ -443,10 +443,13 @@ Variables de entorno requeridas para descifrado en backend:
 Flujo de verificacion de cuenta:
 - Al registrar (`register` / `register-admin`) se crea un token en `user_tokens` con tipo `email_verification`.
 - El backend envia correo automaticamente usando template Django HTML (`emails/verification_account.html`).
-- `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo, y marca `users.is_verificated = 1`.
+- `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo, marca `users.is_verificated = 1` y crea `user_configurations` por defecto (`theme=light`, `accent=blue`, `schedule_generation={"draft_schedule_university_ids":[]}`, `selected_university_id=NULL`, `status=1`).
+- Si el token ya fue usado pero la cuenta ya esta verificada, `verify-account` responde exito para mantener idempotencia del flujo.
+- Al verificar exitosamente, se limpian cookies `access_token` y `refresh_token` para evitar auto-login no intencional.
 - `login` y cualquier endpoint autenticado rechazan usuarios con `status != 1` o `is_verificated != 1`.
 - Las respuestas de `register` y `register-admin` ya no exponen el token de verificacion; solo confirman el correo destino.
 - Los links de correo se construyen de forma hardcodeada por modulo usando `LINK_FRONTEND` como base.
+- Los endpoints publicos de auth (`login`, `refresh`, `register`, `verify-account`, `logout`) no usan autenticacion por defecto para evitar errores por cookies access viejas o invalidas.
 
 Variables de entorno para envio de correo:
 - `EMAIL_BACKEND`

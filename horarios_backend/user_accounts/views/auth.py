@@ -15,7 +15,7 @@ from core.audit_context import with_audit_context
 from core.email_service import EmailDeliveryError
 from core.permissions import IsAdmin
 from core.request_decryption import decrypt_request
-from user_accounts.models import UserToken
+from user_accounts.models import UserConfiguration, UserToken
 from user_accounts.services import send_account_verification_email
 from user_accounts.serializers import (
     LoginSerializer, RegisterSerializer, ChangePasswordSerializer, VerifyAccountSerializer,
@@ -95,9 +95,33 @@ def _send_verification_email_or_rollback(user, verification_token):
     return None
 
 
+def _ensure_default_user_configuration(user):
+    """Crea la configuracion inicial del usuario si aun no existe."""
+    UserConfiguration.objects.get_or_create(
+        user=user,
+        defaults={
+            'selected_university': None,
+            'theme': 'light',
+            'accent': 'blue',
+            'schedule_generation': {
+                'draft_schedule_university_ids': [],
+            },
+            'status': 1,
+        },
+    )
+
+
+def _clear_auth_cookies(response):
+    """Limpia cookies de sesion para evitar auto-login no intencional."""
+    response.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH)
+    response.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH)
+    return response
+
+
 @extend_schema(tags=['Auth'])
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
+    authentication_classes = []
 
     @decrypt_request()
     @transaction.atomic
@@ -125,6 +149,7 @@ class LoginView(TokenObtainPairView):
 
 @extend_schema(tags=['Auth'])
 class RefreshView(APIView):
+    authentication_classes = []
     permission_classes = []
 
     def post(self, request):
@@ -184,6 +209,7 @@ class ChangePasswordView(APIView):
 
 @extend_schema(tags=['Auth'])
 class RegisterView(APIView):
+    authentication_classes = []
     permission_classes = []
 
     @decrypt_request()
@@ -239,6 +265,7 @@ class RegisterAdminView(APIView):
 
 @extend_schema(tags=['Auth'])
 class VerifyAccountView(APIView):
+    authentication_classes = []
     permission_classes = []
 
     @extend_schema(request=VerifyAccountSerializer)
@@ -265,6 +292,13 @@ class VerifyAccountView(APIView):
             return ApiResponse.error(message='Token de verificacion invalido')
 
         if user_token.used_at is not None:
+            if getattr(user_token.user, 'is_verificated', 0) == 1:
+                _ensure_default_user_configuration(user_token.user)
+                response = ApiResponse.success(
+                    data={'user_id': user_token.user.id},
+                    message='La cuenta ya se encontraba verificada',
+                )
+                return _clear_auth_cookies(response)
             return ApiResponse.error(message='Token de verificacion ya utilizado')
 
         if user_token.expires_at < now:
@@ -275,17 +309,21 @@ class VerifyAccountView(APIView):
             user.is_verificated = 1
             user.save(update_fields=['is_verificated'])
 
+        _ensure_default_user_configuration(user)
+
         user_token.used_at = now
         user_token.save(update_fields=['used_at'])
 
-        return ApiResponse.success(
+        response = ApiResponse.success(
             data={'user_id': user.id},
             message='Cuenta verificada exitosamente',
         )
+        return _clear_auth_cookies(response)
 
 
 @extend_schema(tags=['Auth'])
 class LogoutView(APIView):
+    authentication_classes = []
     permission_classes = []
 
     def post(self, request):

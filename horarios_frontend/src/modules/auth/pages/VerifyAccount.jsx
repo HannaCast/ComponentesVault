@@ -39,22 +39,21 @@ export const VerifyAccount = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { status, message, verifyToken } = useVerifyAccount();
+  const verificationToken =
+    searchParams.get('token')
+    || searchParams.get('verifyToken')
+    || '';
 
   useEffect(() => {
     installVerifyFonts();
     applySystemThemeToRoot();
-
-    const verificationToken =
-      searchParams.get('token')
-      || searchParams.get('verifyToken')
-      || '';
 
     verifyToken(verificationToken);
 
     return () => {
       delete document.documentElement.dataset.systemTheme;
     };
-  }, [searchParams, verifyToken]);
+  }, [verificationToken, verifyToken]);
 
   const handleGoToLogin = () => {
     navigate('/login');
