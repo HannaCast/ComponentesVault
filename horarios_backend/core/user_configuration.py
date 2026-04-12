@@ -15,11 +15,21 @@ def get_selected_university_id_by_user_id(user_id: int) -> Optional[int]:
     user_config = (
         UserConfiguration.objects
         .filter(user_id=user_id)
+        .select_related('selected_university')
         .order_by('-id')
         .first()
     )
 
     if not user_config or not user_config.selected_university_id:
+        return None
+
+    selected_university = user_config.selected_university
+    if (
+        selected_university is None
+        or selected_university.user_id != user_id
+        or selected_university.status != 1
+        or selected_university.is_deleted != 0
+    ):
         return None
 
     return user_config.selected_university_id

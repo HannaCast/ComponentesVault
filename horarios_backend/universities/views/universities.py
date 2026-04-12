@@ -49,6 +49,7 @@ class UniversityList(APIView):
     def get(self, request):
         """Listar universidades activas"""
         universities = Universities.objects.filter(
+            user=request.user,
             status=1,
             is_deleted=0,
         ).select_related('image')
@@ -67,10 +68,11 @@ class UniversityDetail(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
-    def get_object(self, university_id):
+    def get_object(self, request, university_id):
         try:
             return Universities.objects.select_related('image').get(
                 id=university_id,
+                user=request.user,
                 status=1,
                 is_deleted=0
             )
@@ -81,7 +83,7 @@ class UniversityDetail(APIView):
     @extend_schema(responses=UniversityWriteSerializer)
     def get(self, request, university_id):
         """Obtener universidad por ID"""
-        university = self.get_object(university_id)
+        university = self.get_object(request, university_id)
 
         if not university:
             return ApiResponse.error(
@@ -102,7 +104,7 @@ class UniversityDetail(APIView):
     )
     def put(self, request, university_id):
         """Actualizar universidad"""
-        university = self.get_object(university_id)
+        university = self.get_object(request, university_id)
 
         if not university:
             return ApiResponse.error(
@@ -133,7 +135,7 @@ class UniversityDetail(APIView):
     @extend_schema(responses=None)
     def delete(self, request, university_id):
         """Eliminar universidad (soft delete)"""
-        university = self.get_object(university_id)
+        university = self.get_object(request, university_id)
 
         if not university:
             return ApiResponse.error(

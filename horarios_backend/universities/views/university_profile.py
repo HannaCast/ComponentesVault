@@ -25,6 +25,7 @@ class UniversityProfileView(APIView):
         try:
             university = Universities.objects.select_related('period_type', 'image').get(
                 id=university_id,
+                user=request.user,
                 status=1,
                 is_deleted=0,
             )

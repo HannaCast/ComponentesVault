@@ -53,7 +53,10 @@ class SelectedUniversityConfigurationView(APIView):
     @with_audit_context(table_name='user_configurations')
     def put(self, request):
         """Asigna o limpia la universidad seleccionada del usuario autenticado."""
-        serializer = SelectedUniversityUpdateSerializer(data=request.data)
+        serializer = SelectedUniversityUpdateSerializer(
+            data=request.data,
+            context={'request': request},
+        )
         if not serializer.is_valid():
             return ApiResponse.error(errors=serializer.errors)
 
@@ -62,6 +65,8 @@ class SelectedUniversityConfigurationView(APIView):
         if selected_university_id is not None:
             selected_university = Universities.objects.filter(
                 id=selected_university_id,
+                user=request.user,
+                status=1,
                 is_deleted=0,
             ).first()
 

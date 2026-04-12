@@ -92,6 +92,7 @@ class UniversityFullSetupUpdateView(APIView):
             with transaction.atomic():
                 university = Universities.objects.select_for_update().get(
                     id=university_id,
+                    user=request.user,
                     status=1,
                     is_deleted=0,
                 )
