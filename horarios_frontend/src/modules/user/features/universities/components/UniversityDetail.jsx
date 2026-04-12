@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Pencil } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
+import { UniversityLogoMark } from './UniversityLogoMark';
 
 const DETAIL_TABS = [
   { id: 'general', label: 'Datos generales' },
@@ -115,6 +116,23 @@ export const UniversityDetail = ({
 
       {activeTab === 'general' && (
         <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-[var(--border-default)]">
+            <UniversityLogoMark
+              imageUrl={profile.image_url}
+              name={profile.name}
+              size="lg"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase text-[var(--text-tertiary)] mb-1">
+                Logo institucional
+              </p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                {profile.image_url
+                  ? 'Esta imagen se muestra como identidad visual de la universidad.'
+                  : 'Aún no hay logo. Puedes subir uno al editar la universidad.'}
+              </p>
+            </div>
+          </div>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="min-w-0">
               <dt className="text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
@@ -314,6 +332,7 @@ export const UniversityDetail = ({
 UniversityDetail.propTypes = {
   profile: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    image_url: PropTypes.string,
     name: PropTypes.string,
     short_name: PropTypes.string,
     institution_code: PropTypes.string,

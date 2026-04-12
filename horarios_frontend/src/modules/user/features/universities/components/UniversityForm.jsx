@@ -430,7 +430,6 @@ export const UniversityForm = ({
             options={periodTypeOptions}
             value={formData.period_type}
             onChange={(e) => handleInputChange('period_type', e.target.value)}
-            placeholder="Selecciona..."
             showPlaceholderOption
             disabled={isLoading || !periodTypeOptions.length}
             reserveHelperSpace={false}
@@ -481,7 +480,6 @@ export const UniversityForm = ({
               accept="image/"
               className="hidden"
               onChange={handleLogoPick}
-              required
             />
             <button
               type="button"
