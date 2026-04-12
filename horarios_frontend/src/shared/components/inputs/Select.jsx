@@ -13,7 +13,7 @@ import { ChevronDown, Info, X } from 'lucide-react';
  * - options: Arreglo de opciones [{ value, label, disabled? }].
  * - value: Valor seleccionado actual.
  * - onChange: Callback al cambiar seleccion.
- * - placeholder: Texto base del placeholder.
+ * - placeholder: Texto de la opcion vacia (por defecto sin texto visible).
  * - required: Marca el campo como requerido visualmente.
  * - disabled: Deshabilita el campo.
  * - className: Clases CSS adicionales del contenedor.
@@ -33,7 +33,7 @@ export const Select = ({
   options,
   value,
   onChange,
-  placeholder = 'Seleccionar...',
+  placeholder = '',
   required = false,
   disabled = false,
   className = '',
@@ -86,10 +86,7 @@ export const Select = ({
           className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
           style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
         >
-          <span>
-            {label}
-            {required && <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>*</span>}
-          </span>
+          <span>{label}</span>
           {infoMessage && (
             <div className="relative flex items-center">
               <button
@@ -125,6 +122,7 @@ export const Select = ({
           value={value ?? ''}
           onChange={handleChange}
           disabled={disabled}
+          required={required}
           className={`w-full appearance-none px-4 py-2.5 pr-12 rounded-lg border text-sm outline-none transition-all duration-200 ${selectClassName}`}
           style={{
             backgroundColor: selectBackgroundColor,
@@ -146,7 +144,9 @@ export const Select = ({
             }
           }}
         >
-          {showPlaceholderOption ? <option value="">{placeholder}</option> : null}
+          {showPlaceholderOption ? (
+            <option value="">{placeholder || '\u00A0'}</option>
+          ) : null}
           {options.map((option) => (
             <option key={String(option.value)} value={option.value} disabled={option.disabled}>
               {option.label}

@@ -72,14 +72,7 @@ const InputText = forwardRef(
             className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
             style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
           >
-            <span>
-              {label}
-              {props.required && (
-                <span style={{ color: 'var(--error, #dc2626)' }} className="ml-1">
-                  *
-                </span>
-              )}
-            </span>
+            <span>{label}</span>
             {infoMessage && (
               <div className="relative flex items-center">
                 <button

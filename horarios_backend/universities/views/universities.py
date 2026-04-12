@@ -32,7 +32,10 @@ class UniversityCreate(APIView):
             )
 
             return ApiResponse.created(
-                UniversityWriteSerializer(university).data
+                UniversityWriteSerializer(
+                    university,
+                    context={'request': request},
+                ).data
             )
 
         return ApiResponse.error(errors=serializer.errors)
@@ -45,10 +48,17 @@ class UniversityList(APIView):
 
     def get(self, request):
         """Listar universidades activas"""
-        universities = Universities.objects.filter(status=1, is_deleted=0)
+        universities = Universities.objects.filter(
+            status=1,
+            is_deleted=0,
+        ).select_related('image')
 
         return ApiResponse.success(
-            UniversityWriteSerializer(universities, many=True).data
+            UniversityWriteSerializer(
+                universities,
+                many=True,
+                context={'request': request},
+            ).data
         )
 
 
@@ -59,7 +69,7 @@ class UniversityDetail(APIView):
 
     def get_object(self, university_id):
         try:
-            return Universities.objects.get(
+            return Universities.objects.select_related('image').get(
                 id=university_id,
                 status=1,
                 is_deleted=0
@@ -80,7 +90,10 @@ class UniversityDetail(APIView):
             )
 
         return ApiResponse.success(
-            UniversityWriteSerializer(university).data
+            UniversityWriteSerializer(
+                university,
+                context={'request': request},
+            ).data
         )
 
     @extend_schema(
@@ -97,14 +110,23 @@ class UniversityDetail(APIView):
                 status_code=404
             )
 
-        serializer = UniversityWriteSerializer(university, data=request.data, partial=True)
+        serializer = UniversityWriteSerializer(
+            university,
+            data=request.data,
+            partial=True,
+        )
 
         if serializer.is_valid():
-            serializer.save(
+            instance = serializer.save(
                 updated_at=timezone.now(),
-                updated_by = request.user.get_username()
+                updated_by=request.user.get_username(),
             )
-            return ApiResponse.success(serializer.data)
+            return ApiResponse.success(
+                UniversityWriteSerializer(
+                    instance,
+                    context={'request': request},
+                ).data
+            )
 
         return ApiResponse.error(errors=serializer.errors)
 

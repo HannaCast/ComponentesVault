@@ -276,17 +276,18 @@ export const CareerForm = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 p-6" noValidate>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-12">
           <Input
-            label="Nombre de la Carrera *"
+            label="Nombre de la carrera"
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="Ej: Desarrollo de Software Multiplataforma"
             error={formErrors.name}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
@@ -317,20 +318,20 @@ export const CareerForm = ({
 
         <div className="md:col-span-6">
           <Select
-            label="Modalidad *"
+            label="Modalidad"
             options={modalityOptions}
             value={formData.modality}
             onChange={(e) => handleInputChange('modality', e.target.value)}
-            placeholder="Seleccionar modalidad"
             error={formErrors.modality}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-12">
           <Input
-            label="Total de Periodos *"
+            label="Total de periodos"
             type="number"
             value={formData.total_periods}
             onChange={(e) => handleInputChange('total_periods', e.target.value)}
@@ -338,6 +339,7 @@ export const CareerForm = ({
             error={formErrors.total_periods}
             disabled={isLoading}
             min="1"
+            required
             reserveHelperSpace={false}
           />
         </div>

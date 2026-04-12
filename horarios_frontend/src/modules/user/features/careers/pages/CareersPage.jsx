@@ -446,6 +446,7 @@ export const CareersPage = () => {
                   options={statusOptions}
                   value={estadoFiltro}
                   onChange={handleEstadoChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>
@@ -459,6 +460,7 @@ export const CareersPage = () => {
                   ]}
                   value={modalidadFiltro}
                   onChange={handleModalidadChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>
@@ -469,6 +471,7 @@ export const CareersPage = () => {
                   options={orderOptions}
                   value={ordenAscendente ? 'asc' : 'desc'}
                   onChange={handleOrderChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>

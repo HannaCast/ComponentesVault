@@ -201,7 +201,7 @@ export const ClassroomForm = ({
     if (formData.is_restricted && !hasRestrictedCareers) {
       setFormErrors((prev) => ({
         ...prev,
-        restricted_careers: 'Agrega al menos una carrera con acceso al aula.',
+        restricted_careers: 'Si el aula es restringida, agrega al menos una carrera con acceso.',
       }));
       return;
     }
@@ -253,30 +253,31 @@ export const ClassroomForm = ({
   });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 p-6" noValidate>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
         <div className="md:col-span-6">
           <Input
-            label="Nombre del Aula *"
+            label="Nombre de la aula"
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="Ej: A1"
             error={formErrors.name}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
 
         <div className="md:col-span-6">
           <Select
-            label="Tipo de Aula *"
+            label="Tipo de aula"
             options={typeOptions}
             value={formData.classroom_type}
             onChange={(e) => handleInputChange('classroom_type', e.target.value)}
-            placeholder="Seleccionar tipo"
             error={formErrors.classroom_type}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
@@ -296,7 +297,7 @@ export const ClassroomForm = ({
 
         <div className="md:col-span-6">
           <Input
-            label="Número de Piso *"
+            label="Número de piso"
             type="number"
             min="0"
             value={formData.floor}
@@ -304,6 +305,7 @@ export const ClassroomForm = ({
             placeholder="Ej: 1"
             error={formErrors.floor}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
@@ -323,13 +325,14 @@ export const ClassroomForm = ({
 
         <div className="md:col-span-6">
           <Input
-            label="Código del Edificio *"
+            label="Código del edificio"
             type="text"
             value={formData.building_code}
             onChange={(e) => handleInputChange('building_code', e.target.value)}
             placeholder="Ej: D1"
             error={formErrors.building_code}
             disabled={isLoading}
+            required
             reserveHelperSpace={false}
           />
         </div>
@@ -369,7 +372,6 @@ export const ClassroomForm = ({
               options={careerSelectOptions}
               value={careerToAdd}
               onChange={(e) => setCareerToAdd(e.target.value)}
-              placeholder="Seleccionar carrera"
               disabled={isLoading || classroomCareersLoading}
               reserveHelperSpace={false}
             />

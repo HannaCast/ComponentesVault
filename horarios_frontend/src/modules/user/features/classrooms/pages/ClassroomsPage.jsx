@@ -475,6 +475,7 @@ export const ClassroomsPage = () => {
                   ]}
                   value={tipoFiltro}
                   onChange={handleTipoChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>
@@ -485,6 +486,7 @@ export const ClassroomsPage = () => {
                   options={statusOptions}
                   value={estadoFiltro}
                   onChange={handleEstadoChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>
@@ -495,6 +497,7 @@ export const ClassroomsPage = () => {
                   options={orderOptions}
                   value={ordenAscendente ? 'asc' : 'desc'}
                   onChange={handleOrderChange}
+                  showPlaceholderOption={false}
                   reserveHelperSpace={false}
                 />
               </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, School, Trash2 } from 'lucide-react';
+import { UniversityLogoMark } from '../components/UniversityLogoMark';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
 import { putSelectedUniversity } from '../api/universitiesApi';
@@ -238,6 +239,7 @@ export const UniversitiesPage = () => {
               options={orderOptions}
               value={ordenAscendente ? 'asc' : 'desc'}
               onChange={handleOrderChange}
+              showPlaceholderOption={false}
               reserveHelperSpace={false}
             />
           </div>
@@ -291,15 +293,11 @@ export const UniversitiesPage = () => {
                   </button>
 
                   <div className="flex gap-3 pr-12">
-                    <div
-                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg flex-shrink-0 flex items-center justify-center"
-                      style={{
-                        backgroundColor: 'var(--accent-subtle, #dbeafe)',
-                        color: 'var(--accent, #2563eb)',
-                      }}
-                    >
-                      <School className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden />
-                    </div>
+                    <UniversityLogoMark
+                      imageUrl={u.image_url}
+                      name={u.name || u.short_name}
+                      size="md"
+                    />
                     <div className="min-w-0 flex-1 flex flex-col gap-1">
                       <h3 className="text-base font-semibold text-[var(--text-primary)] break-words leading-snug">
                         {u.name || '—'}
@@ -328,7 +326,7 @@ export const UniversitiesPage = () => {
                       onClick={(e) => handleSelectUniversity(e, u)}
                       disabled={busy || selected}
                     >
-                      {busy ? 'Seleccionando…' : selected ? 'Universidad activa' : 'Seleccionar'}
+                      {busy ? 'Aplicando…' : selected ? 'Universidad activa' : 'Usar como activa'}
                     </button>
                   </div>
                 </div>
