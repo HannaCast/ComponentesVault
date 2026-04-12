@@ -16,6 +16,11 @@ import { GroupDetail } from '../components/GroupDetail';
 import { GroupForm } from '../components/GroupForm';
 import { useGroups } from '../hooks/useGroups';
 
+const orderOptions = [
+  { value: 'asc', label: 'A-Z' },
+  { value: 'desc', label: 'Z-A' },
+];
+
 const getDrawerTitle = (mode, selectedGroup) => {
   if (mode === 'create') return 'Crear Nuevo Grupo';
   if (mode === 'edit') return 'Editar Grupo';
@@ -444,11 +449,7 @@ export const GroupsPage = () => {
               setOrdenAscendente(e.target.value === 'asc');
               setCurrentPage(1);
             }}
-            options={[
-              { value: 'asc', label: 'Ascendente' },
-              { value: 'desc', label: 'Descendente' },
-            ]}
-            placeholder="Ascendente"
+            options={orderOptions}
             showPlaceholderOption={false}
             reserveHelperSpace={false}
           />
