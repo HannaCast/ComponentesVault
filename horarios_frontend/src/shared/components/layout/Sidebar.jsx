@@ -1,17 +1,8 @@
 import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  Calendar,
-  GraduationCap,
-  BookOpen,
-  Users,
-  UserCheck,
-  Building2,
-  Settings,
-  School,
-  FileText,
-} from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
+import { USER_MENU_ITEMS } from '../../../core/navigation/userMenuItems';
 
 // Componente de barra lateral para navegación principal, adaptada según el rol del usuario (admin o usuario regular).
 /**
@@ -25,16 +16,7 @@ export const Sidebar = ({ collapsed = false, className = '', onNavigate }) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const menuItemsUser = [
-    { icon: Calendar, label: 'Generar Horario', path: '/usuario/universidad/generar-horario' },
-    { icon: School, label: 'Universidades', path: '/usuario/universidades' },
-    { icon: GraduationCap, label: 'Carreras', path: '/usuario/universidad/carreras' },
-    { icon: BookOpen, label: 'Materias', path: '/usuario/universidad/materias' },
-    { icon: Users, label: 'Grupos', path: '/usuario/universidad/grupos' },
-    { icon: UserCheck, label: 'Profesores', path: '/usuario/universidad/profesores' },
-    { icon: Building2, label: 'Aulas', path: '/usuario/universidad/aulas' },
-    { icon: Settings, label: 'Ajustes', path: '/usuario/ajustes' },
-  ];
+  const menuItemsUser = USER_MENU_ITEMS;
 
   const menuItemsAdmin = [
     { icon: FileText, label: 'Bitácora', path: '/admin/bitacora' },
