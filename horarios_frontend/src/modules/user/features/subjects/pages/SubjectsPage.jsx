@@ -432,10 +432,9 @@ export const SubjectsPage = () => {
               setCurrentPage(1);
             }}
             options={[
-              { value: 'asc', label: 'Ascendente' },
-              { value: 'desc', label: 'Descendente' },
+              { value: 'asc', label: 'A-Z' },
+              { value: 'desc', label: 'Z-A' },
             ]}
-            placeholder="Ascendente"
             showPlaceholderOption={false}
             reserveHelperSpace={false}
           />
