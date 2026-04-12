@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, Pencil, Plus, School } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, School, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
 import { putSelectedUniversity } from '../api/universitiesApi';
@@ -10,12 +11,9 @@ import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 import { EmptyStatePanel } from '@shared/components/tables/EmptyStatePanel';
 import { Pagination } from '@shared/components/tables/Pagination';
-import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
-import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
-import { UniversityDetail } from '../components/UniversityDetail';
-import { UniversityForm } from '../components/UniversityForm';
 import { useUniversities } from '../hooks/useUniversities';
+import { parseUniversityApiError } from '../utils/parseUniversityApiError';
 
 const orderOptions = [
   { value: 'asc', label: 'A-Z' },
@@ -57,21 +55,8 @@ const getEmptyState = (searchTerm, onCreate) => {
   };
 };
 
-const parseApiError = (err, fallback) => {
-  const d = err?.response?.data;
-  if (typeof d?.message === 'string' && d.message.trim()) {
-    return d.message;
-  }
-  if (d?.data != null && typeof d.data !== 'object') {
-    return String(d.data);
-  }
-  if (typeof err?.message === 'string') {
-    return err.message;
-  }
-  return fallback;
-};
-
 export const UniversitiesPage = () => {
+  const navigate = useNavigate();
   const { user, restoreSession } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [selectingId, setSelectingId] = useState(null);
@@ -79,20 +64,8 @@ export const UniversitiesPage = () => {
   const pageChangeTimeoutRef = useRef(null);
   const ITEMS_PER_PAGE = 6;
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState('create');
-  const [isOpeningCreate, setIsOpeningCreate] = useState(false);
-  const [formResetKey, setFormResetKey] = useState(0);
-  const [editFormKey, setEditFormKey] = useState(0);
-  const [saveModal, setSaveModal] = useState({
-    isOpen: false,
-    payload: null,
-    logoFile: null,
-    saveKind: 'create',
-    universityId: null,
-  });
-
-  const { shouldRun: shouldRunCatalog } = useRequestDeduper({ windowMs: 300 });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, university: null });
+  const deleteInFlightRef = useRef(false);
 
   const {
     loading,
@@ -104,16 +77,7 @@ export const UniversitiesPage = () => {
     setOrdenAscendente,
     fetchUniversities,
     filteredUniversities,
-    periodTypeOptions,
-    fetchPeriodTypes,
-    createUniversityFullSetup,
-    updateUniversityFullSetup,
-    createLoading,
-    updateLoading,
-    universityProfile,
-    profileLoading,
-    fetchUniversityProfile,
-    clearUniversityProfile,
+    deleteUniversity,
   } = useUniversities();
 
   const totalItems = filteredUniversities.length;
@@ -124,50 +88,15 @@ export const UniversitiesPage = () => {
     return filteredUniversities.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredUniversities, currentPage, ITEMS_PER_PAGE]);
 
-  const handleOpenCreate = async () => {
-    if (isOpeningCreate) {
-      return;
-    }
-    setIsOpeningCreate(true);
-    try {
-      const sig = buildRequestSignature({ resource: 'period-types' }, ['resource']);
-      if (shouldRunCatalog(sig)) {
-        await fetchPeriodTypes();
-      }
-      setFormResetKey((k) => k + 1);
-      setDrawerMode('create');
-      clearUniversityProfile();
-      setDrawerOpen(true);
-    } catch (err) {
-      console.error(err);
-      toast.error('No se pudieron cargar los tipos de periodo. Intenta de nuevo.');
-    } finally {
-      setIsOpeningCreate(false);
-    }
-  };
+  const goToCreate = () => navigate('/usuario/universidades/nueva');
+  const goToDetail = (id) => navigate(`/usuario/universidades/${id}`);
 
-  const emptyState = getEmptyState(searchTerm, handleOpenCreate);
+  const emptyState = getEmptyState(searchTerm, goToCreate);
 
   const handleOrderChange = (event) => {
     const value = event?.target?.value;
     setOrdenAscendente(value === 'asc');
     setCurrentPage(1);
-  };
-
-  const handleOpenUniversityDetail = async (university) => {
-    if (!university?.id) {
-      return;
-    }
-    setDrawerMode('view');
-    setDrawerOpen(true);
-    try {
-      await fetchUniversityProfile(university.id);
-    } catch (err) {
-      console.error(err);
-      toast.error('No se pudo cargar el perfil de la universidad.');
-      setDrawerOpen(false);
-      clearUniversityProfile();
-    }
   };
 
   const handleSelectUniversity = async (e, university) => {
@@ -203,74 +132,42 @@ export const UniversitiesPage = () => {
     }, 500);
   };
 
-  const handleCloseDrawer = () => {
-    setDrawerOpen(false);
-    setDrawerMode('create');
-    clearUniversityProfile();
-    setSaveModal({
-      isOpen: false,
-      payload: null,
-      logoFile: null,
-      saveKind: 'create',
-      universityId: null,
-    });
-  };
-
-  const handleEditUniversity = async () => {
-    if (!universityProfile?.id) {
+  const handleRequestDelete = (event, university) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (!university?.id) {
       return;
     }
-    try {
-      const sig = buildRequestSignature({ resource: 'period-types' }, ['resource']);
-      if (shouldRunCatalog(sig)) {
-        await fetchPeriodTypes();
-      }
-      setEditFormKey((k) => k + 1);
-      setDrawerMode('edit');
-    } catch (err) {
-      console.error(err);
-      toast.error('No se pudieron cargar los tipos de periodo. Intenta de nuevo.');
-    }
+    setDeleteModal({ isOpen: true, university });
   };
 
-  const handleFormSubmit = ({ payload, logoFile }) => {
-    const isEdit = drawerMode === 'edit';
-    setSaveModal({
-      isOpen: true,
-      payload,
-      logoFile,
-      saveKind: isEdit ? 'edit' : 'create',
-      universityId: isEdit ? universityProfile?.id : null,
-    });
-  };
-
-  const handleConfirmSave = async () => {
-    const {
-      payload,
-      logoFile,
-      saveKind,
-      universityId,
-    } = saveModal;
-    if (!payload) {
+  const handleCloseDeleteModal = () => {
+    if (deleteInFlightRef.current) {
       return;
     }
+    setDeleteModal({ isOpen: false, university: null });
+  };
 
+  const handleConfirmDelete = async () => {
+    const uni = deleteModal.university;
+    if (!uni?.id || deleteInFlightRef.current) {
+      return;
+    }
+    deleteInFlightRef.current = true;
     try {
-      if (saveKind === 'edit' && universityId) {
-        await updateUniversityFullSetup(universityId, payload, logoFile);
-        toast.success('Universidad actualizada correctamente');
-      } else {
-        await createUniversityFullSetup(payload, logoFile);
-        toast.success('Universidad creada correctamente');
-      }
-      handleCloseDrawer();
+      await deleteUniversity(uni.id);
+      const label = uni.name || uni.short_name || 'Universidad';
+      toast.success(`Se eliminó correctamente «${label}».`);
+      setDeleteModal({ isOpen: false, university: null });
       await fetchUniversities();
+      if (Number(user?.selected_university?.id) === Number(uni.id)) {
+        await restoreSession();
+      }
     } catch (err) {
       console.error(err);
-      const fallback = saveKind === 'edit'
-        ? 'No se pudo actualizar la universidad.'
-        : 'No se pudo crear la universidad.';
-      toast.error(parseApiError(err, fallback));
+      toast.error(parseUniversityApiError(err, 'No se pudo eliminar la universidad.'));
+    } finally {
+      deleteInFlightRef.current = false;
     }
   };
 
@@ -320,10 +217,7 @@ export const UniversitiesPage = () => {
         actionIcon={Plus}
         actionLabel="Nueva Universidad"
         actionVariant="primary"
-        actionLoading={isOpeningCreate}
-        actionLoadingLabel="Cargando..."
-        actionDisabled={isOpeningCreate}
-        onAction={handleOpenCreate}
+        onAction={goToCreate}
       />
 
       <SurfacePanel padding="p-4">
@@ -373,48 +267,64 @@ export const UniversitiesPage = () => {
                   key={u.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleOpenUniversityDetail(u)}
+                  onClick={() => goToDetail(u.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleOpenUniversityDetail(u);
+                      goToDetail(u.id);
                     }
                   }}
-                  className={`rounded-xl border p-4 flex flex-col gap-3 bg-[var(--bg-elevated)] transition-shadow cursor-pointer hover:border-[var(--accent)]/50 ${
+                  className={`relative rounded-xl border p-4 pt-3 flex flex-col gap-3 bg-[var(--bg-elevated)] transition-shadow cursor-pointer hover:border-[var(--accent)]/50 text-left ${
                     selected
                       ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]'
                       : 'border-[var(--border-default)]'
                   }`}
                 >
-                  <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center rounded-lg p-2 border border-transparent bg-[var(--bg-elevated)]/90 shadow-sm hover:bg-red-50 hover:border-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                    style={{ color: 'var(--error, #dc2626)' }}
+                    aria-label={`Eliminar universidad ${u.name || u.short_name || u.id}`}
+                    onClick={(e) => handleRequestDelete(e, u)}
+                  >
+                    <Trash2 className="w-5 h-5" strokeWidth={2.25} aria-hidden />
+                  </button>
+
+                  <div className="flex gap-3 pr-12">
                     <div
-                      className="w-16 h-16 rounded-lg flex-shrink-0 flex items-center justify-center"
+                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg flex-shrink-0 flex items-center justify-center"
                       style={{
                         backgroundColor: 'var(--accent-subtle, #dbeafe)',
                         color: 'var(--accent, #2563eb)',
                       }}
                     >
-                      <School size={32} />
+                      <School className="w-7 h-7 sm:w-8 sm:h-8" aria-hidden />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-semibold text-[var(--text-primary)] break-words">
+                    <div className="min-w-0 flex-1 flex flex-col gap-1">
+                      <h3 className="text-base font-semibold text-[var(--text-primary)] break-words leading-snug">
                         {u.name || '—'}
                       </h3>
-                      <p className="text-sm text-[var(--text-secondary)] mt-0.5">
+                      <p className="text-sm text-[var(--text-secondary)]">
+                        <span className="font-medium text-[var(--text-primary)]">Nombre corto:</span>
+                        {' '}
                         {u.short_name || '—'}
                       </p>
-                      <p className="text-sm text-[var(--text-secondary)] mt-0.5">
-                        Horario: {formatTime(u.start_time)} - {formatTime(u.end_time)}
+                      <p className="text-sm text-[var(--text-secondary)] tabular-nums">
+                        <span className="font-medium text-[var(--text-primary)]">Horario:</span>
+                        {' '}
+                        {formatTime(u.start_time)}
+                        {' '}
+                        –
+                        {' '}
+                        {formatTime(u.end_time)}
                       </p>
                     </div>
                   </div>
 
-                  <div
-                    className="flex justify-between items-center pt-2 border-t border-[var(--border-default)]"
-                  >
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[var(--border-default)]">
                     <button
                       type="button"
-                      className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50"
+                      className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50 px-1 py-0.5 rounded"
                       onClick={(e) => handleSelectUniversity(e, u)}
                       disabled={busy || selected}
                     >
@@ -438,72 +348,23 @@ export const UniversitiesPage = () => {
         </div>
       )}
 
-      <SideDrawer
-        isOpen={drawerOpen}
-        onClose={handleCloseDrawer}
-        title={
-          drawerMode === 'view' || drawerMode === 'edit'
-            ? (universityProfile?.name || 'Universidad')
-            : 'Nueva Universidad'
-        }
-        size="lg"
-        headerIcon={
-          drawerMode === 'view'
-            ? Eye
-            : drawerMode === 'edit'
-              ? Pencil
-              : Plus
-        }
-        headerBadge={
-          drawerMode === 'view'
-            ? 'Ver'
-            : drawerMode === 'edit'
-              ? 'Editar'
-              : 'Crear'
-        }
-      >
-        {drawerMode === 'view' ? (
-          <UniversityDetail
-            profile={universityProfile}
-            isLoading={profileLoading}
-            onClose={handleCloseDrawer}
-            onEdit={handleEditUniversity}
-          />
-        ) : (
-          <UniversityForm
-            key={
-              drawerMode === 'edit'
-                ? `edit-${universityProfile?.id}-${editFormKey}`
-                : `create-${formResetKey}`
-            }
-            mode={drawerMode === 'edit' ? 'edit' : 'create'}
-            initialProfile={drawerMode === 'edit' ? universityProfile : null}
-            periodTypeOptions={periodTypeOptions}
-            isLoading={drawerMode === 'edit' ? updateLoading : createLoading}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCloseDrawer}
-          />
-        )}
-      </SideDrawer>
-
       <ConfirmModal
-        isOpen={saveModal.isOpen}
-        onClose={() => setSaveModal({
-          isOpen: false,
-          payload: null,
-          logoFile: null,
-          saveKind: 'create',
-          universityId: null,
-        })}
-        onConfirm={handleConfirmSave}
-        title={saveModal.saveKind === 'edit' ? 'Confirmar cambios' : 'Confirmar creación'}
+        isOpen={deleteModal.isOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar universidad"
         message={
-          saveModal.saveKind === 'edit'
-            ? '¿Deseas guardar los cambios de esta universidad?'
-            : '¿Deseas crear esta universidad con la información capturada?'
+          deleteModal.university
+            ? `¿Estás seguro de que deseas eliminar la universidad «${
+              deleteModal.university.name
+              || deleteModal.university.short_name
+              || 'seleccionada'
+            }»? Esta acción no se puede deshacer.`
+            : '¿Estás seguro de que deseas eliminar esta universidad? Esta acción no se puede deshacer.'
         }
-        confirmLabel={saveModal.saveKind === 'edit' ? 'Guardar' : 'Crear'}
-        closeOnConfirm={true}
+        confirmLabel="Eliminar"
+        closeOnConfirm={false}
+        zIndex={80}
       />
     </div>
   );

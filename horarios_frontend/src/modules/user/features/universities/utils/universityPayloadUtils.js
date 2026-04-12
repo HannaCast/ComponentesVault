@@ -226,7 +226,15 @@ export const createDefaultFormState = (periodTypeOptions = []) => {
     period_type: firstPt != null ? String(firstPt) : '',
     uses_period_groups: false,
     modalities: createDefaultModalities(),
-    shifts: [],
+    shifts: [
+      {
+        key: `s-${uid()}`,
+        name: 'Matutino',
+        start_time: '07:00',
+        end_time: '14:00',
+        order: 1,
+      },
+    ],
     academic_periods: [],
   };
 };

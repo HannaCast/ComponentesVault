@@ -6,6 +6,7 @@ import {
   postFullUniversitySetup,
   putFullUniversitySetup,
   uploadUniversityLogo,
+  deleteUniversity as deleteUniversityRequest,
 } from '../api/universitiesApi';
 
 export const useUniversities = () => {
@@ -94,6 +95,11 @@ export const useUniversities = () => {
     }
   }, []);
 
+  const deleteUniversity = useCallback(async (universityId) => {
+    const response = await deleteUniversityRequest(universityId);
+    return response;
+  }, []);
+
   const filteredUniversities = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     let rows = Array.isArray(universities) ? [...universities] : [];
@@ -135,5 +141,6 @@ export const useUniversities = () => {
     profileLoading,
     fetchUniversityProfile,
     clearUniversityProfile,
+    deleteUniversity,
   };
 };

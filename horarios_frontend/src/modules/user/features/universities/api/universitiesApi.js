@@ -3,6 +3,9 @@ import apiToken from '@requests/apiToken';
 export const getUniversities = () =>
   apiToken.get('/api/v1/universities/');
 
+export const deleteUniversity = (universityId) =>
+  apiToken.delete(`/api/v1/universities/${universityId}/`);
+
 export const getUniversityProfile = (universityId) =>
   apiToken.get(`/api/v1/universities/${universityId}/profile/`);
 

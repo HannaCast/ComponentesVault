@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import toast from 'react-hot-toast';
 import { Calendar, Plus, Upload, X } from 'lucide-react';
 import Input from '@shared/components/inputs/InputText';
 import Checkbox from '@shared/components/inputs/Checkbox';
@@ -34,6 +35,36 @@ const TABS = [
 ];
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
+const getFirstErrorTab = (errs) => {
+  const keys = Object.keys(errs);
+  if (!keys.length) {
+    return 'general';
+  }
+  const generalFields = new Set([
+    'name',
+    'short_name',
+    'institution_code',
+    'start_time',
+    'end_time',
+    'period_type',
+  ]);
+  if (keys.some((k) => generalFields.has(k))) {
+    return 'general';
+  }
+  if (keys.some((k) => k.startsWith('modalities') || k.startsWith('modality_'))) {
+    return 'modalities';
+  }
+  if (keys.some((k) => k.startsWith('shifts') || k.startsWith('shift_'))) {
+    return 'shifts';
+  }
+  if (keys.some((k) => k.startsWith('academic_periods') || k.startsWith('period_') || k.startsWith('periods_'))) {
+    return 'periods';
+  }
+  return 'general';
+};
 
 export const UniversityForm = ({
   periodTypeOptions = [],
@@ -226,9 +257,21 @@ export const UniversityForm = ({
 
   const handleLogoPick = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
+    if (!file) {
+      e.target.value = '';
+      return;
     }
+    if (!String(file.type || '').startsWith('image/')) {
+      toast.error('El logo debe ser una imagen (por ejemplo JPG o PNG).');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      toast.error('La imagen supera el tamaño máximo permitido (5 MB).');
+      e.target.value = '';
+      return;
+    }
+    setLogoFile(file);
     e.target.value = '';
   };
 
@@ -237,7 +280,7 @@ export const UniversityForm = ({
       await universityValidationSchema.validate(formData, { abortEarly: false });
     } catch (err) {
       const next = {};
-      if (Array.isArray(err.inner)) {
+      if (Array.isArray(err.inner) && err.inner.length) {
         err.inner.forEach((ve) => {
           const p = ve.path || '';
           if (!p) {
@@ -251,14 +294,30 @@ export const UniversityForm = ({
             next[`modality_${modalityMatch[1]}_field`] = ve.message;
           }
         });
+      } else if (err?.path && err?.message) {
+        next[err.path] = err.message;
+      } else if (err?.message) {
+        next._form = err.message;
       }
       setFormErrors(next);
+      const merged = { ...next };
+      const tab = getFirstErrorTab(merged);
+      setActiveTab((prev) => (tab === 'periods' && !formData.uses_period_groups ? prev : tab));
+      toast.error('Revisa los campos marcados. Te llevamos a la pestaña con el primer error.', {
+        id: 'university-form-validation',
+      });
       return false;
     }
 
     const cross = validateUniversityCrossRules(formData);
     if (Object.keys(cross).length > 0) {
-      setFormErrors(cross);
+      const merged = { ...cross };
+      setFormErrors(merged);
+      const tab = getFirstErrorTab(merged);
+      setActiveTab((prev) => (tab === 'periods' && !formData.uses_period_groups ? prev : tab));
+      toast.error('Hay inconsistencias en horarios, turnos o periodos. Revísalas antes de guardar.', {
+        id: 'university-form-validation',
+      });
       return false;
     }
 
@@ -279,9 +338,9 @@ export const UniversityForm = ({
   const tabButtonClass = (tabId, disabled) => {
     const active = activeTab === tabId;
     if (disabled) {
-      return 'pb-2 text-sm font-medium text-[var(--text-disabled,#94a3b8)] cursor-not-allowed';
+      return 'whitespace-nowrap pb-2 text-sm font-medium text-[var(--text-disabled,#94a3b8)] cursor-not-allowed';
     }
-    return `pb-2 text-sm font-medium border-b-2 transition-colors ${
+    return `whitespace-nowrap pb-2 text-sm font-medium border-b-2 transition-colors ${
       active
         ? 'text-[var(--accent,#2563eb)] border-[var(--accent,#2563eb)]'
         : 'text-[var(--text-secondary,#6b7280)] border-transparent hover:text-[var(--text-primary)]'
@@ -289,8 +348,8 @@ export const UniversityForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-6">
-      <div className="flex flex-wrap gap-4 border-b border-[var(--border-default)]">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full pb-4 sm:pb-6">
+      <div className="flex flex-wrap gap-3 sm:gap-4 border-b border-[var(--border-default)] overflow-x-auto pb-0.5 -mx-1 px-1">
         {TABS.map((tab) => {
           const disabled = tab.id === 'periods' && !formData.uses_period_groups;
           return (
@@ -314,55 +373,60 @@ export const UniversityForm = ({
       {activeTab === 'general' && (
         <div className="space-y-4">
           <Input
-            label="Nombre de la Universidad *"
+            label="Nombre de la Universidad "
             value={formData.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="Universidad Tecnológica de Emiliano Zapata"
             error={formErrors.name}
             disabled={isLoading}
             reserveHelperSpace={false}
+            required
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Nombre Corto *"
+              label="Nombre Corto "
               value={formData.short_name}
               onChange={(e) => handleInputChange('short_name', e.target.value)}
               placeholder="UTEZ"
               error={formErrors.short_name}
               disabled={isLoading}
               reserveHelperSpace={false}
+              required
             />
             <Input
               label="Código Institucional"
               value={formData.institution_code}
               onChange={(e) => handleInputChange('institution_code', e.target.value)}
               placeholder="UTEZ001"
+              error={formErrors.institution_code}
               disabled={isLoading}
               reserveHelperSpace={false}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Hora de Apertura *"
+              label="Hora de Apertura "
               type="time"
               value={formData.start_time}
               onChange={(e) => handleInputChange('start_time', e.target.value)}
               error={formErrors.start_time}
               disabled={isLoading}
               reserveHelperSpace={false}
+              required
             />
             <Input
-              label="Hora de Cierre *"
+              label="Hora de Cierre "
               type="time"
               value={formData.end_time}
               onChange={(e) => handleInputChange('end_time', e.target.value)}
-              error={formErrors.end_time}
               disabled={isLoading}
               reserveHelperSpace={false}
+              error={formErrors.end_time}
+              required
             />
           </div>
           <Select
-            label="Tipo de Periodo *"
+            label="Tipo de Periodo "
             options={periodTypeOptions}
             value={formData.period_type}
             onChange={(e) => handleInputChange('period_type', e.target.value)}
@@ -370,10 +434,9 @@ export const UniversityForm = ({
             showPlaceholderOption
             disabled={isLoading || !periodTypeOptions.length}
             reserveHelperSpace={false}
+            error={formErrors.period_type}
+            required
           />
-          {formErrors.period_type && (
-            <p className="text-sm text-[var(--error,#dc2626)]">{formErrors.period_type}</p>
-          )}
 
           <div
             className="rounded-xl border p-4 space-y-3"
@@ -415,9 +478,10 @@ export const UniversityForm = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/"
               className="hidden"
               onChange={handleLogoPick}
+              required
             />
             <button
               type="button"
@@ -436,7 +500,7 @@ export const UniversityForm = ({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 Modalidades de estudio
               </h3>
               <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -458,7 +522,7 @@ export const UniversityForm = ({
           {formData.modalities.map((m, idx) => (
             <div
               key={m.key || idx}
-              className="rounded-xl border border-[var(--border-default)] p-4 space-y-3 relative bg-[var(--bg-elevated)]"
+              className="rounded-xl border border-[var(--border-default)] p-4 space-y-3 relative bg-[var(--bg-surface,#f9fafb)]"
             >
               <button
                 type="button"
@@ -470,15 +534,16 @@ export const UniversityForm = ({
                 <X className="w-5 h-5" />
               </button>
               <Input
-                label="Nombre *"
+                label="Nombre "
                 value={m.name}
                 onChange={(e) => updateModality(idx, { name: e.target.value })}
                 error={formErrors[`modalities[${idx}].name`] || formErrors[`modality_${idx}_field`]}
                 disabled={isLoading}
                 reserveHelperSpace={false}
+                required
               />
               <Input
-                label="Días con salón por semana *"
+                label="Días con salón por semana "
                 type="number"
                 min={0}
                 max={7}
@@ -487,10 +552,11 @@ export const UniversityForm = ({
                 error={formErrors[`modality_${idx}_cdpw`]}
                 disabled={isLoading}
                 reserveHelperSpace={false}
+                required
               />
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
-                  Días en que se estudía *
+                <p className="text-sm font-medium text-[var(--text-primary)] mb-2" required={true}>
+                  Días en que se estudía 
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAYS.map(({ day, label }) => {
@@ -528,7 +594,7 @@ export const UniversityForm = ({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 Turnos de la Universidad
               </h3>
               <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -558,68 +624,71 @@ export const UniversityForm = ({
           ) : (
             <div className="space-y-3">
               {formData.shifts.map((s, idx) => (
-                <div
-                  key={s.key || idx}
-                  className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end rounded-xl border border-[var(--border-default)] p-4 bg-[var(--bg-elevated)]"
-                >
-                  <div className="lg:col-span-3">
-                    <Input
-                      label="Nombre *"
-                      value={s.name}
-                      onChange={(e) => updateShift(idx, { name: e.target.value })}
-                      placeholder="Matutino"
-                      disabled={isLoading}
-                      reserveHelperSpace={false}
-                    />
-                  </div>
-                  <div className="lg:col-span-3">
-                    <Input
-                      label="Hora Inicio *"
-                      type="time"
-                      value={s.start_time}
-                      onChange={(e) => updateShift(idx, { start_time: e.target.value })}
-                      disabled={isLoading}
-                      reserveHelperSpace={false}
-                    />
-                  </div>
-                  <div className="lg:col-span-3">
-                    <Input
-                      label="Hora Fin *"
-                      type="time"
-                      value={s.end_time}
-                      onChange={(e) => updateShift(idx, { end_time: e.target.value })}
-                      disabled={isLoading}
-                      reserveHelperSpace={false}
-                    />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <Input
-                      label="Orden *"
-                      type="number"
-                      min={1}
-                      value={s.order}
-                      onChange={(e) => updateShift(idx, { order: e.target.value })}
-                      disabled={isLoading}
-                      reserveHelperSpace={false}
-                    />
-                  </div>
-                  <div className="lg:col-span-1 flex justify-end pb-1">
+                <div key={s.key || idx} className="space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+                    <div className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                        <div className="lg:col-span-3">
+                          <Input
+                            label="Nombre "
+                            value={s.name}
+                            onChange={(e) => updateShift(idx, { name: e.target.value })}
+                            placeholder="Matutino"
+                            disabled={isLoading}
+                            reserveHelperSpace={false}
+                            required
+                          />
+                        </div>
+                        <div className="lg:col-span-3">
+                          <Input
+                            label="Hora Inicio "
+                            type="time"
+                            value={s.start_time}
+                            onChange={(e) => updateShift(idx, { start_time: e.target.value })}
+                            disabled={isLoading}
+                            reserveHelperSpace={false}
+                            required
+                          />
+                        </div>
+                        <div className="lg:col-span-3">
+                          <Input
+                            label="Hora Fin "
+                            type="time"
+                            value={s.end_time}
+                            onChange={(e) => updateShift(idx, { end_time: e.target.value })}
+                            disabled={isLoading}
+                            reserveHelperSpace={false}
+                            required
+                          />
+                        </div>
+                        <div className="lg:col-span-3">
+                          <Input
+                            label="Orden "
+                            type="number"
+                            min={1}
+                            value={s.order}
+                            onChange={(e) => updateShift(idx, { order: e.target.value })}
+                            disabled={isLoading}
+                            reserveHelperSpace={false}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      className="text-[var(--error,#dc2626)] p-2"
+                      className="self-end sm:self-auto shrink-0 rounded-lg p-2.5 text-[var(--error,#dc2626)] border border-transparent hover:bg-red-50 hover:border-red-100 sm:mb-1"
                       onClick={() => removeShift(idx)}
                       disabled={isLoading}
                       aria-label="Eliminar turno"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5" strokeWidth={2.25} />
                     </button>
                   </div>
                   {(formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]) && (
-                    <div className="lg:col-span-12">
-                      <p className="text-sm text-[var(--error,#dc2626)]">
-                        {formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]}
-                      </p>
-                    </div>
+                    <p className="text-sm text-[var(--error,#dc2626)] pl-0 sm:pl-1">
+                      {formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]}
+                    </p>
                   )}
                 </div>
               ))}
@@ -632,7 +701,7 @@ export const UniversityForm = ({
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 Periodos académicos
               </h3>
               <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -661,7 +730,7 @@ export const UniversityForm = ({
           {formData.academic_periods.map((p, idx) => (
             <div
               key={p.key || idx}
-              className="rounded-xl border border-[var(--border-default)] p-4 space-y-3 bg-[var(--bg-elevated)]"
+              className="rounded-xl border border-[var(--border-default)] p-4 space-y-3 bg-[var(--bg-surface,#f9fafb)]"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium text-[var(--text-primary)]">Periodo Activo</span>
@@ -676,29 +745,32 @@ export const UniversityForm = ({
                 )}
               </div>
               <Input
-                label="Nombre del Periodo *"
+                label="Nombre del Periodo "
                 value={p.name}
                 onChange={(e) => updatePeriod(idx, { name: e.target.value })}
                 placeholder="Cuatrimestre Mayo-Agosto"
                 disabled={isLoading}
                 reserveHelperSpace={false}
+                required
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Fecha Inicio *"
+                  label="Fecha Inicio "
                   type="date"
                   value={p.fecha_inicio}
                   onChange={(e) => updatePeriod(idx, { fecha_inicio: e.target.value })}
                   disabled={isLoading}
                   reserveHelperSpace={false}
+                  required
                 />
                 <Input
-                  label="Fecha Fin *"
+                  label="Fecha Fin "
                   type="date"
                   value={p.fecha_fin}
                   onChange={(e) => updatePeriod(idx, { fecha_fin: e.target.value })}
                   disabled={isLoading}
                   reserveHelperSpace={false}
+                  required
                 />
               </div>
               {(formErrors[`period_${idx}_date`]
@@ -725,13 +797,13 @@ export const UniversityForm = ({
         </div>
       )}
 
-      <div className="flex gap-3 pt-6 border-t border-[var(--border-default)]">
+      <div className="flex flex-col-reverse sm:flex-row gap-3 pt-8 mt-2 border-t border-[var(--border-default)]">
         <ActionButton
           label="Cancelar"
           onClick={onCancel}
           disabled={isLoading}
           variant="secondary"
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         />
         <ActionButton
           label={mode === 'edit' ? 'Actualizar' : 'Guardar'}
@@ -739,7 +811,7 @@ export const UniversityForm = ({
           loading={isLoading}
           disabled={isLoading}
           variant="primary"
-          className="flex-1"
+          className="flex-1 w-full sm:w-auto"
         />
       </div>
     </form>
