@@ -11,6 +11,7 @@ import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { EntityListItem } from '@shared/components/tables/EntityListItem';
 import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
+import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
 import { CareerDetail } from '../components/CareerDetail';
 import { CareerForm } from '../components/CareerForm';
 import { useCareers } from '../hooks/useCareers';
@@ -155,10 +156,9 @@ export const CareersPage = () => {
     handleDeletePeriodException,
   } = useCareers();
 
-  const selectedUniversityName = user?.selected_university?.short_name
-    || user?.selected_university?.name
-    || user?.selected_university;
-  const selectedUniversityId = user?.selected_university?.id;
+  const selectedUniversity = user?.selected_university;
+  const selectedUniversityName = getSelectedUniversityDisplayName(selectedUniversity, '');
+  const selectedUniversityId = selectedUniversity?.id;
   const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
   const hasDraftScheduleInProgress = selectedUniversityId !== null
     && selectedUniversityId !== undefined

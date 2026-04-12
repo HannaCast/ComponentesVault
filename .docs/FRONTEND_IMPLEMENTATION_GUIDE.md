@@ -262,6 +262,8 @@ Reglas:
 
 - Antes de mostrar modulo por universidad, validar `selected_university`.
 - Si no hay universidad seleccionada, mostrar `SelectedUniversityAlert`.
+- Para mostrar nombre de universidad en encabezados, usar `getSelectedUniversityDisplayName` (`@shared/utils/universityContext`) para mantener formato consistente: `Nombre completo (SHORT)` cuando ambos valores existen y son distintos.
+- Mostrar `Periodo: ...` en el `contextLabel` solo en los modulos de **Grupos** y **Generacion de Horarios** cuando `user.selected_university_active_period_name` venga con valor.
 
 ## 6.5 Seguridad de sesion
 

@@ -47,6 +47,11 @@ Notas:
 | `GET` | `/api/v1/user/my-info/` | Datos del usuario autenticado (nombre, correo, rol, configuracion actual). |
 | `PUT` | `/api/v1/user/configurations/` | Actualiza configuracion del usuario (`selected_university_id`, `theme`, `accent`). |
 
+Notas de respuesta para configuracion de usuario:
+- Cuando se consulta configuracion (`GET /api/v1/user/configurations/`), el backend retorna `selected_university` (id, name, short_name).
+- Si la universidad seleccionada tiene `uses_period_groups = 1` y existe periodo activo (`academic_periods.is_active = 1`), se retorna tambien `selected_university_active_period_name`.
+- Si no aplica o no existe periodo activo, `selected_university_active_period_name` se retorna como `null`.
+
 ---
 
 ## 3. Catalogos (solo GET)

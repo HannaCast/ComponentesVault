@@ -11,6 +11,7 @@ import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { EntityListItem } from '@shared/components/tables/EntityListItem';
 import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
+import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
 import { GroupDetail } from '../components/GroupDetail';
 import { GroupForm } from '../components/GroupForm';
 import { useGroups } from '../hooks/useGroups';
@@ -152,11 +153,18 @@ export const GroupsPage = () => {
   } = useGroups();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-  const selectedUniversityId = user?.selected_university?.id;
-  const selectedUniversityName = user?.selected_university?.short_name
-    || user?.selected_university?.name
-    || user?.selected_university
-    || 'Universidad seleccionada';
+  const selectedUniversity = user?.selected_university;
+  const selectedUniversityId = selectedUniversity?.id;
+  const selectedUniversityName = getSelectedUniversityDisplayName(
+    selectedUniversity,
+    'Universidad seleccionada',
+  );
+  const activeAcademicPeriodName = String(
+    user?.selected_university_active_period_name || '',
+  ).trim();
+  const contextLabel = activeAcademicPeriodName
+    ? `Grupos de: ${selectedUniversityName} | Periodo: ${activeAcademicPeriodName}`
+    : `Grupos de: ${selectedUniversityName}`;
   const draftScheduleUniversityIds = user?.schedule_generation?.draft_schedule_university_ids;
   const hasDraftScheduleInProgress = selectedUniversityId !== null
     && selectedUniversityId !== undefined
@@ -425,7 +433,7 @@ export const GroupsPage = () => {
     <div className="space-y-6">
       <PageSectionHeader
         title="Grupos"
-        contextLabel={`Grupos de: ${selectedUniversityName}`}
+        contextLabel={contextLabel}
         contextNotice={scheduleDraftNotice}
         actionIcon={Plus}
         actionLabel="Nuevo Grupo"

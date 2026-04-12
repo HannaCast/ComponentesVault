@@ -4,35 +4,23 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
-import { ActionButton } from '@shared/components/inputs/ActionButton';
+import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
+import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
 import { getScheduleVersionsPaginated } from '../api/scheduleGeneratorApi';
 import { ScheduleVersionHistoryPanel } from '../components/ScheduleVersionHistoryPanel';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
 
 const PAGE_SIZE = 6;
 
-const getSelectedUniversityName = (selectedUniversity) => {
-  if (!selectedUniversity) {
-    return 'Sin universidad seleccionada';
+const getContextLabel = (selectedUniversityName, activeAcademicPeriodName) => {
+  if (!activeAcademicPeriodName) {
+    return `Contexto: ${selectedUniversityName}`;
   }
 
-  if (typeof selectedUniversity === 'string') {
-    return selectedUniversity;
-  }
-
-  const fullName = String(selectedUniversity.name || '').trim();
-  const shortName = String(selectedUniversity.short_name || '').trim();
-
-  if (fullName && shortName && fullName.toLowerCase() !== shortName.toLowerCase()) {
-    return `${fullName} (${shortName})`;
-  }
-
-  return fullName || shortName || 'Universidad seleccionada';
+  return `Contexto: ${selectedUniversityName} | Periodo: ${activeAcademicPeriodName}`;
 };
-
-const getContextLabel = (selectedUniversityName) => `Contexto: ${selectedUniversityName}`;
 
 export const ScheduleGeneratorPage = () => {
   const { user, restoreSession } = useAuth();
@@ -71,13 +59,18 @@ export const ScheduleGeneratorPage = () => {
   } = useScheduleGenerator();
 
   const selectedUniversityName = useMemo(
-    () => getSelectedUniversityName(selectedUniversity),
+    () => getSelectedUniversityDisplayName(selectedUniversity, 'Sin universidad seleccionada'),
     [selectedUniversity],
   );
 
+  const activeAcademicPeriodName = useMemo(
+    () => String(user?.selected_university_active_period_name || '').trim(),
+    [user?.selected_university_active_period_name],
+  );
+
   const contextLabel = useMemo(
-    () => getContextLabel(selectedUniversityName),
-    [selectedUniversityName],
+    () => getContextLabel(selectedUniversityName, activeAcademicPeriodName),
+    [selectedUniversityName, activeAcademicPeriodName],
   );
 
   const totalPages = Math.max(1, Number(historyMeta?.totalPages) || 1);
@@ -259,33 +252,18 @@ export const ScheduleGeneratorPage = () => {
   return (
     <div className="space-y-6">
       <SurfacePanel className="overflow-hidden" padding="p-0">
-        <div
-          className="flex flex-col gap-4 border-b px-5 py-4 xl:flex-row xl:items-start xl:justify-between"
-          style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}
-        >
-          <div>
-            <h2 className="text-3xl font-semibold" style={{ color: 'var(--text-primary, #111827)' }}>
-              Generar Horario
-            </h2>
-            <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-              {contextLabel}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-            {!draftAvailabilityLoading && !hasActiveDraft ? (
-              <ActionButton
-                icon={Sparkles}
-                label="Generar horario"
-                variant="outline"
-                fullWidth={false}
-                onClick={() => setGenerateModalOpen(true)}
-                loading={pendingAction?.type === 'generate'}
-                loadingLabel="Generando..."
-                disabled={isMutating && pendingAction?.type !== 'generate'}
-              />
-            ) : null}
-          </div>
+        <div className="border-b px-5 py-4" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+          <PageSectionHeader
+            title="Generar Horario"
+            contextLabel={contextLabel}
+            actionIcon={Sparkles}
+            actionLabel={!draftAvailabilityLoading && !hasActiveDraft ? 'Generar horario' : null}
+            onAction={!draftAvailabilityLoading && !hasActiveDraft ? () => setGenerateModalOpen(true) : null}
+            actionLoading={pendingAction?.type === 'generate'}
+            actionLoadingLabel="Generando..."
+            actionDisabled={isMutating && pendingAction?.type !== 'generate'}
+            actionVariant="outline"
+          />
         </div>
 
         <div className="px-5 py-4">
