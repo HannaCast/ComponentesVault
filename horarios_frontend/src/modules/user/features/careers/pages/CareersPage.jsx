@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, GraduationCap, Pencil, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
@@ -100,6 +100,8 @@ export const CareersPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunModalitiesRequest } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunPeriodExceptionsRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -156,6 +158,7 @@ export const CareersPage = () => {
   const selectedUniversityName = user?.selected_university?.short_name
     || user?.selected_university?.name
     || user?.selected_university;
+  const selectedUniversityId = user?.selected_university?.id;
 
   const contextLabel = selectedUniversityName
     ? `Carreras de: ${selectedUniversityName}`
@@ -189,12 +192,28 @@ export const CareersPage = () => {
     }
   };
 
+  const loadModalitiesOptions = useCallback(async () => {
+    const signature = buildRequestSignature(
+      {
+        resource: 'careers-modalities',
+        selectedUniversityId,
+      },
+      ['resource', 'selectedUniversityId'],
+    );
+
+    if (!shouldRunModalitiesRequest(signature)) {
+      return;
+    }
+
+    await fetchModalitiesOptions();
+  }, [selectedUniversityId, shouldRunModalitiesRequest, fetchModalitiesOptions]);
+
   async function handleOpenDrawerCreate() {
     if (isOpeningCreate) return;
 
     setIsOpeningCreate(true);
     try {
-      await fetchModalitiesOptions();
+      await loadModalitiesOptions();
       setDrawerMode('create');
       setSelectedCareer(null);
       setDrawerOpen(true);
@@ -216,7 +235,7 @@ export const CareersPage = () => {
   const handleOpenDrawerEdit = async (id) => {
     await runRowAction(id, 'edit', async () => {
       setDrawerMode('edit');
-      await fetchModalitiesOptions();
+      await loadModalitiesOptions();
       const careerData = await fetchCareerById(id);
       if (careerData) {
         setDrawerOpen(true);
@@ -233,7 +252,7 @@ export const CareersPage = () => {
 
   const handleDrawerEditClick = async () => {
     if (selectedCareer) {
-      await fetchModalitiesOptions();
+      await loadModalitiesOptions();
       setDrawerMode('edit');
     }
   };
@@ -355,8 +374,8 @@ export const CareersPage = () => {
       return;
     }
 
-    fetchModalitiesOptions();
-  }, [user?.selected_university, fetchModalitiesOptions]);
+    loadModalitiesOptions();
+  }, [user?.selected_university, loadModalitiesOptions]);
 
   useEffect(() => {
     if (!user?.selected_university) {
@@ -397,9 +416,27 @@ export const CareersPage = () => {
 
     const id = selectedCareer?.id;
     if (id) {
+      const signature = buildRequestSignature(
+        {
+          resource: 'career-period-exceptions',
+          careerId: id,
+        },
+        ['resource', 'careerId'],
+      );
+
+      if (!shouldRunPeriodExceptionsRequest(signature)) {
+        return;
+      }
+
       fetchPeriodExceptionsForCareer(id);
     }
-  }, [drawerOpen, drawerMode, selectedCareer?.id, fetchPeriodExceptionsForCareer]);
+  }, [
+    drawerOpen,
+    drawerMode,
+    selectedCareer?.id,
+    fetchPeriodExceptionsForCareer,
+    shouldRunPeriodExceptionsRequest,
+  ]);
 
   useEffect(() => {
     if (error) {
