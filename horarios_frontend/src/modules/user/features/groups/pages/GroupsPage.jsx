@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Eye, Pencil, Plus, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@context/AuthContext';
@@ -101,6 +101,7 @@ export const GroupsPage = () => {
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
   const { shouldRun: shouldRunCatalogRequest } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunFilterCareerRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -151,6 +152,7 @@ export const GroupsPage = () => {
   } = useGroups();
 
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const selectedUniversityId = user?.selected_university?.id;
   const selectedUniversityName = user?.selected_university?.short_name
     || user?.selected_university?.name
     || user?.selected_university
@@ -177,8 +179,12 @@ export const GroupsPage = () => {
 
   const loadCatalogsForModal = async (modalMode) => {
     const catalogsSignature = buildRequestSignature(
-      { resource: 'groups-catalogs', mode: modalMode },
-      ['resource', 'mode'],
+      {
+        resource: 'groups-catalogs',
+        selectedUniversityId,
+        mode: modalMode,
+      },
+      ['resource', 'selectedUniversityId', 'mode'],
     );
 
     if (!shouldRunCatalogRequest(catalogsSignature)) {
@@ -187,6 +193,26 @@ export const GroupsPage = () => {
 
     await Promise.all([fetchCareerOptions(), fetchShiftOptions()]);
   };
+
+  const loadFilterCareerOptions = useCallback(async () => {
+    const signature = buildRequestSignature(
+      {
+        resource: 'groups-career-filter-options',
+        selectedUniversityId,
+      },
+      ['resource', 'selectedUniversityId'],
+    );
+
+    if (!shouldRunFilterCareerRequest(signature)) {
+      return;
+    }
+
+    await fetchCareerOptions();
+  }, [
+    selectedUniversityId,
+    shouldRunFilterCareerRequest,
+    fetchCareerOptions,
+  ]);
 
   async function handleOpenDrawerCreate() {
     if (isOpeningCreate) {
@@ -304,8 +330,8 @@ export const GroupsPage = () => {
     if (!user?.selected_university) {
       return;
     }
-    fetchCareerOptions();
-  }, [user?.selected_university, fetchCareerOptions]);
+    loadFilterCareerOptions();
+  }, [user?.selected_university, loadFilterCareerOptions]);
 
   useEffect(() => {
     const queryParams = {
