@@ -7,7 +7,6 @@ import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
-import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { EntityListItem } from '@shared/components/tables/EntityListItem';
 import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
@@ -384,10 +383,6 @@ export const GroupsPage = () => {
       setCurrentPage(safePage);
     }, 500);
   };
-
-  if (!user?.selected_university) {
-    return <SelectedUniversityAlert />;
-  }
 
   return (
     <div className="space-y-6">

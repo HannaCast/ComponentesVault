@@ -7,7 +7,6 @@ import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
-import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 import { SideDrawer } from '@shared/components/layout/SideDrawer';
 import { EntityListItem } from '@shared/components/tables/EntityListItem';
 import { EntityListStateRenderer } from '@shared/components/tables/EntityListStateRenderer';
@@ -426,9 +425,7 @@ export const CareersPage = () => {
         actionVariant="primary"
       />
 
-      {user?.selected_university ? (
-        <>
-          <SurfacePanel padding="p-4">
+      <SurfacePanel padding="p-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-6">
                 <Input
@@ -516,10 +513,6 @@ export const CareersPage = () => {
               hasNextPage: currentPage < totalPages,
             }}
           />
-        </>
-      ) : (
-        <SelectedUniversityAlert />
-      )}
 
       <SideDrawer
         isOpen={drawerOpen}

@@ -1,12 +1,34 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react';
 import { X } from 'lucide-react';
+import { useAuth } from '@context/AuthContext';
 import { Sidebar } from '@shared/components/layout/Sidebar';
 import { Header } from '@shared/components/layout/Header';
+import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
+
+/** Rutas accesibles sin universidad activa (gestión de universidades y cuenta). */
+const PATH_PREFIXES_WITHOUT_UNIVERSITY = [
+  '/usuario/universidades',
+  '/usuario/ajustes',
+  '/usuario/perfil',
+];
+
+const isRouteAllowedWithoutUniversity = (pathname) =>
+  PATH_PREFIXES_WITHOUT_UNIVERSITY.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 
 export const UserLayout = () => {
+  const { user, authLoading } = useAuth();
+  const { pathname } = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const blockModuleContent =
+    !authLoading
+    && Boolean(user)
+    && !user?.selected_university
+    && !isRouteAllowedWithoutUniversity(pathname);
 
   const openMobileMenu = () => {
     setIsMobileMenuOpen(true);
@@ -23,7 +45,7 @@ export const UserLayout = () => {
         <Sidebar className="app-shell-sidebar hidden lg:block" />
         <main className="app-shell-main flex-1 overflow-y-auto bg-[var(--bg-surface)]">
           <div className="app-shell-content p-6">
-            <Outlet />
+            {blockModuleContent ? <SelectedUniversityAlert /> : <Outlet />}
           </div>
         </main>
       </div>
