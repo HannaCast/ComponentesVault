@@ -12,6 +12,7 @@ import { Eye, EyeOff, Info } from 'lucide-react';
  * - infoMessage: Mensaje opcional para tooltip informativo.
  * - className: Clases CSS adicionales para el input.
  * - type: Tipo de input HTML (text, email, password, etc).
+ * - required: Marca el campo como requerido (asterisco en label).
  * - colorVariant: 'user' | 'default' para elegir la paleta de foco.
  * - reserveHelperSpace: Si true, reserva espacio inferior cuando no hay error/helper.
  * - ...props: Props nativas del input (value, onChange, placeholder, required, disabled, etc).
@@ -27,6 +28,7 @@ const InputText = forwardRef(
       labelStyle,
       className = '',
       type = 'text',
+      required = false,
       enablePasswordToggle = false,
       colorVariant = 'user',
       reserveHelperSpace = false,
@@ -72,7 +74,14 @@ const InputText = forwardRef(
             className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
             style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
           >
-            <span>{label}</span>
+            <span>
+              {label}
+              {required ? (
+                <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>
+                  *
+                </span>
+              ) : null}
+            </span>
             {infoMessage && (
               <div className="relative flex items-center">
                 <button
@@ -144,6 +153,7 @@ const InputText = forwardRef(
               props.onBlur?.(e);
             }}
             {...props}
+            required={required}
             placeholder={effectivePlaceholder}
           />
 
@@ -196,6 +206,7 @@ InputText.propTypes = {
   labelStyle: PropTypes.object,
   className: PropTypes.string,
   type: PropTypes.string,
+  required: PropTypes.bool,
   enablePasswordToggle: PropTypes.bool,
   colorVariant: PropTypes.oneOf(['user', 'default']),
   reserveHelperSpace: PropTypes.bool,

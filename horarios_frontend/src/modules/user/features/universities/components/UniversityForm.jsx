@@ -96,24 +96,6 @@ export const UniversityForm = ({
   }, [logoPreviewUrl]);
 
   useEffect(() => {
-    if (mode === 'edit') {
-      return;
-    }
-    if (!periodTypeOptions.length) {
-      return;
-    }
-    setFormData((prev) => {
-      if (prev.period_type) {
-        return prev;
-      }
-      return {
-        ...prev,
-        period_type: String(periodTypeOptions[0].value),
-      };
-    });
-  }, [mode, periodTypeOptions]);
-
-  useEffect(() => {
     if (formData.uses_period_groups) {
       return;
     }
@@ -455,6 +437,7 @@ export const UniversityForm = ({
             options={periodTypeOptions}
             value={formData.period_type}
             onChange={(e) => handleInputChange('period_type', e.target.value)}
+            placeholder="Selecciona un tipo de periodo"
             showPlaceholderOption
             disabled={isLoading || !periodTypeOptions.length}
             reserveHelperSpace={false}
@@ -604,8 +587,9 @@ export const UniversityForm = ({
                 required
               />
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)] mb-2" required={true}>
-                  Días en que se estudía 
+                <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
+                  Días en que se estudía
+                  <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAYS.map(({ day, label }) => {

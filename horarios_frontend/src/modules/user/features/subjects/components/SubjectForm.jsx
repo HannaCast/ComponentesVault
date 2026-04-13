@@ -605,7 +605,7 @@ export const SubjectForm = ({
       {/* Nombre de la Materia */}
       <div>
         <Input
-          label="Nombre de la Materia *"
+          label="Nombre de la Materia"
           type="text"
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
@@ -613,13 +613,14 @@ export const SubjectForm = ({
           error={formErrors.name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
+          required
         />
       </div>
 
       {/* Nombre Corto y Código */}
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Nombre Corto *"
+          label="Nombre Corto"
           type="text"
           value={formData.short_name}
           onChange={(e) => handleInputChange('short_name', e.target.value)}
@@ -627,9 +628,10 @@ export const SubjectForm = ({
           error={formErrors.short_name}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
+          required
         />
         <Input
-          label="Código *"
+          label="Código"
           type="text"
           value={formData.code}
           onChange={(e) => handleInputChange('code', e.target.value)}
@@ -637,6 +639,7 @@ export const SubjectForm = ({
           error={formErrors.code}
           disabled={isViewMode || isLoading}
           reserveHelperSpace={false}
+          required
         />
       </div>
 
@@ -653,7 +656,7 @@ export const SubjectForm = ({
 
       {/* Horas por Semana */}
       <Input
-        label="Horas por Semana *"
+        label="Horas por Semana"
         type="number"
         value={formData.hours_per_week}
         onChange={(e) => handleInputChange('hours_per_week', e.target.value)}
@@ -663,6 +666,7 @@ export const SubjectForm = ({
         min="0"
         max="168"
         reserveHelperSpace={false}
+        required
       />
 
       {/* Carreras */}

@@ -322,6 +322,7 @@ export const CareerForm = ({
             options={modalityOptions}
             value={formData.modality}
             onChange={(e) => handleInputChange('modality', e.target.value)}
+            placeholder="Selecciona una modalidad"
             error={formErrors.modality}
             disabled={isLoading}
             required

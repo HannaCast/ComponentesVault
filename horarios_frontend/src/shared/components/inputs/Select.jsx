@@ -86,7 +86,14 @@ export const Select = ({
           className={`flex items-center justify-between text-sm font-medium mb-2 ${labelClassName}`}
           style={{ color: 'var(--text-primary, #111827)', ...labelStyle }}
         >
-          <span>{label}</span>
+          <span>
+            {label}
+            {required ? (
+              <span className="ml-1" style={{ color: 'var(--error, #dc2626)' }}>
+                *
+              </span>
+            ) : null}
+          </span>
           {infoMessage && (
             <div className="relative flex items-center">
               <button

@@ -175,6 +175,7 @@ export const GroupForm = ({
             options={careerOptions}
             value={formData.career}
             onChange={(e) => handleInputChange('career', e.target.value)}
+            placeholder="Selecciona una carrera"
             error={formErrors.career}
             disabled={isLoading}
             required
@@ -218,6 +219,7 @@ export const GroupForm = ({
             options={shiftOptions}
             value={formData.shift}
             onChange={(e) => handleInputChange('shift', e.target.value)}
+            placeholder="Selecciona un turno"
             error={formErrors.shift}
             disabled={isLoading}
             required

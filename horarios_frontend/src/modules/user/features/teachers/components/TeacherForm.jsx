@@ -168,26 +168,28 @@ export const TeacherForm = ({
     <form onSubmit={handleSubmit} className="space-y-6 p-6">
       <div>
         <Input
-          label="Nombre *"
+          label="Nombre"
           type="text"
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
           placeholder="Ej: Juan"
           error={formErrors.name}
           disabled={isViewMode || isLoading}
+          required
           reserveHelperSpace={false}
         />
       </div>
 
       <div>
         <Input
-          label="Apellido paterno *"
+          label="Apellido paterno"
           type="text"
           value={formData.surname}
           onChange={(e) => handleInputChange('surname', e.target.value)}
           placeholder="Ej: Pérez"
           error={formErrors.surname}
           disabled={isViewMode || isLoading}
+          required
           reserveHelperSpace={false}
         />
       </div>

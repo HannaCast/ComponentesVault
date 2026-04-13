@@ -275,6 +275,7 @@ export const ClassroomForm = ({
             options={typeOptions}
             value={formData.classroom_type}
             onChange={(e) => handleInputChange('classroom_type', e.target.value)}
+            placeholder="Selecciona un tipo de aula"
             error={formErrors.classroom_type}
             disabled={isLoading}
             required
@@ -372,6 +373,7 @@ export const ClassroomForm = ({
               options={careerSelectOptions}
               value={careerToAdd}
               onChange={(e) => setCareerToAdd(e.target.value)}
+              placeholder="Selecciona una carrera"
               disabled={isLoading || classroomCareersLoading}
               reserveHelperSpace={false}
             />
