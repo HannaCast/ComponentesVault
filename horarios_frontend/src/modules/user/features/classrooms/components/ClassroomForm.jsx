@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Trash2 } from 'lucide-react';
 import Input from '@shared/components/inputs/InputText';
 import { Select } from '@shared/components/inputs/Select';
+import { CascadingSelectableListField } from '@shared/components/inputs/CascadingSelectableListField';
+import { SelectableListField } from '@shared/components/inputs/SelectableListField';
 import Checkbox from '@shared/components/inputs/Checkbox';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { classroomValidationSchema } from '../validations/classroomValidationSchema';
@@ -33,6 +34,36 @@ const resolveClassroomTypeValue = (initialData, typeOptions) => {
   return match ? String(match.value) : '';
 };
 
+const normalizeInitialSubjects = (subjects) => {
+  if (!Array.isArray(subjects)) {
+    return [];
+  }
+
+  return subjects
+    .map((subject) => {
+      if (!subject || typeof subject !== 'object') {
+        return null;
+      }
+
+      const id = subject.id ?? subject.subject_id ?? subject.value;
+      const subjectId = String(id || '').trim();
+      if (!subjectId) {
+        return null;
+      }
+
+      const name = String(subject.name || '').trim();
+      const code = String(subject.code || '').trim();
+
+      return {
+        subjectId,
+        label: code ? `${name} (${code})` : name || subjectId,
+        name,
+        code,
+      };
+    })
+    .filter(Boolean);
+};
+
 export const ClassroomForm = ({
   initialData = null,
   isLoading = false,
@@ -46,11 +77,21 @@ export const ClassroomForm = ({
   classroomCareersLoading = false,
   onAddClassroomCareer,
   onRemoveClassroomCareer,
+  onLoadSubjectPeriods,
+  onLoadSubjectOptions,
 }) => {
   const [formData, setFormData] = useState(createDefaultFormData);
   const [formErrors, setFormErrors] = useState({});
   const [pendingCareers, setPendingCareers] = useState([]);
   const [careerToAdd, setCareerToAdd] = useState('');
+  const [pendingSubjects, setPendingSubjects] = useState([]);
+  const [subjectCareerToAdd, setSubjectCareerToAdd] = useState('');
+  const [subjectPeriodToAdd, setSubjectPeriodToAdd] = useState('');
+  const [subjectToAdd, setSubjectToAdd] = useState('');
+  const [subjectPeriodOptions, setSubjectPeriodOptions] = useState([]);
+  const [subjectOptions, setSubjectOptions] = useState([]);
+  const [subjectPeriodsLoading, setSubjectPeriodsLoading] = useState(false);
+  const [subjectOptionsLoading, setSubjectOptionsLoading] = useState(false);
   const [linkBusyId, setLinkBusyId] = useState(null);
   const previousModeRef = useRef(mode);
 
@@ -73,6 +114,13 @@ export const ClassroomForm = ({
       is_restricted: Number(initialData.is_restricted) === 1,
       is_restricted_to_subjects: Number(initialData.is_restricted_to_subjects) === 1,
     });
+
+    setPendingSubjects(normalizeInitialSubjects(initialData.subjects));
+    setSubjectCareerToAdd('');
+    setSubjectPeriodToAdd('');
+    setSubjectToAdd('');
+    setSubjectPeriodOptions([]);
+    setSubjectOptions([]);
   }, [initialData, typeOptions]);
 
   useEffect(() => {
@@ -90,6 +138,12 @@ export const ClassroomForm = ({
       setFormErrors({});
       setPendingCareers([]);
       setCareerToAdd('');
+      setPendingSubjects([]);
+      setSubjectCareerToAdd('');
+      setSubjectPeriodToAdd('');
+      setSubjectToAdd('');
+      setSubjectPeriodOptions([]);
+      setSubjectOptions([]);
     }
   }, [mode, initialData]);
 
@@ -102,6 +156,19 @@ export const ClassroomForm = ({
     if (field === 'is_restricted' && !value) {
       setPendingCareers([]);
       setCareerToAdd('');
+      setSubjectCareerToAdd('');
+      setSubjectPeriodToAdd('');
+      setSubjectToAdd('');
+      setSubjectPeriodOptions([]);
+      setSubjectOptions([]);
+    }
+
+    if (field === 'is_restricted_to_subjects' && !value) {
+      setSubjectCareerToAdd('');
+      setSubjectPeriodToAdd('');
+      setSubjectToAdd('');
+      setSubjectPeriodOptions([]);
+      setSubjectOptions([]);
     }
 
     setFormErrors((prev) => {
@@ -116,8 +183,8 @@ export const ClassroomForm = ({
     });
   };
 
-  const handleAddPendingCareer = () => {
-    const id = String(careerToAdd || '').trim();
+  const handleAddPendingCareerFromValue = (careerId, careerLabel = '') => {
+    const id = String(careerId || '').trim();
     if (!id) return;
 
     if (pendingCareers.some((p) => String(p.careerId) === id)) {
@@ -125,17 +192,13 @@ export const ClassroomForm = ({
       return;
     }
 
-    const label = careerOptions.find((o) => String(o.value) === id)?.label || id;
+    const label = String(careerLabel || careerOptions.find((o) => String(o.value) === id)?.label || id);
     setPendingCareers((prev) => [...prev, { careerId: id, label }]);
     setCareerToAdd('');
   };
 
-  const handleRemovePendingCareer = (careerId) => {
-    setPendingCareers((prev) => prev.filter((p) => String(p.careerId) !== String(careerId)));
-  };
-
-  const handleAddLinkedCareer = async () => {
-    const id = String(careerToAdd || '').trim();
+  const handleAddLinkedCareerFromValue = async (careerId) => {
+    const id = String(careerId || '').trim();
     if (!classroomId || !id) return;
 
     const numericId = Number.parseInt(id, 10);
@@ -164,15 +227,220 @@ export const ClassroomForm = ({
     setLinkBusyId(null);
   };
 
+  const restrictedCareerOptions = useMemo(() => {
+    if (!formData.is_restricted) {
+      return careerOptions;
+    }
+
+    if (classroomId) {
+      if (classroomCareers.length > 0) {
+        return classroomCareers.map((row) => ({
+          value: String(row.careers),
+          label: row.career_name || String(row.careers),
+        }));
+      }
+
+      if (Array.isArray(initialData?.careers)) {
+        return initialData.careers
+          .map((career) => {
+            const careerId = String(career?.id || '').trim();
+            if (!careerId) {
+              return null;
+            }
+            return {
+              value: careerId,
+              label: String(career?.name || careerId),
+            };
+          })
+          .filter(Boolean);
+      }
+
+      return [];
+    }
+
+    return pendingCareers.map((career) => ({
+      value: String(career.careerId),
+      label: career.label,
+    }));
+  }, [
+    formData.is_restricted,
+    careerOptions,
+    classroomId,
+    classroomCareers,
+    initialData?.careers,
+    pendingCareers,
+  ]);
+
+  const subjectCareerOptions = useMemo(() => {
+    const source = formData.is_restricted ? restrictedCareerOptions : careerOptions;
+    const seen = new Set();
+
+    return source
+      .map((item) => {
+        const value = String(item?.value || '').trim();
+        if (!value || seen.has(value)) {
+          return null;
+        }
+        seen.add(value);
+        return {
+          value,
+          label: String(item?.label || value),
+        };
+      })
+      .filter(Boolean);
+  }, [formData.is_restricted, restrictedCareerOptions, careerOptions]);
+
+  useEffect(() => {
+    if (!subjectCareerToAdd) {
+      return;
+    }
+
+    const exists = subjectCareerOptions.some(
+      (option) => String(option.value) === String(subjectCareerToAdd),
+    );
+    if (!exists) {
+      setSubjectCareerToAdd('');
+      setSubjectPeriodToAdd('');
+      setSubjectToAdd('');
+      setSubjectPeriodOptions([]);
+      setSubjectOptions([]);
+    }
+  }, [subjectCareerToAdd, subjectCareerOptions]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPeriods = async () => {
+      if (!formData.is_restricted_to_subjects || !subjectCareerToAdd) {
+        setSubjectPeriodOptions([]);
+        setSubjectPeriodToAdd('');
+        setSubjectOptions([]);
+        setSubjectToAdd('');
+        setSubjectPeriodsLoading(false);
+        return;
+      }
+
+      setSubjectPeriodsLoading(true);
+      try {
+        const rows = await onLoadSubjectPeriods?.(subjectCareerToAdd);
+        if (!isMounted) {
+          return;
+        }
+
+        const normalizedRows = Array.isArray(rows) ? rows : [];
+        setSubjectPeriodOptions(normalizedRows);
+        setSubjectPeriodToAdd('');
+        setSubjectOptions([]);
+        setSubjectToAdd('');
+      } finally {
+        if (isMounted) {
+          setSubjectPeriodsLoading(false);
+        }
+      }
+    };
+
+    loadPeriods();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.is_restricted_to_subjects, subjectCareerToAdd, onLoadSubjectPeriods]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSubjects = async () => {
+      if (!formData.is_restricted_to_subjects || !subjectCareerToAdd || !subjectPeriodToAdd) {
+        setSubjectOptions([]);
+        setSubjectToAdd('');
+        setSubjectOptionsLoading(false);
+        return;
+      }
+
+      setSubjectOptionsLoading(true);
+      try {
+        const rows = await onLoadSubjectOptions?.({
+          careerId: subjectCareerToAdd,
+          periodNumber: subjectPeriodToAdd,
+        });
+        if (!isMounted) {
+          return;
+        }
+
+        const normalizedRows = Array.isArray(rows) ? rows : [];
+        setSubjectOptions(normalizedRows);
+        setSubjectToAdd('');
+      } finally {
+        if (isMounted) {
+          setSubjectOptionsLoading(false);
+        }
+      }
+    };
+
+    loadSubjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.is_restricted_to_subjects, subjectCareerToAdd, subjectPeriodToAdd, onLoadSubjectOptions]);
+
+  const handleAddPendingSubject = () => {
+    const subjectId = String(subjectToAdd || '').trim();
+    if (!subjectId) {
+      return;
+    }
+
+    if (pendingSubjects.some((row) => String(row.subjectId) === subjectId)) {
+      setSubjectToAdd('');
+      return;
+    }
+
+    const subjectOption = subjectOptions.find((option) => String(option.value) === subjectId);
+    const careerOption = subjectCareerOptions.find(
+      (option) => String(option.value) === String(subjectCareerToAdd),
+    );
+    const periodNumber = Number.parseInt(String(subjectPeriodToAdd), 10);
+
+    setPendingSubjects((prev) => [
+      ...prev,
+      {
+        subjectId,
+        label: subjectOption?.label || subjectId,
+        name: subjectOption?.name || '',
+        code: subjectOption?.code || '',
+        careerId: String(subjectCareerToAdd || ''),
+        careerLabel: careerOption?.label || '',
+        periodNumber: Number.isFinite(periodNumber) ? periodNumber : null,
+      },
+    ]);
+
+    setFormErrors((prev) => {
+      if (!prev.restricted_subjects) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next.restricted_subjects;
+      return next;
+    });
+
+    setSubjectToAdd('');
+  };
+
+  const handleRemovePendingSubject = (subjectId) => {
+    setPendingSubjects((prev) => prev.filter((row) => String(row.subjectId) !== String(subjectId)));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const parsedFloor =
+      formData.floor === ''
+        ? null
+        : Number.parseInt(formData.floor, 10);
+
     const values = {
       ...formData,
-      floor:
-        formData.floor === ''
-          ? ''
-          : Number.parseInt(formData.floor, 10),
+      floor: parsedFloor,
       is_restricted: Boolean(formData.is_restricted),
     };
 
@@ -213,10 +481,25 @@ export const ClassroomForm = ({
       return next;
     });
 
+    if (formData.is_restricted_to_subjects && pendingSubjects.length === 0) {
+      setFormErrors((prev) => ({
+        ...prev,
+        restricted_subjects: 'Si el aula es restringida por materias, agrega al menos una materia permitida.',
+      }));
+      return;
+    }
+
+    setFormErrors((prev) => {
+      if (!prev.restricted_subjects) return prev;
+      const next = { ...prev };
+      delete next.restricted_subjects;
+      return next;
+    });
+
     const payload = {
       name: formData.name.trim(),
       classroom_type: Number.parseInt(formData.classroom_type, 10),
-      floor: Number.parseInt(formData.floor, 10),
+      floor: Number.isFinite(parsedFloor) ? parsedFloor : null,
       building_code: formData.building_code.trim(),
       is_restricted: formData.is_restricted ? 1 : 0,
       is_restricted_to_subjects: formData.is_restricted_to_subjects ? 1 : 0,
@@ -241,16 +524,101 @@ export const ClassroomForm = ({
       payload.careers = careerIds;
     }
 
+    if (formData.is_restricted_to_subjects) {
+      payload.subjects = Array.from(
+        new Set(
+          pendingSubjects
+            .map((subject) => Number.parseInt(subject.subjectId, 10))
+            .filter((id) => Number.isFinite(id)),
+        ),
+      );
+    }
+
     onSubmit(payload);
   };
 
   const showRestrictedSection = formData.is_restricted;
-  const careerSelectOptions = careerOptions.filter((opt) => {
-    if (!classroomId) {
-      return !pendingCareers.some((p) => String(p.careerId) === String(opt.value));
+  const showRestrictedSubjectsSection = formData.is_restricted_to_subjects;
+  const careerSelectedValues = useMemo(() => {
+    if (classroomId) {
+      return classroomCareers.map((row) => ({
+        value: String(row.careers),
+        label: row.career_name || String(row.careers),
+      }));
     }
-    return !classroomCareers.some((row) => Number(row.careers) === Number(opt.value));
-  });
+
+    return pendingCareers.map((row) => ({
+      value: String(row.careerId),
+      label: row.label,
+    }));
+  }, [classroomId, classroomCareers, pendingCareers]);
+
+  const handleAddCareerFromSelector = async (selectedCareerId, selectedCareerLabel) => {
+    if (classroomId) {
+      await handleAddLinkedCareerFromValue(selectedCareerId);
+      return;
+    }
+    handleAddPendingCareerFromValue(selectedCareerId, selectedCareerLabel);
+  };
+
+  const handleRemoveCareerByIndex = async (index) => {
+    if (classroomId) {
+      const row = classroomCareers[index];
+      if (!row) return;
+      await handleRemoveLinkedCareer(row);
+      return;
+    }
+
+    setPendingCareers((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const subjectSectionNotice = formData.is_restricted && subjectCareerOptions.length === 0
+    ? 'Primero agrega al menos una carrera con acceso para poder seleccionar materias.'
+    : null;
+
+  const subjectSelectors = [
+    {
+      key: 'career',
+      label: 'Carrera',
+      options: subjectCareerOptions,
+      value: subjectCareerToAdd,
+      onChange: setSubjectCareerToAdd,
+      placeholder: 'Selecciona una carrera',
+      disabled: formData.is_restricted && subjectCareerOptions.length === 0,
+    },
+    {
+      key: 'period',
+      label: 'Periodo',
+      options: subjectPeriodOptions,
+      value: subjectPeriodToAdd,
+      onChange: setSubjectPeriodToAdd,
+      placeholder: 'Selecciona un periodo',
+      disabled: subjectPeriodsLoading || !subjectCareerToAdd || subjectPeriodOptions.length === 0,
+    },
+    {
+      key: 'subject',
+      label: 'Materia',
+      options: subjectOptions,
+      value: subjectToAdd,
+      onChange: setSubjectToAdd,
+      placeholder: 'Selecciona una materia',
+      disabled: (
+        subjectOptionsLoading
+        || !subjectCareerToAdd
+        || !subjectPeriodToAdd
+        || subjectOptions.length === 0
+      ),
+    },
+  ];
+
+  const pendingSubjectItems = pendingSubjects.map((row) => ({
+    id: row.subjectId,
+    primaryText: row.label || '—',
+    secondaryText: [
+      row.careerLabel ? `Carrera: ${row.careerLabel}` : '',
+      row.periodNumber ? `Periodo: ${row.periodNumber}` : '',
+    ].filter(Boolean).join(' · '),
+  }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-6" noValidate>
@@ -306,7 +674,6 @@ export const ClassroomForm = ({
             placeholder="Ej: 1"
             error={formErrors.floor}
             disabled={isLoading}
-            required
             reserveHelperSpace={false}
           />
         </div>
@@ -349,99 +716,63 @@ export const ClassroomForm = ({
 
         {showRestrictedSection && (
           <div className="md:col-span-12 space-y-3 pt-2 border-t border-dashed border-[var(--border-default)]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium text-[var(--text-primary)]">
-                Carreras con acceso
-              </span>
-              <button
-                type="button"
-                className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50"
-                onClick={classroomId ? handleAddLinkedCareer : handleAddPendingCareer}
-                disabled={
-                  isLoading
-                  || classroomCareersLoading
-                  || linkBusyId != null
-                  || !careerToAdd
-                }
-              >
-                + Agregar Carrera
-              </button>
-            </div>
-
-            <Select
-              label=""
-              options={careerSelectOptions}
-              value={careerToAdd}
-              onChange={(e) => setCareerToAdd(e.target.value)}
+            <SelectableListField
+              label="Carreras con acceso"
+              error={formErrors.restricted_careers}
+              selectedValues={careerSelectedValues}
+              options={careerOptions}
+              selectedOption={careerToAdd}
+              onSelectedOptionChange={setCareerToAdd}
+              onAdd={handleAddCareerFromSelector}
+              onRemove={handleRemoveCareerByIndex}
               placeholder="Selecciona una carrera"
-              disabled={isLoading || classroomCareersLoading}
-              reserveHelperSpace={false}
+              addLabel="Agregar Carrera"
+              disabled={isLoading || linkBusyId != null}
+              displayMode="summary"
+              summaryPanelPosition="below"
+              loading={classroomId && classroomCareersLoading}
+              loadingText="Cargando carreras…"
+              emptyText={classroomId ? 'No hay carreras asignadas' : 'Se guardarán al crear el aula'}
+              allowHidePendingSelector={false}
+              showAddIcon
+              addButtonClassName="inline-flex items-center gap-1.5 text-sm font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             />
+          </div>
+        )}
 
-            {formErrors.restricted_careers && (
-              <p className="text-xs" style={{ color: 'var(--error, #dc2626)' }}>
-                {formErrors.restricted_careers}
-              </p>
-            )}
+        <div className="md:col-span-12">
+          <Checkbox
+            label="Restringida a materias específicas"
+            checked={formData.is_restricted_to_subjects}
+            onChange={(e) => handleInputChange('is_restricted_to_subjects', e.target.checked)}
+            disabled={isLoading}
+          />
+        </div>
 
-            <div className="min-h-[2.5rem] rounded-lg border border-[var(--border-default)] p-3 bg-[var(--bg-surface)]">
-              {classroomId && classroomCareersLoading ? (
-                <p className="text-sm text-[var(--text-secondary)]">Cargando carreras…</p>
-              ) : classroomId ? (
-                classroomCareers.length === 0 ? (
-                  <p className="text-sm italic text-[var(--text-tertiary)]">
-                    No hay carreras asignadas
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {classroomCareers.map((row) => (
-                      <li
-                        key={row.id}
-                        className="flex items-center justify-between gap-2 text-sm text-[var(--text-primary)]"
-                      >
-                        <span>{row.career_name || '—'}</span>
-                        <button
-                          type="button"
-                          className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)]"
-                          onClick={() => handleRemoveLinkedCareer(row)}
-                          disabled={linkBusyId != null}
-                          aria-label="Quitar carrera"
-                        >
-                          {linkBusyId === row.id ? (
-                            <span className="text-xs">…</span>
-                          ) : (
-                            <Trash2 size={16} />
-                          )}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )
-              ) : pendingCareers.length === 0 ? (
-                <p className="text-sm italic text-[var(--text-tertiary)]">
-                  Se guardarán al crear el aula
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {pendingCareers.map((row) => (
-                    <li
-                      key={row.careerId}
-                      className="flex items-center justify-between gap-2 text-sm text-[var(--text-primary)]"
-                    >
-                      <span>{row.label}</span>
-                      <button
-                        type="button"
-                        className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)]"
-                        onClick={() => handleRemovePendingCareer(row.careerId)}
-                        aria-label="Quitar carrera"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+        {showRestrictedSubjectsSection && (
+          <div className="md:col-span-12">
+            <CascadingSelectableListField
+              label="Materias permitidas"
+              description="Selecciona carrera, luego periodo y finalmente la materia. Puedes mezclar materias de distintas carreras agregándolas una por una."
+              selectors={subjectSelectors}
+              addLabel="Agregar Materia"
+              onAdd={handleAddPendingSubject}
+              addDisabled={
+                isLoading
+                || subjectPeriodsLoading
+                || subjectOptionsLoading
+                || !subjectToAdd
+              }
+              disabled={isLoading}
+              loading={subjectPeriodsLoading || subjectOptionsLoading}
+              loadingText="Cargando catálogo de materias…"
+              notice={subjectSectionNotice}
+              error={formErrors.restricted_subjects}
+              items={pendingSubjectItems}
+              emptyText="No hay materias permitidas"
+              onRemove={(item) => handleRemovePendingSubject(item.id)}
+              removeLabel="Quitar materia"
+            />
           </div>
         )}
       </div>
@@ -472,11 +803,30 @@ ClassroomForm.propTypes = {
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     name: PropTypes.string,
     classroom_type_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    classroom_type: PropTypes.string,
     code: PropTypes.string,
     floor: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     building: PropTypes.string,
     building_code: PropTypes.string,
     is_restricted: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
+    is_restricted_to_subjects: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.bool,
+    ]),
+    careers: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        name: PropTypes.string,
+      }),
+    ),
+    subjects: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        name: PropTypes.string,
+        code: PropTypes.string,
+      }),
+    ),
   }),
   isLoading: PropTypes.bool,
   onSubmit: PropTypes.func.isRequired,
@@ -505,4 +855,6 @@ ClassroomForm.propTypes = {
   classroomCareersLoading: PropTypes.bool,
   onAddClassroomCareer: PropTypes.func,
   onRemoveClassroomCareer: PropTypes.func,
+  onLoadSubjectPeriods: PropTypes.func,
+  onLoadSubjectOptions: PropTypes.func,
 };

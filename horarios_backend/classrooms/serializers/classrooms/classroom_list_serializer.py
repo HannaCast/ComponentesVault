@@ -12,6 +12,7 @@ class ClassroomListSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'code',
+            'floor',
             'classroom_type',
             'status',
         ]

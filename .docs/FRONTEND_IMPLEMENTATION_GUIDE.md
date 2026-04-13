@@ -285,6 +285,7 @@ Componentes ya alineados a este patron:
 - `Textarea`
 - `Checkbox`
 - `SelectableListField`
+- `CascadingSelectableListField` (flujo encadenado multi-select, ej. carrera -> periodo -> materia)
 
 En `ActionButton` se mantiene compatibilidad y ademas se soporta atajo en `variant`:
 

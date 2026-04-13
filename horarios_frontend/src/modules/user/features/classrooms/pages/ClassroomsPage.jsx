@@ -156,6 +156,8 @@ export const ClassroomsPage = () => {
     fetchClassroomCareersForClassroom,
     handleAddClassroomCareer,
     handleRemoveClassroomCareer,
+    fetchClassroomSubjectPeriodsByCareer,
+    fetchClassroomSubjectOptionsByCareerPeriod,
   } = useClassrooms();
 
   const selectedUniversity = user?.selected_university;
@@ -620,6 +622,8 @@ export const ClassroomsPage = () => {
             classroomCareersLoading={classroomCareersLoading}
             onAddClassroomCareer={handleAddClassroomCareerToast}
             onRemoveClassroomCareer={handleRemoveClassroomCareerToast}
+            onLoadSubjectPeriods={fetchClassroomSubjectPeriodsByCareer}
+            onLoadSubjectOptions={fetchClassroomSubjectOptionsByCareerPeriod}
           />
         )}
       </SideDrawer>

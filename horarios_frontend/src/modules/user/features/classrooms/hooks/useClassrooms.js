@@ -7,6 +7,8 @@ import {
   getCareers,
   getClassroom,
   getClassroomCareers,
+  getClassroomSubjectOptions,
+  getClassroomSubjectPeriods,
   getClassroomTypes,
   getClassroomsPaginated,
   toggleClassroomStatus,
@@ -154,11 +156,67 @@ export const useClassrooms = () => {
       setCareerOptions(
         careers.map((career) => ({
           value: String(career.id),
-          label: career.name,
+          label: career.short_name
+            ? `${career.name} (${career.short_name})`
+            : career.name,
+          short_name: career.short_name || '',
+          total_periods: career.total_periods,
         })),
       );
     } catch (err) {
       console.error('Error al cargar carreras:', err);
+    }
+  }, []);
+
+  const fetchClassroomSubjectPeriodsByCareer = useCallback(async (careerId) => {
+    if (careerId == null || careerId === '') {
+      return [];
+    }
+
+    try {
+      const response = await getClassroomSubjectPeriods({ careerId });
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      return rows.map((row) => {
+        const periodValue = row?.period_number ?? row?.value;
+        return {
+          value: String(periodValue),
+          label: row?.label || `Periodo ${periodValue}`,
+          period_number: Number(periodValue),
+        };
+      });
+    } catch (err) {
+      console.error('Error al cargar periodos por carrera:', err);
+      return [];
+    }
+  }, []);
+
+  const fetchClassroomSubjectOptionsByCareerPeriod = useCallback(async ({ careerId, periodNumber }) => {
+    if (careerId == null || careerId === '' || periodNumber == null || periodNumber === '') {
+      return [];
+    }
+
+    try {
+      const response = await getClassroomSubjectOptions({ careerId, periodNumber });
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      return rows.map((row) => {
+        const idValue = row?.id;
+        const name = String(row?.name || '').trim();
+        const code = String(row?.code || '').trim();
+        return {
+          value: String(idValue),
+          label: code ? `${name} (${code})` : name,
+          id: Number(idValue),
+          name,
+          code,
+          career_id: row?.career_id,
+          period_number: row?.period_number,
+        };
+      });
+    } catch (err) {
+      console.error('Error al cargar materias por carrera/periodo:', err);
+      return [];
     }
   }, []);
 
@@ -322,5 +380,7 @@ export const useClassrooms = () => {
     fetchClassroomCareersForClassroom,
     handleAddClassroomCareer,
     handleRemoveClassroomCareer,
+    fetchClassroomSubjectPeriodsByCareer,
+    fetchClassroomSubjectOptionsByCareerPeriod,
   };
 };

@@ -4,6 +4,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from careers.models import CareerSubjects, Careers
 from core.audit_context import with_audit_action, with_audit_context
 from classrooms.models import Classrooms
 from classrooms.serializers import (
@@ -176,6 +177,187 @@ class ClassroomPaginatedView(APIView):
             limit=limit,
             total=total,
         )
+
+
+@extend_schema(tags=['Classrooms'])
+class ClassroomSubjectPeriodsView(APIView):
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
+
+    @extend_schema(
+        summary='Periodos con materias por carrera (catalogo para aulas)',
+        parameters=[
+            OpenApiParameter(
+                name='career_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Id de carrera para listar periodos que tienen materias asociadas.',
+                required=True,
+            ),
+        ],
+    )
+    def get(self, request):
+        selected_university_id = request.selected_university_id
+        raw_career_id = request.query_params.get('career_id', None)
+
+        if raw_career_id in (None, ''):
+            return ApiResponse.error(
+                message='Debes enviar career_id.',
+                status_code=400,
+            )
+
+        try:
+            career_id = int(raw_career_id)
+        except (TypeError, ValueError):
+            return ApiResponse.error(
+                message='career_id debe ser un entero valido.',
+                status_code=400,
+            )
+
+        career_exists = Careers.objects.filter(
+            id=career_id,
+            university_id=selected_university_id,
+            is_deleted=0,
+        ).exists()
+        if not career_exists:
+            return ApiResponse.error(
+                message='La carrera no pertenece a la universidad seleccionada.',
+                status_code=400,
+            )
+
+        period_numbers = (
+            CareerSubjects.objects.filter(
+                is_deleted=0,
+                careers_id=career_id,
+                careers__is_deleted=0,
+                careers__university_id=selected_university_id,
+                subjects__is_deleted=0,
+                subjects__status=1,
+                subjects__university_id=selected_university_id,
+            )
+            .values_list('period_number', flat=True)
+            .distinct()
+            .order_by('period_number')
+        )
+
+        data = [
+            {
+                'value': period_number,
+                'label': f'Periodo {period_number}',
+                'period_number': period_number,
+            }
+            for period_number in period_numbers
+        ]
+
+        return ApiResponse.success(data)
+
+
+@extend_schema(tags=['Classrooms'])
+class ClassroomSubjectOptionsView(APIView):
+    permission_classes = [IsAuthenticated, RequireSelectedUniversity]
+
+    @extend_schema(
+        summary='Materias por carrera y periodo (catalogo para aulas)',
+        parameters=[
+            OpenApiParameter(
+                name='career_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Id de carrera para filtrar materias.',
+                required=True,
+            ),
+            OpenApiParameter(
+                name='period_number',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Numero de periodo para filtrar materias.',
+                required=True,
+            ),
+        ],
+    )
+    def get(self, request):
+        selected_university_id = request.selected_university_id
+        raw_career_id = request.query_params.get('career_id', None)
+        raw_period_number = request.query_params.get('period_number', None)
+
+        if raw_career_id in (None, ''):
+            return ApiResponse.error(
+                message='Debes enviar career_id.',
+                status_code=400,
+            )
+
+        if raw_period_number in (None, ''):
+            return ApiResponse.error(
+                message='Debes enviar period_number.',
+                status_code=400,
+            )
+
+        try:
+            career_id = int(raw_career_id)
+        except (TypeError, ValueError):
+            return ApiResponse.error(
+                message='career_id debe ser un entero valido.',
+                status_code=400,
+            )
+
+        try:
+            period_number = int(raw_period_number)
+        except (TypeError, ValueError):
+            return ApiResponse.error(
+                message='period_number debe ser un entero valido.',
+                status_code=400,
+            )
+
+        if period_number <= 0:
+            return ApiResponse.error(
+                message='period_number debe ser mayor a 0.',
+                status_code=400,
+            )
+
+        career_exists = Careers.objects.filter(
+            id=career_id,
+            university_id=selected_university_id,
+            is_deleted=0,
+        ).exists()
+        if not career_exists:
+            return ApiResponse.error(
+                message='La carrera no pertenece a la universidad seleccionada.',
+                status_code=400,
+            )
+
+        rows = (
+            CareerSubjects.objects.filter(
+                is_deleted=0,
+                careers_id=career_id,
+                period_number=period_number,
+                careers__is_deleted=0,
+                careers__university_id=selected_university_id,
+                subjects__is_deleted=0,
+                subjects__status=1,
+                subjects__university_id=selected_university_id,
+            )
+            .values(
+                'subjects_id',
+                'subjects__name',
+                'subjects__short_name',
+                'subjects__code',
+            )
+            .distinct()
+            .order_by('subjects__name', 'subjects_id')
+        )
+
+        data = [
+            {
+                'id': row['subjects_id'],
+                'name': row['subjects__name'],
+                'short_name': row['subjects__short_name'],
+                'code': row['subjects__code'],
+                'career_id': career_id,
+                'period_number': period_number,
+            }
+            for row in rows
+        ]
+
+        return ApiResponse.success(data)
 
 
 @extend_schema(tags=['Classrooms'])

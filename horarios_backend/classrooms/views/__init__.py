@@ -6,6 +6,8 @@ from .classroom_careers import (
 from .classrooms import (
     ClassroomListView,
     ClassroomPaginatedView,
+    ClassroomSubjectOptionsView,
+    ClassroomSubjectPeriodsView,
     ClassroomDetailView,
     ClassroomToggleStatusView,
 )

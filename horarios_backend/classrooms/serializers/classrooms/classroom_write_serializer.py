@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from careers.models import Careers
+from careers.models import CareerSubjects, Careers
 from subjects.models import Subjects
 
 from classrooms.models import ClassroomCareers, ClassroomSubjects, Classrooms
@@ -271,6 +271,53 @@ class ClassroomWriteSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+
+        if parsed_subjects is not None and effective_restricted and effective_restricted_subjects:
+            if parsed_careers is not None:
+                effective_career_ids = set(parsed_careers)
+            elif self.instance:
+                effective_career_ids = set(
+                    ClassroomCareers.objects.filter(
+                        classrooms=self.instance,
+                        is_deleted=0,
+                        careers__is_deleted=0,
+                        careers__university_id=selected_university_id,
+                    ).values_list('careers_id', flat=True)
+                )
+            else:
+                effective_career_ids = set()
+
+            if not effective_career_ids:
+                raise serializers.ValidationError(
+                    {
+                        'subjects': (
+                            'No hay carreras permitidas para validar las materias restringidas.'
+                        )
+                    }
+                )
+
+            allowed_subject_ids = set(
+                CareerSubjects.objects.filter(
+                    is_deleted=0,
+                    careers_id__in=effective_career_ids,
+                    subjects_id__in=parsed_subjects,
+                    careers__is_deleted=0,
+                    careers__university_id=selected_university_id,
+                    subjects__is_deleted=0,
+                    subjects__university_id=selected_university_id,
+                ).values_list('subjects_id', flat=True)
+            )
+
+            disallowed_subject_ids = sorted(set(parsed_subjects) - allowed_subject_ids)
+            if disallowed_subject_ids:
+                raise serializers.ValidationError(
+                    {
+                        'subjects': (
+                            'Las materias no pertenecen a las carreras permitidas del aula: '
+                            f'{disallowed_subject_ids}'
+                        )
+                    }
+                )
 
         if parsed_careers is not None:
             attrs['_parsed_careers'] = parsed_careers

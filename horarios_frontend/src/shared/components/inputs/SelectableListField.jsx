@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Info, Plus, X } from 'lucide-react';
+import { Info, Plus, Trash2, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
 import Input from '@shared/components/inputs/InputText';
 
@@ -31,6 +31,17 @@ import Input from '@shared/components/inputs/InputText';
  * - secondaryType: Tipo de input del campo secundario.
  * - secondaryMin: Minimo permitido para campo secundario numerico.
  * - secondaryMax: Maximo permitido para campo secundario numerico.
+ * - displayMode: 'editable' (default) o 'summary' para mostrar lista simple.
+ * - loading: Muestra estado de carga en la lista seleccionada.
+ * - loadingText: Texto para estado de carga.
+ * - emptyText: Texto cuando no hay elementos seleccionados.
+ * - allowHidePendingSelector: Permite ocultar el selector pendiente (default true).
+ * - summaryPanelClassName: Clases para el contenedor de lista en modo summary.
+ * - summaryPanelPosition: Posicion del panel summary: 'above' o 'below' respecto al selector pendiente.
+ * - headerClassName: Clases del contenedor de cabecera (label + boton agregar).
+ * - labelClassName: Clases del texto de la etiqueta principal.
+ * - addButtonClassName: Clases del boton agregar.
+ * - showAddIcon: Si true, muestra icono Plus en el boton agregar.
  */
 
 export const SelectableListField = ({
@@ -57,6 +68,17 @@ export const SelectableListField = ({
   secondaryType = 'number',
   secondaryMin,
   secondaryMax,
+  displayMode = 'editable',
+  loading = false,
+  loadingText = 'Cargando elementos…',
+  emptyText = 'No hay elementos seleccionados',
+  allowHidePendingSelector = true,
+  summaryPanelClassName = 'min-h-[2.5rem] rounded-lg border border-[var(--border-default)] p-3 bg-[var(--bg-surface)]',
+  summaryPanelPosition = 'above',
+  headerClassName = 'flex items-center justify-between mb-2',
+  labelClassName = 'block text-sm font-medium text-[var(--text-primary)]',
+  addButtonClassName = 'inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed',
+  showAddIcon = true,
 }) => {
   const [isPendingRowVisible, setIsPendingRowVisible] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -136,10 +158,11 @@ export const SelectableListField = ({
     && allRowsSelected;
 
   const canAdd = canConfirmAdd || canShowPendingRow;
-  const canHidePendingSelector = normalizedSelectedEntries.length > 0;
+  const canHidePendingSelector = allowHidePendingSelector && normalizedSelectedEntries.length > 0;
   const actionAccent = colorVariant === 'default'
     ? 'var(--system-accent, var(--accent, #2563eb))'
     : 'var(--accent, #2563eb)';
+  const isSummaryMode = displayMode === 'summary';
 
   const handleAdd = () => {
     if (canShowPendingRow) {
@@ -153,9 +176,9 @@ export const SelectableListField = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className={headerClassName}>
         <div className="flex items-center gap-2">
-          <label className="block text-sm font-medium text-[var(--text-primary)]">
+          <label className={labelClassName}>
             {label}
           </label>
 
@@ -202,106 +225,13 @@ export const SelectableListField = ({
           type="button"
           onClick={handleAdd}
           disabled={!canAdd}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className={addButtonClassName}
           style={{ color: actionAccent }}
         >
-          <Plus size={16} />
+          {showAddIcon ? <Plus size={16} /> : null}
           {addLabel}
         </button>
       </div>
-
-      {selectedValues.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {normalizedSelectedEntries.map((entry, index) => {
-            const item = normalizedOptions.find((opt) => String(opt.value) === String(entry.value));
-            const displayLabel = item?.label || entry.label;
-            const usedByOthers = new Set(
-              normalizedSelectedEntries
-                .filter((_, i) => i !== index)
-                .map((e) => String(e.value)),
-            );
-
-            const rowOptions = normalizedOptions.filter(
-              (opt) => !usedByOthers.has(String(opt.value)) || String(opt.value) === String(entry.value),
-            );
-
-            return (
-              <div
-                key={`${String(entry.value)}-${index}`}
-                className="flex items-start gap-2"
-              >
-                <div className="flex-1">
-                  <Select
-                    label={enableSecondaryField ? primaryLabel : undefined}
-                    labelClassName={enableSecondaryField ? 'text-xs mb-1' : undefined}
-                    labelStyle={enableSecondaryField ? { color: 'var(--text-secondary, #6b7280)' } : undefined}
-                    selectClassName={enableSecondaryField ? 'h-10 px-3 py-0' : undefined}
-                    value={String(entry.value)}
-                    onChange={(e) => {
-                      const nextValue = String(e.target.value || '');
-                      const nextItem = normalizedOptions.find((opt) => String(opt.value) === nextValue);
-                      onUpdate?.(
-                        index,
-                        nextValue,
-                        nextItem?.label || nextValue,
-                        entry.secondaryValue,
-                      );
-                    }}
-                    options={rowOptions}
-                    disabled={disabled}
-                    colorVariant={colorVariant}
-                    showPlaceholderOption={false}
-                    reserveHelperSpace={false}
-                  />
-                </div>
-
-                {enableSecondaryField && (
-                  <div className="w-28">
-                    <Input
-                      label={secondaryLabel}
-                      labelClassName="text-xs mb-1"
-                      labelStyle={{ color: 'var(--text-secondary, #6b7280)' }}
-                      type={secondaryType}
-                      min={secondaryMin}
-                      max={secondaryMax}
-                      value={entry.secondaryValue}
-                      onChange={(e) => {
-                        onUpdate?.(
-                          index,
-                          entry.value,
-                          entry.label,
-                          e.target.value,
-                        );
-                      }}
-                      disabled={disabled}
-                      colorVariant={colorVariant}
-                      placeholder={secondaryPlaceholder}
-                      className="h-10 px-3"
-                      reserveHelperSpace={false}
-                    />
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => onRemove?.(index)}
-                  disabled={disabled}
-                  className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
-                  style={{
-                    borderColor: 'var(--border-default, #d1d5db)',
-                    color: 'var(--error, #dc2626)',
-                    backgroundColor: 'var(--bg-elevated, #ffffff)',
-                  }}
-                  aria-label={`Quitar ${displayLabel}`}
-                  title={`Quitar ${displayLabel}`}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {isPendingRowVisible && (
         <div className="mt-3 flex items-start gap-2">
@@ -365,6 +295,165 @@ export const SelectableListField = ({
         </div>
       )}
 
+      {(selectedValues.length > 0 || isSummaryMode) && (!isSummaryMode || summaryPanelPosition === 'above') && (
+        <div className="mt-3">
+          {isSummaryMode ? (
+            <div className={summaryPanelClassName}>
+              {loading ? (
+                <p className="text-sm text-[var(--text-secondary)]">{loadingText}</p>
+              ) : normalizedSelectedEntries.length === 0 ? (
+                <p className="text-sm italic text-[var(--text-tertiary)]">{emptyText}</p>
+              ) : (
+                <ul className="space-y-2">
+                  {normalizedSelectedEntries.map((entry, index) => (
+                    <li
+                      key={`${String(entry.value)}-${index}`}
+                      className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
+                    >
+                      <span>{entry.label || entry.value}</span>
+                      <button
+                        type="button"
+                        onClick={() => onRemove?.(index)}
+                        disabled={disabled}
+                        className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)] disabled:opacity-50"
+                        aria-label={`Quitar ${entry.label || entry.value}`}
+                        title={`Quitar ${entry.label || entry.value}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {normalizedSelectedEntries.map((entry, index) => {
+                const item = normalizedOptions.find((opt) => String(opt.value) === String(entry.value));
+                const displayLabel = item?.label || entry.label;
+                const usedByOthers = new Set(
+                  normalizedSelectedEntries
+                    .filter((_, i) => i !== index)
+                    .map((e) => String(e.value)),
+                );
+
+                const rowOptions = normalizedOptions.filter(
+                  (opt) => !usedByOthers.has(String(opt.value)) || String(opt.value) === String(entry.value),
+                );
+
+                return (
+                  <div
+                    key={`${String(entry.value)}-${index}`}
+                    className="flex items-start gap-2"
+                  >
+                    <div className="flex-1">
+                      <Select
+                        label={enableSecondaryField ? primaryLabel : undefined}
+                        labelClassName={enableSecondaryField ? 'text-xs mb-1' : undefined}
+                        labelStyle={enableSecondaryField ? { color: 'var(--text-secondary, #6b7280)' } : undefined}
+                        selectClassName={enableSecondaryField ? 'h-10 px-3 py-0' : undefined}
+                        value={String(entry.value)}
+                        onChange={(e) => {
+                          const nextValue = String(e.target.value || '');
+                          const nextItem = normalizedOptions.find((opt) => String(opt.value) === nextValue);
+                          onUpdate?.(
+                            index,
+                            nextValue,
+                            nextItem?.label || nextValue,
+                            entry.secondaryValue,
+                          );
+                        }}
+                        options={rowOptions}
+                        disabled={disabled}
+                        colorVariant={colorVariant}
+                        showPlaceholderOption={false}
+                        reserveHelperSpace={false}
+                      />
+                    </div>
+
+                    {enableSecondaryField && (
+                      <div className="w-28">
+                        <Input
+                          label={secondaryLabel}
+                          labelClassName="text-xs mb-1"
+                          labelStyle={{ color: 'var(--text-secondary, #6b7280)' }}
+                          type={secondaryType}
+                          min={secondaryMin}
+                          max={secondaryMax}
+                          value={entry.secondaryValue}
+                          onChange={(e) => {
+                            onUpdate?.(
+                              index,
+                              entry.value,
+                              entry.label,
+                              e.target.value,
+                            );
+                          }}
+                          disabled={disabled}
+                          colorVariant={colorVariant}
+                          placeholder={secondaryPlaceholder}
+                          className="h-10 px-3"
+                          reserveHelperSpace={false}
+                        />
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => onRemove?.(index)}
+                      disabled={disabled}
+                      className="h-10 w-10 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                      style={{
+                        borderColor: 'var(--border-default, #d1d5db)',
+                        color: 'var(--error, #dc2626)',
+                        backgroundColor: 'var(--bg-elevated, #ffffff)',
+                      }}
+                      aria-label={`Quitar ${displayLabel}`}
+                      title={`Quitar ${displayLabel}`}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isSummaryMode && summaryPanelPosition === 'below' && (
+        <div className="mt-3">
+          <div className={summaryPanelClassName}>
+            {loading ? (
+              <p className="text-sm text-[var(--text-secondary)]">{loadingText}</p>
+            ) : normalizedSelectedEntries.length === 0 ? (
+              <p className="text-sm italic text-[var(--text-tertiary)]">{emptyText}</p>
+            ) : (
+              <ul className="space-y-2">
+                {normalizedSelectedEntries.map((entry, index) => (
+                  <li
+                    key={`${String(entry.value)}-${index}`}
+                    className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
+                  >
+                    <span>{entry.label || entry.value}</span>
+                    <button
+                      type="button"
+                      onClick={() => onRemove?.(index)}
+                      disabled={disabled}
+                      className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)] disabled:opacity-50"
+                      aria-label={`Quitar ${entry.label || entry.value}`}
+                      title={`Quitar ${entry.label || entry.value}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {error ? (
         <p
           className="mt-1.5 text-xs"
@@ -422,4 +511,15 @@ SelectableListField.propTypes = {
   secondaryType: PropTypes.string,
   secondaryMin: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   secondaryMax: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  displayMode: PropTypes.oneOf(['editable', 'summary']),
+  loading: PropTypes.bool,
+  loadingText: PropTypes.string,
+  emptyText: PropTypes.string,
+  allowHidePendingSelector: PropTypes.bool,
+  summaryPanelClassName: PropTypes.string,
+  summaryPanelPosition: PropTypes.oneOf(['above', 'below']),
+  headerClassName: PropTypes.string,
+  labelClassName: PropTypes.string,
+  addButtonClassName: PropTypes.string,
+  showAddIcon: PropTypes.bool,
 };

@@ -46,6 +46,7 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'code',
+            'floor',
             'classroom_type',
             'building',
             'building_code',

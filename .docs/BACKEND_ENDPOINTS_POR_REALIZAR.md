@@ -450,6 +450,8 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la
 |--------|----------|-------------|
 | `GET` | `/api/v1/university/classrooms/` | Lista **todas** las aulas sin paginar (para selects si se requiere). |
 | `GET` | `/api/v1/university/classrooms/paginated/` | Lista paginada con filtros (vista de lista de Aulas). |
+| `GET` | `/api/v1/university/classrooms/subject-periods/` | Catalogo de periodos con materias para una carrera (`career_id`). Se usa para el flujo de materias restringidas en el formulario de Aulas. |
+| `GET` | `/api/v1/university/classrooms/subject-options/` | Catalogo de materias por `career_id` + `period_number` para el flujo de materias restringidas en Aulas. |
 | `POST` | `/api/v1/university/classrooms/` | **Transaccion completa:** crea aula + carreras con acceso (si `is_restricted = 1`) + materias permitidas (si `is_restricted_to_subjects = 1`). |
 | `GET` | `/api/v1/university/classrooms/{pk}/` | Detalle del aula (incluye carreras y materias segun sus banderas de restriccion). |
 | `PUT` | `/api/v1/university/classrooms/{pk}/` | Actualiza aula + carreras + materias (sincroniza listas recibidas y conserva las no enviadas). |
@@ -489,10 +491,15 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la
 
 > Al activar `is_restricted = true` o `is_restricted_to_subjects = true` por primera vez, se debe enviar su lista correspondiente y con al menos un elemento.
 
+> Cuando `is_restricted = true` **e** `is_restricted_to_subjects = true`, las materias enviadas en `subjects` deben pertenecer al menos a una de las carreras permitidas del aula.
+
+> Flujo recomendado del frontend para materias restringidas: **carrera -> periodo -> materia**. Cada materia se agrega una por una y se pueden mezclar materias de diferentes carreras.
+
 > Selects que alimentan este formulario:
 > - `GET /api/v1/classroom-types/` -> "Tipo de Aula"
 > - `GET /api/v1/university/careers/` -> "Carreras con acceso" (cuando es restringida)
-> - `GET /api/v1/university/subjects/` -> "Materias permitidas" (cuando `is_restricted_to_subjects = 1`)
+> - `GET /api/v1/university/classrooms/subject-periods/?career_id={id}` -> "Periodos" segun la carrera elegida (cuando `is_restricted_to_subjects = 1`)
+> - `GET /api/v1/university/classrooms/subject-options/?career_id={id}&period_number={n}` -> "Materias" segun carrera+periodo (cuando `is_restricted_to_subjects = 1`)
 
 ---
 
@@ -554,7 +561,9 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 | Nuevo Profesor | Materias que puede impartir | `GET /api/v1/university/subjects/` |
 | Nueva Aula | Tipo de Aula | `GET /api/v1/classroom-types/` |
 | Nueva Aula | Carreras con acceso | `GET /api/v1/university/careers/` |
-| Nueva Aula | Materias permitidas | `GET /api/v1/university/subjects/` |
+| Nueva Aula | Carrera para filtrar materias | `GET /api/v1/university/careers/` |
+| Nueva Aula | Periodo para filtrar materias | `GET /api/v1/university/classrooms/subject-periods/?career_id={id}` |
+| Nueva Aula | Materias permitidas (filtradas) | `GET /api/v1/university/classrooms/subject-options/?career_id={id}&period_number={n}` |
 
 ---
 

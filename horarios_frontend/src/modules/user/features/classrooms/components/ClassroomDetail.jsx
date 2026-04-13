@@ -16,6 +16,8 @@ export const ClassroomDetail = ({
 
   const isActive = Number(classroom.status) === 1;
   const isRestricted = Number(classroom.is_restricted) === 1;
+  const isRestrictedToSubjects = Number(classroom.is_restricted_to_subjects) === 1;
+  const restrictedSubjects = Array.isArray(classroom.subjects) ? classroom.subjects : [];
 
   return (
     <div className="space-y-6 p-6">
@@ -93,6 +95,13 @@ export const ClassroomDetail = ({
           <p className="text-sm text-[var(--text-primary)]">{isRestricted ? 'Sí' : 'No'}</p>
         </div>
 
+        <div className="md:col-span-12">
+          <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+            Restringida a materias específicas
+          </p>
+          <p className="text-sm text-[var(--text-primary)]">{isRestrictedToSubjects ? 'Sí' : 'No'}</p>
+        </div>
+
         {isRestricted && (
           <div className="md:col-span-12">
             <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
@@ -113,6 +122,32 @@ export const ClassroomDetail = ({
                       className="px-3 py-1 text-xs font-medium rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
                     >
                       {row.career_name || '—'}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isRestrictedToSubjects && (
+          <div className="md:col-span-12">
+            <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-2">
+              Materias permitidas
+            </p>
+            <div className="border border-dashed border-[var(--border-default)] rounded-lg p-3 bg-[var(--bg-surface)] min-h-[2.5rem]">
+              {restrictedSubjects.length === 0 ? (
+                <p className="text-sm italic text-[var(--text-tertiary)]">
+                  No hay materias asignadas
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {restrictedSubjects.map((row) => (
+                    <li
+                      key={row.id}
+                      className="px-3 py-1 text-xs font-medium rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                    >
+                      {row.code ? `${row.name} (${row.code})` : row.name}
                     </li>
                   ))}
                 </ul>
@@ -141,6 +176,14 @@ ClassroomDetail.propTypes = {
     classroom_type: PropTypes.string,
     university_name: PropTypes.string,
     is_restricted: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    is_restricted_to_subjects: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    subjects: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        name: PropTypes.string,
+        code: PropTypes.string,
+      }),
+    ),
     status: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }),
   classroomCareers: PropTypes.arrayOf(

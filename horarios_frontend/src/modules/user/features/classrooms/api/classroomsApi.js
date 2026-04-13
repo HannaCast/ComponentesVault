@@ -68,6 +68,25 @@ export const getClassroomCareers = ({ classroomId } = {}) => {
   return apiToken.get('/api/v1/university/classroom-careers/', { params });
 };
 
+export const getClassroomSubjectPeriods = ({ careerId } = {}) => {
+  const params = {};
+  if (careerId != null && careerId !== '') {
+    params.career_id = careerId;
+  }
+  return apiToken.get('/api/v1/university/classrooms/subject-periods/', { params });
+};
+
+export const getClassroomSubjectOptions = ({ careerId, periodNumber } = {}) => {
+  const params = {};
+  if (careerId != null && careerId !== '') {
+    params.career_id = careerId;
+  }
+  if (periodNumber != null && periodNumber !== '') {
+    params.period_number = periodNumber;
+  }
+  return apiToken.get('/api/v1/university/classrooms/subject-options/', { params });
+};
+
 export const createClassroomCareer = (data) =>
   apiToken.post('/api/v1/university/classroom-careers/', data);
 
