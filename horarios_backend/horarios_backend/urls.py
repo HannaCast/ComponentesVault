@@ -48,12 +48,13 @@ def _should_serve_uploaded_media() -> bool:
     """
     if settings.DEBUG:
         return True
-    return os.getenv('DJANGO_SERVE_MEDIA', '').strip().lower() in (
-        '1',
-        'true',
-        'yes',
-        'on',
-    )
+
+    raw = os.getenv('DJANGO_SERVE_MEDIA', '').strip().lower()
+    if raw:
+        return raw in ('1', 'true', 'yes', 'on')
+
+    # Valor por defecto para evitar logos rotos cuando DEBUG=False en entornos locales.
+    return True
 
 
 if _should_serve_uploaded_media():

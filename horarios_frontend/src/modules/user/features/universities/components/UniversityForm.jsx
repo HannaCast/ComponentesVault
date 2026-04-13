@@ -38,6 +38,12 @@ const TABS = [
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const ALLOWED_LOGO_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
 
 const getFirstErrorTab = (errs) => {
   const keys = Object.keys(errs);
@@ -253,8 +259,9 @@ export const UniversityForm = ({
       e.target.value = '';
       return;
     }
-    if (!String(file.type || '').startsWith('image/')) {
-      toast.error('El logo debe ser una imagen (por ejemplo JPG o PNG).');
+    const contentType = String(file.type || '').toLowerCase().trim();
+    if (!ALLOWED_LOGO_TYPES.has(contentType)) {
+      toast.error('Tipo de archivo no permitido. Usa JPEG, PNG, GIF o WebP.');
       e.target.value = '';
       return;
     }
