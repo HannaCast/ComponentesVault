@@ -9,6 +9,8 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from django.utils import timezone
 from django.db.models import Q
 
+UNIVERSITY_NOT_FOUND_MESSAGE = 'Universidad no encontrada'
+
 
 @extend_schema(tags=['Universities'])
 class UniversityCreate(APIView):
@@ -173,7 +175,7 @@ class UniversityDetail(APIView):
 
         if not university:
             return ApiResponse.error(
-                message="Universidad no encontrada",
+                message=UNIVERSITY_NOT_FOUND_MESSAGE,
                 status_code=404
             )
 
@@ -194,7 +196,7 @@ class UniversityDetail(APIView):
 
         if not university:
             return ApiResponse.error(
-                message="Universidad no encontrada",
+                message=UNIVERSITY_NOT_FOUND_MESSAGE,
                 status_code=404
             )
 
@@ -225,7 +227,7 @@ class UniversityDetail(APIView):
 
         if not university:
             return ApiResponse.error(
-                message="Universidad no encontrada",
+                message=UNIVERSITY_NOT_FOUND_MESSAGE,
                 status_code=404
             )
 

@@ -267,6 +267,91 @@ class TeacherDetailView(APIView):
             ).data
         )
 
+    @staticmethod
+    def _build_teacher_partial_payload(request_data):
+        payload = {
+            k: request_data[k]
+            for k in ('name', 'surname', 'last_name', 'require_classroom')
+            if k in request_data
+        }
+        if 'require_classroom' in payload and isinstance(payload['require_classroom'], bool):
+            payload['require_classroom'] = 1 if payload['require_classroom'] else 0
+        return payload
+
+    def _update_teacher_core_fields(self, request, teacher, uid):
+        sub = self._build_teacher_partial_payload(request.data)
+        if not sub:
+            return teacher, None
+
+        tw = TeacherWriteSerializer(
+            teacher,
+            data=sub,
+            partial=True,
+            context={'request': request, 'selected_university_id': uid},
+        )
+        if not tw.is_valid():
+            return teacher, ApiResponse.error(errors=tw.errors)
+
+        return tw.save(), None
+
+    @staticmethod
+    def _extract_optional_list_payload(request_data, field_name):
+        if field_name not in request_data:
+            return False, None, None
+
+        payload = request_data[field_name]
+        if payload is None:
+            payload = []
+        if not isinstance(payload, list):
+            return (
+                True,
+                None,
+                ApiResponse.error(
+                    message=f'{field_name} debe ser una lista.',
+                    status_code=400,
+                ),
+            )
+
+        return True, payload, None
+
+    def _update_teacher_availabilities(self, request_data, teacher):
+        present, raw_av, error_response = self._extract_optional_list_payload(
+            request_data,
+            'availabilities',
+        )
+        if error_response is not None:
+            return error_response
+        if not present:
+            return None
+
+        av_ser = TeacherAvailabilityInputSerializer(data=raw_av, many=True)
+        if not av_ser.is_valid():
+            return ApiResponse.error(errors={'availabilities': av_ser.errors})
+
+        replace_teacher_availabilities(teacher, av_ser.validated_data)
+        return None
+
+    def _update_teacher_subjects(self, request_data, teacher, uid):
+        present, raw_sj, error_response = self._extract_optional_list_payload(
+            request_data,
+            'subjects',
+        )
+        if error_response is not None:
+            return error_response
+        if not present:
+            return None
+
+        sj_ser = TeacherSubjectRefSerializer(data=raw_sj, many=True)
+        if not sj_ser.is_valid():
+            return ApiResponse.error(errors={'subjects': sj_ser.errors})
+
+        try:
+            replace_teacher_subjects(teacher, uid, sj_ser.validated_data)
+        except serializers.ValidationError as exc:
+            return ApiResponse.error(errors=exc.detail)
+
+        return None
+
     @extend_schema(
         request=TeacherCompositePayloadSerializer,
         responses=TeacherFullDetailSerializer,
@@ -279,55 +364,17 @@ class TeacherDetailView(APIView):
         if teacher is None:
             return ApiResponse.not_found()
 
-        sub = {
-            k: request.data[k]
-            for k in ('name', 'surname', 'last_name', 'require_classroom')
-            if k in request.data
-        }
-        if 'require_classroom' in sub and isinstance(sub['require_classroom'], bool):
-            sub['require_classroom'] = 1 if sub['require_classroom'] else 0
+        teacher, error_response = self._update_teacher_core_fields(request, teacher, uid)
+        if error_response is not None:
+            return error_response
 
-        if sub:
-            tw = TeacherWriteSerializer(
-                teacher,
-                data=sub,
-                partial=True,
-                context={'request': request, 'selected_university_id': uid},
-            )
-            if not tw.is_valid():
-                return ApiResponse.error(errors=tw.errors)
-            teacher = tw.save()
+        error_response = self._update_teacher_availabilities(request.data, teacher)
+        if error_response is not None:
+            return error_response
 
-        if 'availabilities' in request.data:
-            raw_av = request.data['availabilities']
-            if raw_av is None:
-                raw_av = []
-            if not isinstance(raw_av, list):
-                return ApiResponse.error(
-                    message='availabilities debe ser una lista.',
-                    status_code=400,
-                )
-            av_ser = TeacherAvailabilityInputSerializer(data=raw_av, many=True)
-            if not av_ser.is_valid():
-                return ApiResponse.error(errors={'availabilities': av_ser.errors})
-            replace_teacher_availabilities(teacher, av_ser.validated_data)
-
-        if 'subjects' in request.data:
-            raw_sj = request.data['subjects']
-            if raw_sj is None:
-                raw_sj = []
-            if not isinstance(raw_sj, list):
-                return ApiResponse.error(
-                    message='subjects debe ser una lista.',
-                    status_code=400,
-                )
-            sj_ser = TeacherSubjectRefSerializer(data=raw_sj, many=True)
-            if not sj_ser.is_valid():
-                return ApiResponse.error(errors={'subjects': sj_ser.errors})
-            try:
-                replace_teacher_subjects(teacher, uid, sj_ser.validated_data)
-            except serializers.ValidationError as exc:
-                return ApiResponse.error(errors=exc.detail)
+        error_response = self._update_teacher_subjects(request.data, teacher, uid)
+        if error_response is not None:
+            return error_response
 
         return ApiResponse.success(
             TeacherFullDetailSerializer(

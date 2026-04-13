@@ -55,16 +55,16 @@ class ShiftWriteSerializer(serializers.ModelSerializer):
             and u_end is not None
             and start is not None
             and end is not None
+            and (start < u_start or end > u_end)
         ):
-            if start < u_start or end > u_end:
-                raise serializers.ValidationError(
-                    {
-                        'non_field_errors': [
-                            'El horario del turno debe estar dentro del rango '
-                            f'operativo de la universidad ({u_start}–{u_end}).'
-                        ],
-                    }
-                )
+            raise serializers.ValidationError(
+                {
+                    'non_field_errors': [
+                        'El horario del turno debe estar dentro del rango '
+                        f'operativo de la universidad ({u_start}–{u_end}).'
+                    ],
+                }
+            )
 
         return attrs
 

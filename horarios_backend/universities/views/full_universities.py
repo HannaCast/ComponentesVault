@@ -48,7 +48,6 @@ class UniversityFullSetupView(APIView):
                 )
 
                 create_modalities_shifts_periods(
-                    request=request,
                     university_id=university.id,
                     data=data,
                 )

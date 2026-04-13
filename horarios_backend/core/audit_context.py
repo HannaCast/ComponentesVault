@@ -163,6 +163,101 @@ def _insert_failed_audit_log(
         )
 
 
+def _resolve_authenticated_user_data(request):
+    user = getattr(request, 'user', None)
+    is_authenticated = bool(user and getattr(user, 'is_authenticated', False))
+
+    user_id = user.pk if is_authenticated else None
+    username = None
+    if is_authenticated:
+        username = (
+            getattr(user, 'email', None)
+            or getattr(user, 'username', None)
+            or str(user.pk)
+        )
+
+    return user_id, username
+
+
+def _set_audit_session_context(request, *, user_id, username, transaction_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SET
+              @app_user_id = %s,
+              @app_username = %s,
+              @app_ip = %s,
+              @app_user_agent = %s,
+              @app_transaction_id = %s,
+              @app_action = %s,
+              @app_last_action = %s
+            """,
+            [
+                user_id,
+                username,
+                _get_client_ip(request),
+                request.META.get('HTTP_USER_AGENT'),
+                transaction_id,
+                None,
+                None,
+            ],
+        )
+
+
+def _clear_audit_session_context():
+    if connection.connection is None:
+        return
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SET
+            @app_user_id = NULL,
+            @app_username = NULL,
+            @app_ip = NULL,
+            @app_user_agent = NULL,
+            @app_transaction_id = NULL,
+            @app_action = NULL,
+            @app_last_action = NULL
+            """
+        )
+
+
+def _try_insert_failed_audit_log(**kwargs):
+    try:
+        _insert_failed_audit_log(**kwargs)
+    except Exception:
+        # No ocultar el flujo principal por fallas al escribir auditoría.
+        pass
+
+
+def _log_response_error_if_needed(
+    *,
+    request,
+    response,
+    view_instance,
+    kwargs,
+    user_id,
+    username,
+    transaction_id,
+    explicit_table_name,
+):
+    response_error_message = _extract_response_error_message(response)
+    if not response_error_message:
+        return
+
+    _try_insert_failed_audit_log(
+        request=request,
+        view_instance=view_instance,
+        kwargs=kwargs,
+        user_id=user_id,
+        username=username,
+        transaction_id=transaction_id,
+        error_message=response_error_message,
+        explicit_table_name=explicit_table_name,
+    )
+
+
 def with_audit_context(action=None, table_name=None):
     """Setea variables de sesion MySQL y registra errores de aplicacion en audit_logs."""
 
@@ -184,95 +279,43 @@ def with_audit_context(action=None, table_name=None):
             if connection.vendor != 'mysql':
                 return func(self, request, *args, **kwargs)
 
-            user = getattr(request, 'user', None)
-            is_authenticated = bool(user and getattr(user, 'is_authenticated', False))
-
-            user_id = user.pk if is_authenticated else None
-            username = None
-            if is_authenticated:
-                username = (
-                    getattr(user, 'email', None)
-                    or getattr(user, 'username', None)
-                    or str(user.pk)
-                )
-
+            user_id, username = _resolve_authenticated_user_data(request)
             transaction_id = str(uuid4())
-
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SET
-                      @app_user_id = %s,
-                      @app_username = %s,
-                      @app_ip = %s,
-                      @app_user_agent = %s,
-                      @app_transaction_id = %s,
-                      @app_action = %s,
-                      @app_last_action = %s
-                    """,
-                    [
-                        user_id,
-                        username,
-                        _get_client_ip(request),
-                        request.META.get('HTTP_USER_AGENT'),
-                        transaction_id,
-                        None,
-                        None,
-                    ],
-                )
+            _set_audit_session_context(
+                request,
+                user_id=user_id,
+                username=username,
+                transaction_id=transaction_id,
+            )
 
             try:
                 response = func(self, request, *args, **kwargs)
-
-                response_error_message = _extract_response_error_message(response)
-                if response_error_message:
-                    try:
-                        _insert_failed_audit_log(
-                            request=request,
-                            view_instance=self,
-                            kwargs=kwargs,
-                            user_id=user_id,
-                            username=username,
-                            transaction_id=transaction_id,
-                            error_message=response_error_message,
-                            explicit_table_name=normalized_table_name,
-                        )
-                    except Exception:
-                        pass
-
-                return response
             except Exception as exc:
-                try:
-                    _insert_failed_audit_log(
-                        request=request,
-                        view_instance=self,
-                        kwargs=kwargs,
-                        user_id=user_id,
-                        username=username,
-                        transaction_id=transaction_id,
-                        error_message=f'{type(exc).__name__}: {exc}',
-                        explicit_table_name=normalized_table_name,
-                    )
-                except Exception:
-                    # No ocultar el error principal si falla la escritura de auditoria.
-                    pass
-
+                _try_insert_failed_audit_log(
+                    request=request,
+                    view_instance=self,
+                    kwargs=kwargs,
+                    user_id=user_id,
+                    username=username,
+                    transaction_id=transaction_id,
+                    error_message=f'{type(exc).__name__}: {exc}',
+                    explicit_table_name=normalized_table_name,
+                )
                 raise
+            else:
+                _log_response_error_if_needed(
+                    request=request,
+                    response=response,
+                    view_instance=self,
+                    kwargs=kwargs,
+                    user_id=user_id,
+                    username=username,
+                    transaction_id=transaction_id,
+                    explicit_table_name=normalized_table_name,
+                )
+                return response
             finally:
-                if connection.connection is not None:
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            """
-                            SET
-                            @app_user_id = NULL,
-                            @app_username = NULL,
-                            @app_ip = NULL,
-                            @app_user_agent = NULL,
-                            @app_transaction_id = NULL,
-                            @app_action = NULL,
-                            @app_last_action = NULL
-                            """
-                        )
+                _clear_audit_session_context()
 
         return wrapper
 

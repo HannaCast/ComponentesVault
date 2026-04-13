@@ -251,116 +251,121 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
                 is_deleted=0,
             )
 
-    def validate(self, attrs):
+    def _get_selected_university_id(self):
         selected_university_id = self.context.get('selected_university_id')
-
         if not selected_university_id and self.instance:
             selected_university_id = self.instance.university_id
+        return selected_university_id
 
-        if 'careers' in attrs:
-            parsed_careers = self._parse_careers_payload(attrs.get('careers') or [])
-            career_ids = {row['career_id'] for row in parsed_careers}
+    def _parse_and_validate_careers(self, attrs, selected_university_id):
+        if 'careers' not in attrs:
+            return None
 
-            careers_in_university = set(
-                Careers.objects.filter(
-                    id__in=career_ids,
-                    is_deleted=0,
-                    university_id=selected_university_id,
-                ).values_list('id', flat=True)
+        parsed_careers = self._parse_careers_payload(attrs.get('careers') or [])
+        career_ids = {row['career_id'] for row in parsed_careers}
+
+        careers_in_university = set(
+            Careers.objects.filter(
+                id__in=career_ids,
+                is_deleted=0,
+                university_id=selected_university_id,
+            ).values_list('id', flat=True)
+        )
+
+        invalid_ids = sorted(career_ids - careers_in_university)
+        if invalid_ids:
+            raise serializers.ValidationError(
+                {
+                    'careers': (
+                        'Las carreras no pertenecen a la universidad '
+                        f'seleccionada: {invalid_ids}'
+                    )
+                }
             )
 
-            invalid_ids = sorted(career_ids - careers_in_university)
-            if invalid_ids:
-                raise serializers.ValidationError(
-                    {
-                        'careers': (
-                            'Las carreras no pertenecen a la universidad '
-                            f'seleccionada: {invalid_ids}'
-                        )
-                    }
-                )
+        return parsed_careers
 
-            attrs['_parsed_careers'] = parsed_careers
-
-        teachers_payload = None
+    def _extract_teachers_payload(self, attrs):
         if 'teachers' in attrs:
-            teachers_payload = attrs.get('teachers') or []
-        elif 'professors' in self.initial_data:
-            teachers_payload = self.initial_data.get('professors') or []
+            return attrs.get('teachers') or []
+        if 'professors' in self.initial_data:
+            return self.initial_data.get('professors') or []
+        return None
 
-        if teachers_payload is not None:
-            parsed_teachers = self._parse_teachers_payload(teachers_payload)
+    def _parse_and_validate_teachers(self, teachers_payload):
+        parsed_teachers = self._parse_teachers_payload(teachers_payload)
 
-            existing_teachers = set(
-                Teachers.objects.filter(
-                    id__in=parsed_teachers,
-                    is_deleted=0,
-                ).values_list('id', flat=True)
+        existing_teachers = set(
+            Teachers.objects.filter(
+                id__in=parsed_teachers,
+                is_deleted=0,
+            ).values_list('id', flat=True)
+        )
+
+        invalid_teacher_ids = sorted(set(parsed_teachers) - existing_teachers)
+        if invalid_teacher_ids:
+            raise serializers.ValidationError(
+                {
+                    'teachers': (
+                        'Los profesores no son válidos o no están disponibles: '
+                        f'{invalid_teacher_ids}'
+                    )
+                }
             )
 
-            invalid_teacher_ids = sorted(set(parsed_teachers) - existing_teachers)
-            if invalid_teacher_ids:
-                raise serializers.ValidationError(
-                    {
-                        'teachers': (
-                            'Los profesores no son válidos o no están disponibles: '
-                            f'{invalid_teacher_ids}'
-                        )
-                    }
-                )
+        return parsed_teachers
 
-            attrs['_parsed_teachers'] = parsed_teachers
-
-        current_restricted_classroom_types = bool(
-            self.instance.is_restricted_to_classroom_types
-        ) if self.instance else False
-        effective_restricted_classroom_types = bool(
+    def _get_classroom_type_restriction_flags(self, attrs):
+        current_restricted = bool(self.instance.is_restricted_to_classroom_types) if self.instance else False
+        effective_restricted = bool(
             attrs.get(
                 'is_restricted_to_classroom_types',
                 self.instance.is_restricted_to_classroom_types if self.instance else 0,
             )
         )
+        return current_restricted, effective_restricted
 
-        classroom_types_payload = None
-        classroom_types_in_payload = False
+    def _extract_classroom_types_payload(self, attrs):
         if 'classroom_types' in attrs:
-            classroom_types_payload = attrs.get('classroom_types') or []
-            classroom_types_in_payload = True
-        elif 'classroom_types' in self.initial_data:
-            classroom_types_payload = self.initial_data.get('classroom_types') or []
-            classroom_types_in_payload = True
+            return (attrs.get('classroom_types') or []), True
+        if 'classroom_types' in self.initial_data:
+            return (self.initial_data.get('classroom_types') or []), True
+        return None, False
 
-        parsed_classroom_types = None
-        if classroom_types_payload is not None:
-            parsed_classroom_types = self._parse_classroom_types_payload(classroom_types_payload)
+    def _parse_and_validate_classroom_types(self, classroom_types_payload):
+        parsed_classroom_types = self._parse_classroom_types_payload(classroom_types_payload)
 
-            existing_classroom_types = set(
-                ClassroomTypes.objects.filter(
-                    id__in=parsed_classroom_types,
-                    is_deleted=0,
-                    status=1,
-                ).values_list('id', flat=True)
+        existing_classroom_types = set(
+            ClassroomTypes.objects.filter(
+                id__in=parsed_classroom_types,
+                is_deleted=0,
+                status=1,
+            ).values_list('id', flat=True)
+        )
+
+        invalid_classroom_type_ids = sorted(set(parsed_classroom_types) - existing_classroom_types)
+        if invalid_classroom_type_ids:
+            raise serializers.ValidationError(
+                {
+                    'classroom_types': (
+                        'Los tipos de aula no son validos o no estan disponibles: '
+                        f'{invalid_classroom_type_ids}'
+                    )
+                }
             )
 
-            invalid_classroom_type_ids = sorted(set(parsed_classroom_types) - existing_classroom_types)
-            if invalid_classroom_type_ids:
-                raise serializers.ValidationError(
-                    {
-                        'classroom_types': (
-                            'Los tipos de aula no son validos o no estan disponibles: '
-                            f'{invalid_classroom_type_ids}'
-                        )
-                    }
-                )
+        return parsed_classroom_types
 
-        # Si classroom_types viene en el payload, su contenido gobierna la bandera.
-        if classroom_types_in_payload:
-            effective_restricted_classroom_types = bool(parsed_classroom_types)
-            attrs['is_restricted_to_classroom_types'] = 1 if parsed_classroom_types else 0
-
+    @staticmethod
+    def _validate_required_classroom_types_on_activation(
+        *,
+        effective_restricted,
+        current_restricted,
+        parsed_classroom_types,
+    ):
         if (
-            effective_restricted_classroom_types
-            and not current_restricted_classroom_types
+            effective_restricted
+            and not current_restricted
             and parsed_classroom_types is None
         ):
             raise serializers.ValidationError(
@@ -372,7 +377,13 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
                 }
             )
 
-        if effective_restricted_classroom_types and parsed_classroom_types == []:
+    @staticmethod
+    def _validate_non_empty_classroom_types_when_restricted(
+        *,
+        effective_restricted,
+        parsed_classroom_types,
+    ):
+        if effective_restricted and parsed_classroom_types == []:
             raise serializers.ValidationError(
                 {
                     'classroom_types': (
@@ -381,6 +392,41 @@ class SubjectWriteSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+
+    def validate(self, attrs):
+        selected_university_id = self._get_selected_university_id()
+
+        parsed_careers = self._parse_and_validate_careers(attrs, selected_university_id)
+        if parsed_careers is not None:
+            attrs['_parsed_careers'] = parsed_careers
+
+        teachers_payload = self._extract_teachers_payload(attrs)
+        if teachers_payload is not None:
+            attrs['_parsed_teachers'] = self._parse_and_validate_teachers(teachers_payload)
+
+        (
+            current_restricted_classroom_types,
+            effective_restricted_classroom_types,
+        ) = self._get_classroom_type_restriction_flags(attrs)
+
+        classroom_types_payload, classroom_types_in_payload = self._extract_classroom_types_payload(attrs)
+        parsed_classroom_types = None
+        if classroom_types_payload is not None:
+            parsed_classroom_types = self._parse_and_validate_classroom_types(classroom_types_payload)
+
+        if classroom_types_in_payload:
+            effective_restricted_classroom_types = bool(parsed_classroom_types)
+            attrs['is_restricted_to_classroom_types'] = 1 if parsed_classroom_types else 0
+
+        self._validate_required_classroom_types_on_activation(
+            effective_restricted=effective_restricted_classroom_types,
+            current_restricted=current_restricted_classroom_types,
+            parsed_classroom_types=parsed_classroom_types,
+        )
+        self._validate_non_empty_classroom_types_when_restricted(
+            effective_restricted=effective_restricted_classroom_types,
+            parsed_classroom_types=parsed_classroom_types,
+        )
 
         if parsed_classroom_types is not None:
             attrs['_parsed_classroom_types'] = parsed_classroom_types

@@ -15,10 +15,7 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
             'configurations',
         ]
 
-    def validate_configurations(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError('Debe ser un objeto JSON.')
-
+    def _validate_configuration_keys(self, value):
         extra = set(value.keys()) - _CONFIG_KEYS
         if extra:
             raise serializers.ValidationError(
@@ -32,7 +29,7 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
                 f'Faltan claves obligatorias: {", ".join(sorted(missing))}.'
             )
 
-        allowed_days = value['allowed_days']
+    def _validate_allowed_days(self, allowed_days):
         if not isinstance(allowed_days, list):
             raise serializers.ValidationError(
                 {'allowed_days': 'Debe ser una lista de números de día.'}
@@ -63,7 +60,7 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
                 )
             seen.add(day)
 
-        cdpw = value['classroom_days_per_week']
+    def _validate_classroom_days_per_week(self, cdpw, allowed_days):
         if not isinstance(cdpw, int) or isinstance(cdpw, bool):
             raise serializers.ValidationError(
                 {'classroom_days_per_week': 'Debe ser un entero.'}
@@ -80,6 +77,18 @@ class ModalitiesWriteSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+
+    def validate_configurations(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError('Debe ser un objeto JSON.')
+
+        self._validate_configuration_keys(value)
+
+        allowed_days = value['allowed_days']
+        self._validate_allowed_days(allowed_days)
+
+        cdpw = value['classroom_days_per_week']
+        self._validate_classroom_days_per_week(cdpw, allowed_days)
 
         return value
 

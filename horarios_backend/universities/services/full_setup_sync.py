@@ -22,7 +22,6 @@ def _uses_period_groups(university: Universities) -> bool:
 
 def create_modalities_shifts_periods(
     *,
-    request,
     university_id: int,
     data: dict[str, Any],
 ) -> None:

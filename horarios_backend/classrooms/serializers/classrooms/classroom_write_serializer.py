@@ -32,15 +32,17 @@ class ClassroomWriteSerializer(serializers.ModelSerializer):
             'subjects',
         ]
 
-    def validate_is_restricted(self, value):
+    @staticmethod
+    def _validate_binary_flag_value(value):
         if value not in (0, 1):
             raise serializers.ValidationError('Debe ser 0 o 1.')
         return value
 
+    def validate_is_restricted(self, value):
+        return self._validate_binary_flag_value(value)
+
     def validate_is_restricted_to_subjects(self, value):
-        if value not in (0, 1):
-            raise serializers.ValidationError('Debe ser 0 o 1.')
-        return value
+        return self._validate_binary_flag_value(value)
 
     def validate_classroom_type(self, classroom_type):
         if classroom_type.is_deleted != 0 or classroom_type.status != 1:
@@ -155,11 +157,13 @@ class ClassroomWriteSerializer(serializers.ModelSerializer):
                 is_deleted=0,
             )
 
-    def validate(self, attrs):
+    def _get_selected_university_id(self):
         selected_university_id = self.context.get('selected_university_id')
         if not selected_university_id and self.instance:
             selected_university_id = self.instance.universities_id
+        return selected_university_id
 
+    def _get_effective_restriction_flags(self, attrs):
         current_restricted = bool(self.instance.is_restricted) if self.instance else False
         current_restricted_subjects = bool(self.instance.is_restricted_to_subjects) if self.instance else False
 
@@ -173,151 +177,214 @@ class ClassroomWriteSerializer(serializers.ModelSerializer):
             )
         )
 
-        careers_payload = None
-        if 'careers' in attrs:
-            careers_payload = attrs.get('careers') or []
-        elif 'careers' in self.initial_data:
-            careers_payload = self.initial_data.get('careers') or []
+        return (
+            current_restricted,
+            current_restricted_subjects,
+            effective_restricted,
+            effective_restricted_subjects,
+        )
 
-        parsed_careers = None
-        if careers_payload is not None:
-            parsed_careers = self._parse_careers_payload(careers_payload)
+    def _extract_payload(self, attrs, field_name):
+        if field_name in attrs:
+            return attrs.get(field_name) or []
+        if field_name in self.initial_data:
+            return self.initial_data.get(field_name) or []
+        return None
 
-            valid_career_ids = set(
-                Careers.objects.filter(
-                    id__in=parsed_careers,
-                    university_id=selected_university_id,
-                    is_deleted=0,
-                ).values_list('id', flat=True)
-            )
+    def _parse_and_validate_careers(self, attrs, selected_university_id):
+        careers_payload = self._extract_payload(attrs, 'careers')
+        if careers_payload is None:
+            return None
 
-            invalid_career_ids = sorted(set(parsed_careers) - valid_career_ids)
-            if invalid_career_ids:
-                raise serializers.ValidationError(
-                    {
-                        'careers': (
-                            'Las carreras no pertenecen a la universidad seleccionada: '
-                            f'{invalid_career_ids}'
-                        )
-                    }
-                )
+        parsed_careers = self._parse_careers_payload(careers_payload)
 
-        subjects_payload = None
-        if 'subjects' in attrs:
-            subjects_payload = attrs.get('subjects') or []
-        elif 'subjects' in self.initial_data:
-            subjects_payload = self.initial_data.get('subjects') or []
+        valid_career_ids = set(
+            Careers.objects.filter(
+                id__in=parsed_careers,
+                university_id=selected_university_id,
+                is_deleted=0,
+            ).values_list('id', flat=True)
+        )
 
-        parsed_subjects = None
-        if subjects_payload is not None:
-            parsed_subjects = self._parse_subjects_payload(subjects_payload)
-
-            valid_subject_ids = set(
-                Subjects.objects.filter(
-                    id__in=parsed_subjects,
-                    university_id=selected_university_id,
-                    is_deleted=0,
-                ).values_list('id', flat=True)
-            )
-
-            invalid_subject_ids = sorted(set(parsed_subjects) - valid_subject_ids)
-            if invalid_subject_ids:
-                raise serializers.ValidationError(
-                    {
-                        'subjects': (
-                            'Las materias no pertenecen a la universidad seleccionada: '
-                            f'{invalid_subject_ids}'
-                        )
-                    }
-                )
-
-        if effective_restricted and not current_restricted and parsed_careers is None:
+        invalid_career_ids = sorted(set(parsed_careers) - valid_career_ids)
+        if invalid_career_ids:
             raise serializers.ValidationError(
                 {
                     'careers': (
-                        'Debes enviar careers al activar is_restricted.'
+                        'Las carreras no pertenecen a la universidad seleccionada: '
+                        f'{invalid_career_ids}'
                     )
                 }
             )
 
-        if effective_restricted and parsed_careers == []:
-            raise serializers.ValidationError(
-                {
-                    'careers': (
-                        'Debes indicar al menos una carrera cuando is_restricted es 1.'
-                    )
-                }
-            )
+        return parsed_careers
 
-        if (
-            effective_restricted_subjects
-            and not current_restricted_subjects
-            and parsed_subjects is None
-        ):
-            raise serializers.ValidationError(
-                {
-                    'subjects': (
-                        'Debes enviar subjects al activar is_restricted_to_subjects.'
-                    )
-                }
-            )
+    def _parse_and_validate_subjects(self, attrs, selected_university_id):
+        subjects_payload = self._extract_payload(attrs, 'subjects')
+        if subjects_payload is None:
+            return None
 
-        if effective_restricted_subjects and parsed_subjects == []:
+        parsed_subjects = self._parse_subjects_payload(subjects_payload)
+
+        valid_subject_ids = set(
+            Subjects.objects.filter(
+                id__in=parsed_subjects,
+                university_id=selected_university_id,
+                is_deleted=0,
+            ).values_list('id', flat=True)
+        )
+
+        invalid_subject_ids = sorted(set(parsed_subjects) - valid_subject_ids)
+        if invalid_subject_ids:
             raise serializers.ValidationError(
                 {
                     'subjects': (
-                        'Debes indicar al menos una materia cuando '
-                        'is_restricted_to_subjects es 1.'
+                        'Las materias no pertenecen a la universidad seleccionada: '
+                        f'{invalid_subject_ids}'
                     )
                 }
             )
 
-        if parsed_subjects is not None and effective_restricted and effective_restricted_subjects:
-            if parsed_careers is not None:
-                effective_career_ids = set(parsed_careers)
-            elif self.instance:
-                effective_career_ids = set(
-                    ClassroomCareers.objects.filter(
-                        classrooms=self.instance,
-                        is_deleted=0,
-                        careers__is_deleted=0,
-                        careers__university_id=selected_university_id,
-                    ).values_list('careers_id', flat=True)
-                )
-            else:
-                effective_career_ids = set()
+        return parsed_subjects
 
-            if not effective_career_ids:
-                raise serializers.ValidationError(
-                    {
-                        'subjects': (
-                            'No hay carreras permitidas para validar las materias restringidas.'
-                        )
-                    }
-                )
+    @staticmethod
+    def _validate_required_payload_on_activation(
+        *,
+        is_enabled,
+        was_enabled,
+        parsed_payload,
+        field,
+        message,
+    ):
+        if is_enabled and not was_enabled and parsed_payload is None:
+            raise serializers.ValidationError({field: message})
 
-            allowed_subject_ids = set(
-                CareerSubjects.objects.filter(
+    @staticmethod
+    def _validate_non_empty_payload_when_enabled(
+        *,
+        is_enabled,
+        parsed_payload,
+        field,
+        message,
+    ):
+        if is_enabled and parsed_payload == []:
+            raise serializers.ValidationError({field: message})
+
+    def _resolve_effective_career_ids(self, parsed_careers, selected_university_id):
+        if parsed_careers is not None:
+            return set(parsed_careers)
+
+        if self.instance:
+            return set(
+                ClassroomCareers.objects.filter(
+                    classrooms=self.instance,
                     is_deleted=0,
-                    careers_id__in=effective_career_ids,
-                    subjects_id__in=parsed_subjects,
                     careers__is_deleted=0,
                     careers__university_id=selected_university_id,
-                    subjects__is_deleted=0,
-                    subjects__university_id=selected_university_id,
-                ).values_list('subjects_id', flat=True)
+                ).values_list('careers_id', flat=True)
             )
 
-            disallowed_subject_ids = sorted(set(parsed_subjects) - allowed_subject_ids)
-            if disallowed_subject_ids:
-                raise serializers.ValidationError(
-                    {
-                        'subjects': (
-                            'Las materias no pertenecen a las carreras permitidas del aula: '
-                            f'{disallowed_subject_ids}'
-                        )
-                    }
-                )
+        return set()
+
+    def _validate_subjects_fit_allowed_careers(
+        self,
+        *,
+        parsed_subjects,
+        parsed_careers,
+        selected_university_id,
+        effective_restricted,
+        effective_restricted_subjects,
+    ):
+        if parsed_subjects is None:
+            return
+        if not effective_restricted or not effective_restricted_subjects:
+            return
+
+        effective_career_ids = self._resolve_effective_career_ids(
+            parsed_careers,
+            selected_university_id,
+        )
+        if not effective_career_ids:
+            raise serializers.ValidationError(
+                {
+                    'subjects': (
+                        'No hay carreras permitidas para validar las materias restringidas.'
+                    )
+                }
+            )
+
+        allowed_subject_ids = set(
+            CareerSubjects.objects.filter(
+                is_deleted=0,
+                careers_id__in=effective_career_ids,
+                subjects_id__in=parsed_subjects,
+                careers__is_deleted=0,
+                careers__university_id=selected_university_id,
+                subjects__is_deleted=0,
+                subjects__university_id=selected_university_id,
+            ).values_list('subjects_id', flat=True)
+        )
+
+        disallowed_subject_ids = sorted(set(parsed_subjects) - allowed_subject_ids)
+        if disallowed_subject_ids:
+            raise serializers.ValidationError(
+                {
+                    'subjects': (
+                        'Las materias no pertenecen a las carreras permitidas del aula: '
+                        f'{disallowed_subject_ids}'
+                    )
+                }
+            )
+
+    def validate(self, attrs):
+        selected_university_id = self._get_selected_university_id()
+        (
+            current_restricted,
+            current_restricted_subjects,
+            effective_restricted,
+            effective_restricted_subjects,
+        ) = self._get_effective_restriction_flags(attrs)
+
+        parsed_careers = self._parse_and_validate_careers(attrs, selected_university_id)
+        parsed_subjects = self._parse_and_validate_subjects(attrs, selected_university_id)
+
+        self._validate_required_payload_on_activation(
+            is_enabled=effective_restricted,
+            was_enabled=current_restricted,
+            parsed_payload=parsed_careers,
+            field='careers',
+            message='Debes enviar careers al activar is_restricted.',
+        )
+        self._validate_non_empty_payload_when_enabled(
+            is_enabled=effective_restricted,
+            parsed_payload=parsed_careers,
+            field='careers',
+            message='Debes indicar al menos una carrera cuando is_restricted es 1.',
+        )
+        self._validate_required_payload_on_activation(
+            is_enabled=effective_restricted_subjects,
+            was_enabled=current_restricted_subjects,
+            parsed_payload=parsed_subjects,
+            field='subjects',
+            message='Debes enviar subjects al activar is_restricted_to_subjects.',
+        )
+        self._validate_non_empty_payload_when_enabled(
+            is_enabled=effective_restricted_subjects,
+            parsed_payload=parsed_subjects,
+            field='subjects',
+            message=(
+                'Debes indicar al menos una materia cuando '
+                'is_restricted_to_subjects es 1.'
+            ),
+        )
+
+        self._validate_subjects_fit_allowed_careers(
+            parsed_subjects=parsed_subjects,
+            parsed_careers=parsed_careers,
+            selected_university_id=selected_university_id,
+            effective_restricted=effective_restricted,
+            effective_restricted_subjects=effective_restricted_subjects,
+        )
 
         if parsed_careers is not None:
             attrs['_parsed_careers'] = parsed_careers

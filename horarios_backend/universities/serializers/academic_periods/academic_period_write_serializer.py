@@ -16,23 +16,29 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
             'is_active',
         ]
 
-    def validate_start_month(self, value):
+    @staticmethod
+    def _validate_month_range(value):
         if value < 1 or value > 12:
             raise serializers.ValidationError('Debe estar entre 1 y 12.')
         return value
+
+    def validate_start_month(self, value):
+        return self._validate_month_range(value)
 
     def validate_end_month(self, value):
-        if value < 1 or value > 12:
-            raise serializers.ValidationError('Debe estar entre 1 y 12.')
-        return value
+        return self._validate_month_range(value)
 
-    def validate(self, attrs):
-        selected_university_id = self.context.get('selected_university_id')
+    @staticmethod
+    def _get_selected_university_id(context):
+        selected_university_id = context.get('selected_university_id')
         if not selected_university_id:
             raise serializers.ValidationError(
                 {'university': 'Debe tener una universidad seleccionada primero'}
             )
+        return selected_university_id
 
+    @staticmethod
+    def _get_university_for_validation(selected_university_id):
         university = Universities.objects.only(
             'id',
             'uses_period_groups',
@@ -43,10 +49,13 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
                 {'university': 'La universidad seleccionada no existe.'}
             )
 
-        uses_period_groups = int(university.uses_period_groups or 0) == 1
+        return university
 
+    @staticmethod
+    def _validate_period_group_fields(attrs, uses_period_groups):
         year = attrs.get('year')
         order = attrs.get('order')
+
         if uses_period_groups:
             if year is None:
                 raise serializers.ValidationError(
@@ -56,37 +65,50 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'order': 'Este campo es obligatorio cuando uses_period_groups = True.'}
                 )
-        else:
-            if year is not None or order is not None:
-                raise serializers.ValidationError(
-                    {
-                        'order': (
-                            'Los campos order/year solo deben enviarse cuando '
-                            'uses_period_groups = True.'
-                        )
-                    }
-                )
-
-        # No permitir duplicados de order dentro de la misma universidad
-        if uses_period_groups and order is not None:
-            qs = AcademicPeriods.objects.filter(
-                university_id=selected_university_id,
-                is_deleted=0,
-                order=order,
+        elif year is not None or order is not None:
+            raise serializers.ValidationError(
+                {
+                    'order': (
+                        'Los campos order/year solo deben enviarse cuando '
+                        'uses_period_groups = True.'
+                    )
+                }
             )
-            if self.instance is not None:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                raise serializers.ValidationError(
-                    {'order': 'Ya existe un periodo con ese order en la universidad.'}
-                )
 
-        # Validar rango de is_active (si viene)
+        return order
+
+    def _validate_unique_order(self, selected_university_id, uses_period_groups, order):
+        if not uses_period_groups or order is None:
+            return
+
+        qs = AcademicPeriods.objects.filter(
+            university_id=selected_university_id,
+            is_deleted=0,
+            order=order,
+        )
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                {'order': 'Ya existe un periodo con ese order en la universidad.'}
+            )
+
+    @staticmethod
+    def _validate_is_active_field(attrs):
         is_active = attrs.get('is_active')
         if is_active is not None and is_active not in (0, 1):
             raise serializers.ValidationError(
                 {'is_active': 'Debe ser 0 o 1.'}
             )
+
+    def validate(self, attrs):
+        selected_university_id = self._get_selected_university_id(self.context)
+        university = self._get_university_for_validation(selected_university_id)
+
+        uses_period_groups = int(university.uses_period_groups or 0) == 1
+        order = self._validate_period_group_fields(attrs, uses_period_groups)
+        self._validate_unique_order(selected_university_id, uses_period_groups, order)
+        self._validate_is_active_field(attrs)
 
         return attrs
 
