@@ -18,6 +18,136 @@ const createInitialSaveModalState = () => ({
   universityId: null,
 });
 
+const getSaveFallbackMessage = (isEditSave) => {
+  if (isEditSave) {
+    return 'No se pudo actualizar la universidad.';
+  }
+  return 'No se pudo crear la universidad.';
+};
+
+const loadInitialUniversityData = async ({
+  mode,
+  universityId,
+  shouldRunCatalog,
+  fetchPeriodTypes,
+  fetchUniversityProfile,
+  clearUniversityProfile,
+  onCreateReady,
+  onEditReady,
+  isCancelled,
+}) => {
+  const signature = buildRequestSignature({ resource: 'period-types' }, ['resource']);
+  if (shouldRunCatalog(signature)) {
+    await fetchPeriodTypes();
+  }
+
+  if (isCancelled()) {
+    return;
+  }
+
+  if (mode === 'create') {
+    clearUniversityProfile();
+    onCreateReady();
+    return;
+  }
+
+  if (mode === 'edit' && universityId) {
+    await fetchUniversityProfile(universityId);
+    if (!isCancelled()) {
+      onEditReady();
+    }
+  }
+};
+
+const createCancellationGuard = (isCancelled, callback) => (value) => {
+  if (isCancelled()) {
+    return;
+  }
+  callback(value);
+};
+
+const buildUniversityFormViewState = ({
+  mode,
+  universityProfile,
+  editFormKey,
+  formResetKey,
+  updateLoading,
+  createLoading,
+}) => {
+  const isEditMode = mode === 'edit';
+
+  return {
+    key: isEditMode
+      ? `edit-${universityProfile?.id}-${editFormKey}`
+      : `create-${formResetKey}`,
+    initialProfile: isEditMode ? universityProfile : null,
+    isLoading: isEditMode ? updateLoading : createLoading,
+  };
+};
+
+const getSaveModalViewText = (saveKind) => {
+  if (saveKind === 'edit') {
+    return {
+      title: 'Confirmar cambios',
+      message: '¿Deseas guardar los cambios de esta universidad?',
+      confirmLabel: 'Guardar',
+    };
+  }
+
+  return {
+    title: 'Confirmar creación',
+    message: '¿Deseas crear esta universidad con la información capturada?',
+    confirmLabel: 'Crear',
+  };
+};
+
+const persistUniversitySave = async ({
+  saveModal,
+  updateUniversityFullSetup,
+  createUniversityFullSetup,
+  closeSaveModal,
+  goToView,
+  goToList,
+}) => {
+  const {
+    payload,
+    logoFile,
+    saveKind,
+    universityId: uid,
+  } = saveModal;
+
+  if (payload == null) {
+    return;
+  }
+
+  const isEditSave = saveKind === 'edit' && uid;
+
+  try {
+    if (isEditSave) {
+      await updateUniversityFullSetup(uid, payload, logoFile);
+      toast.success('Universidad actualizada correctamente');
+      closeSaveModal();
+      goToView(uid);
+      return;
+    }
+
+    const response = await createUniversityFullSetup(payload, logoFile);
+    toast.success('Universidad creada correctamente');
+    closeSaveModal();
+    const newId = response?.data?.data?.university_id;
+    if (newId == null) {
+      goToList();
+      return;
+    }
+
+    goToView(newId);
+  } catch (err) {
+    console.error(err);
+    const fallback = getSaveFallbackMessage(Boolean(isEditSave));
+    toast.error(parseUniversityApiError(err, fallback));
+  }
+};
+
 export const UniversityFormPageContainer = ({ mode, universityId }) => {
   const navigate = useNavigate();
   const [formResetKey, setFormResetKey] = useState(0);
@@ -51,37 +181,37 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     setSaveModal(createInitialSaveModalState());
   }, []);
 
+  const handleCreateReady = useCallback(() => {
+    setFormResetKey((key) => key + 1);
+  }, []);
+
+  const handleEditReady = useCallback(() => {
+    setEditFormKey((key) => key + 1);
+  }, []);
+
+  const handleInitialLoadError = useCallback((err) => {
+    console.error(err);
+    toast.error('No se pudieron cargar los datos necesarios. Intenta de nuevo.');
+    goToList();
+  }, [goToList]);
+
   useEffect(() => {
     let cancelled = false;
+    const isCancelled = () => cancelled;
+    const handleLoadFailure = createCancellationGuard(isCancelled, handleInitialLoadError);
 
-    const run = async () => {
-      try {
-        const sig = buildRequestSignature({ resource: 'period-types' }, ['resource']);
-        if (shouldRunCatalog(sig)) {
-          await fetchPeriodTypes();
-        }
-        if (cancelled) {
-          return;
-        }
-        if (mode === 'create') {
-          clearUniversityProfile();
-          setFormResetKey((k) => k + 1);
-        } else if (universityId) {
-          await fetchUniversityProfile(universityId);
-          if (!cancelled) {
-            setEditFormKey((k) => k + 1);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) {
-          toast.error('No se pudieron cargar los datos necesarios. Intenta de nuevo.');
-          goToList();
-        }
-      }
-    };
+    loadInitialUniversityData({
+      mode,
+      universityId,
+      shouldRunCatalog,
+      fetchPeriodTypes,
+      fetchUniversityProfile,
+      clearUniversityProfile,
+      onCreateReady: handleCreateReady,
+      onEditReady: handleEditReady,
+      isCancelled,
+    }).catch(handleLoadFailure);
 
-    run();
     return () => {
       cancelled = true;
     };
@@ -92,16 +222,16 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     fetchUniversityProfile,
     clearUniversityProfile,
     shouldRunCatalog,
-    goToList,
+    handleCreateReady,
+    handleEditReady,
+    handleInitialLoadError,
   ]);
 
   const shellTitle = mode === 'create' ? 'Nueva Universidad' : 'Editar universidad';
-  const shellSubtitle = useMemo(() => {
-    if (mode === 'create') {
-      return null;
-    }
-    return universityProfile?.short_name || universityProfile?.name || null;
-  }, [mode, universityProfile?.name, universityProfile?.short_name]);
+  const shellSubtitle = useMemo(
+    () => (mode === 'create' ? null : (universityProfile?.short_name || universityProfile?.name || null)),
+    [mode, universityProfile?.name, universityProfile?.short_name],
+  );
 
   const handleFormSubmit = ({ payload, logoFile }) => {
     const isEdit = mode === 'edit';
@@ -115,44 +245,14 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
   };
 
   const handleConfirmSave = useCallback(async () => {
-    const {
-      payload,
-      logoFile,
-      saveKind,
-      universityId: uid,
-    } = saveModal;
-
-    if (!payload) {
-      return;
-    }
-
-    const isEditSave = saveKind === 'edit' && uid;
-
-    try {
-      if (isEditSave) {
-        await updateUniversityFullSetup(uid, payload, logoFile);
-        toast.success('Universidad actualizada correctamente');
-        closeSaveModal();
-        goToView(uid);
-        return;
-      }
-
-      const response = await createUniversityFullSetup(payload, logoFile);
-      toast.success('Universidad creada correctamente');
-      closeSaveModal();
-      const newId = response?.data?.data?.university_id;
-      if (newId != null) {
-        goToView(newId);
-      } else {
-        goToList();
-      }
-    } catch (err) {
-      console.error(err);
-      const fallback = isEditSave
-        ? 'No se pudo actualizar la universidad.'
-        : 'No se pudo crear la universidad.';
-      toast.error(parseUniversityApiError(err, fallback));
-    }
+    await persistUniversitySave({
+      saveModal,
+      updateUniversityFullSetup,
+      createUniversityFullSetup,
+      closeSaveModal,
+      goToView,
+      goToList,
+    });
   }, [
     saveModal,
     updateUniversityFullSetup,
@@ -162,10 +262,25 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     goToList,
   ]);
 
-  const editReady = mode === 'edit' && universityProfile?.id && Number(universityProfile.id) === Number(universityId);
-  const showForm = mode === 'create' || editReady;
-  const showLoader = mode === 'edit' && profileLoading && !editReady;
-  const showNotFoundMessage = mode === 'edit' && profileLoading === false && editReady === false;
+  const isEditMode = mode === 'edit';
+  const isEditReady = Boolean(
+    isEditMode
+      && universityProfile?.id
+      && Number(universityProfile.id) === Number(universityId),
+  );
+  const isEditPendingProfile = isEditMode && isEditReady === false;
+  const showForm = mode === 'create' || isEditReady;
+  const showLoader = isEditPendingProfile && profileLoading;
+  const showNotFoundMessage = isEditPendingProfile && profileLoading === false;
+  const formViewState = buildUniversityFormViewState({
+    mode,
+    universityProfile,
+    editFormKey,
+    formResetKey,
+    updateLoading,
+    createLoading,
+  });
+  const saveModalViewText = getSaveModalViewText(saveModal.saveKind);
 
   return (
     <>
@@ -174,42 +289,34 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
         title={shellTitle}
         subtitle={shellSubtitle}
       >
-        {showLoader ? (
+        {showLoader && (
           <LoadingStatePanel message="Cargando datos de la universidad..." />
-        ) : null}
-        {showNotFoundMessage ? (
+        )}
+        {showNotFoundMessage && (
           <p className="text-sm text-[var(--text-secondary)]">
             No se encontró la universidad o no tienes acceso.
           </p>
-        ) : null}
-        {showForm ? (
+        )}
+        {showForm && (
           <UniversityForm
-            key={
-              mode === 'edit'
-                ? `edit-${universityProfile?.id}-${editFormKey}`
-                : `create-${formResetKey}`
-            }
+            key={formViewState.key}
             mode={mode}
-            initialProfile={mode === 'edit' ? universityProfile : null}
+            initialProfile={formViewState.initialProfile}
             periodTypeOptions={periodTypeOptions}
-            isLoading={mode === 'edit' ? updateLoading : createLoading}
+            isLoading={formViewState.isLoading}
             onSubmit={handleFormSubmit}
             onCancel={goToList}
           />
-        ) : null}
+        )}
       </UniversityScreenShell>
 
       <ConfirmModal
         isOpen={saveModal.isOpen}
         onClose={closeSaveModal}
         onConfirm={handleConfirmSave}
-        title={saveModal.saveKind === 'edit' ? 'Confirmar cambios' : 'Confirmar creación'}
-        message={
-          saveModal.saveKind === 'edit'
-            ? '¿Deseas guardar los cambios de esta universidad?'
-            : '¿Deseas crear esta universidad con la información capturada?'
-        }
-        confirmLabel={saveModal.saveKind === 'edit' ? 'Guardar' : 'Crear'}
+        title={saveModalViewText.title}
+        message={saveModalViewText.message}
+        confirmLabel={saveModalViewText.confirmLabel}
         closeOnConfirm
       />
     </>

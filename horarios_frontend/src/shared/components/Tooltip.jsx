@@ -134,7 +134,6 @@ export const Tooltip = ({
             color: 'var(--text-primary, #f1f5f9)',
             border: '1px solid var(--border-default, #334155)',
           }}
-          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`absolute w-2 h-2 rotate-45 ${currentPosition.arrow}`}

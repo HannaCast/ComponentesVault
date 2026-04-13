@@ -1,5 +1,4 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Info } from 'lucide-react';
 
 /**
@@ -177,14 +176,5 @@ const Textarea = forwardRef(
 
 Textarea.displayName = 'Textarea';
 
-Textarea.propTypes = {
-  label: PropTypes.node,
-  error: PropTypes.node,
-  helperText: PropTypes.node,
-  infoMessage: PropTypes.node,
-  className: PropTypes.string,
-  colorVariant: PropTypes.oneOf(['user', 'default']),
-  reserveHelperSpace: PropTypes.bool,
-};
 
 export default Textarea;

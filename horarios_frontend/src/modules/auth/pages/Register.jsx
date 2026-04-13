@@ -179,6 +179,8 @@ export const Register = () => {
     navigate('/');
   };
 
+  const showRegisterForm = accountCreated === false;
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] text-[var(--text-primary)]" style={{ fontFamily: 'Inter, sans-serif' }}>
       <AuthTopBar showActionButton={false} showNavigation={false} logoClickable logoHref="/" />
@@ -191,7 +193,7 @@ export const Register = () => {
 
         <div className="z-10 w-full max-w-[560px]">
           <div className="rounded-[2rem] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-8 shadow-[0_12px_32px_-4px_rgba(25,27,35,0.06)] md:p-12">
-            {!accountCreated ? (
+            {showRegisterForm ? (
               <>
                 <div className="mb-8 text-center">
                   <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--accent)]">

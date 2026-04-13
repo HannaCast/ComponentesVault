@@ -13,7 +13,7 @@ import { X } from 'lucide-react';
  * - onClose: Callback al cerrar el drawer.
  * - title: Titulo del drawer.
  * - children: Contenido del drawer.
- * - size: Tamaño del drawer ('sm' | 'md' | 'lg' | 'full'). 'full' ocupa todo el ancho de la ventana. Default: 'md'.
+ * - size: Tamaño del drawer ('sm' | 'md' | 'lg' | 'full'). 'full' ocupa el ancho completo de la ventana. Predeterminado: 'md'.
  * - showCloseButton: Mostrar botón de cierre. Default: true.
  * - headerLayout: 'default' muestra título/icono; 'closeOnly' solo barra con botón cerrar.
  * - panelClassName: clases extra del panel (p. ej. fondo gris).
@@ -48,6 +48,13 @@ export const SideDrawer = ({
   const resolvedBodyClass = bodyClassName != null && String(bodyClassName).trim() !== ''
     ? bodyClassName
     : defaultBodyClass;
+  const panelContainerClass = isFull
+    ? 'pointer-events-none fixed inset-0 flex max-w-full'
+    : 'pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16';
+  const panelBaseClass = isFull
+    ? 'pointer-events-auto relative h-full w-full max-w-full transform transition duration-300 ease-in-out data-closed:translate-x-full'
+    : `pointer-events-auto relative ${maxWidthClass} w-screen transform transition duration-300 ease-in-out data-closed:translate-x-full`;
+  const dialogPanelClassName = `${panelBaseClass} ${panelClassName}`.trim();
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
@@ -61,20 +68,10 @@ export const SideDrawer = ({
 
       <div className="fixed inset-0 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
-          <div
-            className={
-              isFull
-                ? 'pointer-events-none fixed inset-0 flex max-w-full'
-                : 'pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16'
-            }
-          >
+          <div className={panelContainerClass}>
             <DialogPanel
               transition
-              className={
-                `${isFull
-                  ? 'pointer-events-auto relative h-full w-full max-w-full transform transition duration-300 ease-in-out data-closed:translate-x-full'
-                  : `pointer-events-auto relative ${maxWidthClass} w-screen transform transition duration-300 ease-in-out data-closed:translate-x-full`} ${panelClassName}`.trim()
-              }
+              className={dialogPanelClassName}
               style={
                 panelClassName.trim()
                   ? undefined

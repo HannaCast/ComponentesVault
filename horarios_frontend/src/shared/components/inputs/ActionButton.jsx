@@ -1,5 +1,15 @@
 import PropTypes from 'prop-types';
 
+const SEMANTIC_VARIANTS = new Set(['primary', 'secondary', 'outline']);
+
+const resolveVariant = (variant) => {
+  if (variant === 'user' || variant === 'default') {
+    return 'primary';
+  }
+
+  return SEMANTIC_VARIANTS.has(variant) ? variant : 'secondary';
+};
+
 /**
  * ActionButton
  * Props:
@@ -46,11 +56,8 @@ export function ActionButton({
   type = 'button',
 }) {
   const isBlocked = disabled || loading;
-  const semanticVariants = ['primary', 'secondary', 'outline'];
   const isVariantShortcut = variant === 'user' || variant === 'default';
-  const resolvedVariant = isVariantShortcut
-    ? 'primary'
-    : (semanticVariants.includes(variant) ? variant : 'secondary');
+  const resolvedVariant = resolveVariant(variant);
   const normalizedColorVariant = colorVariant === 'default' ? 'default' : 'user';
   const resolvedColorVariant = isVariantShortcut ? variant : normalizedColorVariant;
   const useSystemColors = resolvedColorVariant === 'default';

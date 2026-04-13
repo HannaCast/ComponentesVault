@@ -13,7 +13,7 @@ import { Select } from '@shared/components/inputs/Select';
  * - addLabel: Texto del boton de agregar.
  * - onAdd: Callback para agregar el elemento seleccionado.
  * - addDisabled: Deshabilita el boton de agregar.
- * - disabled: Deshabilita todo el control.
+ * - disabled: Deshabilita el control completo.
  * - loading: Muestra texto de carga del catalogo encadenado.
  * - loadingText: Texto mostrado cuando loading=true.
  * - notice: Mensaje informativo adicional antes de errores.

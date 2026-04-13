@@ -1,6 +1,33 @@
 import React, { forwardRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Eye, EyeOff, Info } from 'lucide-react';
+
+const resolveEffectiveInputType = ({ canTogglePassword, isPasswordVisible, type }) => {
+  if (!canTogglePassword) {
+    return type;
+  }
+
+  return isPasswordVisible ? 'text' : 'password';
+};
+
+const resolveInputBorderColor = ({ hasError, isBaseDisabled }) => {
+  if (hasError) {
+    return 'var(--error, #dc2626)';
+  }
+
+  if (isBaseDisabled) {
+    return 'transparent';
+  }
+
+  return 'var(--border-default, #d1d5db)';
+};
+
+const resolveInputTextColor = (isBaseDisabled) => {
+  if (isBaseDisabled) {
+    return 'var(--text-disabled, #94a3b8)';
+  }
+
+  return 'var(--text-primary, #111827)';
+};
 
 /**
  * InputText
@@ -41,25 +68,18 @@ const InputText = forwardRef(
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const hasError = Boolean(error);
     const canTogglePassword = type === 'password' && enablePasswordToggle;
-    const effectiveInputType = canTogglePassword
-      ? (isPasswordVisible ? 'text' : 'password')
-      : type;
+    const effectiveInputType = resolveEffectiveInputType({
+      canTogglePassword,
+      isPasswordVisible,
+      type,
+    });
     const effectivePlaceholder =
       isBaseDisabled && !props.value ? '—' : props.placeholder;
     const inputBackgroundColor = hasError
       ? 'var(--error-subtle, #fef2f2)'
       : 'var(--bg-surface, #f3f4f6)';
-
-    let inputBorderColor = 'var(--border-default, #d1d5db)';
-    if (hasError) {
-      inputBorderColor = 'var(--error, #dc2626)';
-    } else if (isBaseDisabled) {
-      inputBorderColor = 'transparent';
-    }
-
-    const inputTextColor = isBaseDisabled
-      ? 'var(--text-disabled, #94a3b8)'
-      : 'var(--text-primary, #111827)';
+    const inputBorderColor = resolveInputBorderColor({ hasError, isBaseDisabled });
+    const inputTextColor = resolveInputTextColor(isBaseDisabled);
     const focusAccent = colorVariant === 'default'
       ? 'var(--system-accent, var(--accent, #2563eb))'
       : 'var(--accent, #2563eb)';
@@ -196,20 +216,5 @@ const InputText = forwardRef(
 );
 
 InputText.displayName = 'InputText';
-
-InputText.propTypes = {
-  label: PropTypes.node,
-  error: PropTypes.node,
-  helperText: PropTypes.node,
-  infoMessage: PropTypes.node,
-  labelClassName: PropTypes.string,
-  labelStyle: PropTypes.object,
-  className: PropTypes.string,
-  type: PropTypes.string,
-  required: PropTypes.bool,
-  enablePasswordToggle: PropTypes.bool,
-  colorVariant: PropTypes.oneOf(['user', 'default']),
-  reserveHelperSpace: PropTypes.bool,
-};
 
 export default InputText;

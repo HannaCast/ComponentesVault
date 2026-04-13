@@ -135,6 +135,21 @@ export const createDefaultModalities = () => [
 
 const pad2 = (n) => String(n).padStart(2, '0');
 
+const normalizeOptionalId = (value) => {
+  if (value == null || value === '') {
+    return '';
+  }
+  return String(value);
+};
+
+const resolveDefaultPeriodType = (periodTypeOptions = []) => {
+  const firstOptionValue = periodTypeOptions[0]?.value;
+  if (firstOptionValue == null) {
+    return '';
+  }
+  return String(firstOptionValue);
+};
+
 /**
  * Mapea la respuesta de GET .../profile/ al estado del formulario (edición).
  */
@@ -161,7 +176,7 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
       : [],
   }));
 
-  if (!modalities.length) {
+  if (modalities.length === 0) {
     modalities = createDefaultModalities();
   }
 
@@ -196,16 +211,18 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
     };
   });
 
-  const pt = profile.period_type != null ? String(profile.period_type) : '';
+  const pt = normalizeOptionalId(profile.period_type);
+  const imageId = normalizeOptionalId(profile.image);
+  const defaultPeriodType = resolveDefaultPeriodType(periodTypeOptions);
 
   return {
     name: profile.name || '',
     short_name: profile.short_name || '',
     institution_code: profile.institution_code || '',
-    image_id: profile.image != null && profile.image !== '' ? String(profile.image) : '',
+    image_id: imageId,
     start_time: formatTimeInput(profile.start_time),
     end_time: formatTimeInput(profile.end_time),
-    period_type: pt || (periodTypeOptions[0]?.value != null ? String(periodTypeOptions[0].value) : ''),
+    period_type: pt || defaultPeriodType,
     uses_period_groups: Number(profile.uses_period_groups) === 1,
     modalities,
     shifts,
@@ -214,8 +231,7 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
 };
 
 export const createDefaultFormState = (periodTypeOptions = []) => {
-  const defaultPeriodType =
-    periodTypeOptions[0]?.value != null ? String(periodTypeOptions[0].value) : '';
+  const defaultPeriodType = resolveDefaultPeriodType(periodTypeOptions);
 
   return {
     name: '',

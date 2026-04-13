@@ -4,6 +4,66 @@ import { Info, Plus, Trash2, X } from 'lucide-react';
 import { Select } from '@shared/components/inputs/Select';
 import Input from '@shared/components/inputs/InputText';
 
+const normalizeSelectableEntry = (entry) => {
+  if (entry && typeof entry === 'object') {
+    const rawValue = entry.value ?? entry.id ?? '';
+    const value = String(rawValue || '').trim();
+    const label = entry.label ?? entry.name ?? value;
+    const secondaryValue = entry.period_number ?? entry.secondaryValue ?? '';
+
+    return value
+      ? {
+          value,
+          label: String(label || value),
+          secondaryValue: String(secondaryValue ?? '').trim(),
+        }
+      : null;
+  }
+
+  const value = String(entry || '').trim();
+  return value ? { value, label: value, secondaryValue: '' } : null;
+};
+
+const renderSummaryListContent = ({
+  loading,
+  loadingText,
+  entries,
+  emptyText,
+  onRemove,
+  disabled,
+}) => {
+  if (loading) {
+    return <p className="text-sm text-[var(--text-secondary)]">{loadingText}</p>;
+  }
+
+  if (entries.length === 0) {
+    return <p className="text-sm italic text-[var(--text-tertiary)]">{emptyText}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {entries.map((entry, index) => (
+        <li
+          key={`${String(entry.value)}-${index}`}
+          className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
+        >
+          <span>{entry.label || entry.value}</span>
+          <button
+            type="button"
+            onClick={() => onRemove?.(index)}
+            disabled={disabled}
+            className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)] disabled:opacity-50"
+            aria-label={`Quitar ${entry.label || entry.value}`}
+            title={`Quitar ${entry.label || entry.value}`}
+          >
+            <Trash2 size={16} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 /**
  * SelectableListField
  *
@@ -83,28 +143,8 @@ export const SelectableListField = ({
   const [isPendingRowVisible, setIsPendingRowVisible] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const normalizeSelectedEntry = (entry) => {
-    if (entry && typeof entry === 'object') {
-      const rawValue = entry.value ?? entry.id ?? '';
-      const value = String(rawValue || '').trim();
-      const label = entry.label ?? entry.name ?? value;
-      const secondaryValue = entry.period_number ?? entry.secondaryValue ?? '';
-
-      return value
-        ? {
-            value,
-            label: String(label || value),
-            secondaryValue: String(secondaryValue ?? '').trim(),
-          }
-        : null;
-    }
-
-    const value = String(entry || '').trim();
-    return value ? { value, label: value, secondaryValue: '' } : null;
-  };
-
   const normalizedSelectedEntries = useMemo(
-    () => selectedValues.map(normalizeSelectedEntry).filter(Boolean),
+    () => selectedValues.map(normalizeSelectableEntry).filter(Boolean),
     [selectedValues],
   );
 
@@ -299,32 +339,14 @@ export const SelectableListField = ({
         <div className="mt-3">
           {isSummaryMode ? (
             <div className={summaryPanelClassName}>
-              {loading ? (
-                <p className="text-sm text-[var(--text-secondary)]">{loadingText}</p>
-              ) : normalizedSelectedEntries.length === 0 ? (
-                <p className="text-sm italic text-[var(--text-tertiary)]">{emptyText}</p>
-              ) : (
-                <ul className="space-y-2">
-                  {normalizedSelectedEntries.map((entry, index) => (
-                    <li
-                      key={`${String(entry.value)}-${index}`}
-                      className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
-                    >
-                      <span>{entry.label || entry.value}</span>
-                      <button
-                        type="button"
-                        onClick={() => onRemove?.(index)}
-                        disabled={disabled}
-                        className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)] disabled:opacity-50"
-                        aria-label={`Quitar ${entry.label || entry.value}`}
-                        title={`Quitar ${entry.label || entry.value}`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {renderSummaryListContent({
+                loading,
+                loadingText,
+                entries: normalizedSelectedEntries,
+                emptyText,
+                onRemove,
+                disabled,
+              })}
             </div>
           ) : (
             <div className="space-y-2">
@@ -424,32 +446,14 @@ export const SelectableListField = ({
       {isSummaryMode && summaryPanelPosition === 'below' && (
         <div className="mt-3">
           <div className={summaryPanelClassName}>
-            {loading ? (
-              <p className="text-sm text-[var(--text-secondary)]">{loadingText}</p>
-            ) : normalizedSelectedEntries.length === 0 ? (
-              <p className="text-sm italic text-[var(--text-tertiary)]">{emptyText}</p>
-            ) : (
-              <ul className="space-y-2">
-                {normalizedSelectedEntries.map((entry, index) => (
-                  <li
-                    key={`${String(entry.value)}-${index}`}
-                    className="flex items-start justify-between gap-2 text-sm text-[var(--text-primary)]"
-                  >
-                    <span>{entry.label || entry.value}</span>
-                    <button
-                      type="button"
-                      onClick={() => onRemove?.(index)}
-                      disabled={disabled}
-                      className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)] disabled:opacity-50"
-                      aria-label={`Quitar ${entry.label || entry.value}`}
-                      title={`Quitar ${entry.label || entry.value}`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            {renderSummaryListContent({
+              loading,
+              loadingText,
+              entries: normalizedSelectedEntries,
+              emptyText,
+              onRemove,
+              disabled,
+            })}
           </div>
         </div>
       )}

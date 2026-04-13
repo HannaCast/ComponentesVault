@@ -1,5 +1,4 @@
 import React, { forwardRef, useId, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Info } from 'lucide-react';
 
 /**
@@ -163,19 +162,5 @@ const Checkbox = forwardRef(
 );
 
 Checkbox.displayName = 'Checkbox';
-
-Checkbox.propTypes = {
-  label: PropTypes.node,
-  checked: PropTypes.bool,
-  onChange: PropTypes.func,
-  error: PropTypes.node,
-  helperText: PropTypes.node,
-  infoMessage: PropTypes.node,
-  disabled: PropTypes.bool,
-  required: PropTypes.bool,
-  colorVariant: PropTypes.oneOf(['user', 'default']),
-  className: PropTypes.string,
-  id: PropTypes.string,
-};
 
 export default Checkbox;

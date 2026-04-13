@@ -696,6 +696,69 @@ GroupScheduleView.propTypes = {
   rowHeightClass: PropTypes.string,
 };
 
+const deriveSchedulePanelState = (scheduleVersion, selectedGroupId) => {
+  const data = scheduleVersion?.data || {};
+  const groups = Array.isArray(data?.groups) ? data.groups : [];
+  const unassigned = Array.isArray(data?.unassigned) ? data.unassigned : [];
+  const summary = data?.summary && typeof data.summary === 'object' ? data.summary : {};
+
+  const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
+  const groupedCareers = buildGroupedCareers(groups);
+
+  const selectedCareerKey = currentGroup ? getGroupCareerKey(currentGroup) : groupedCareers[0]?.key || null;
+  const selectedCareer = groupedCareers.find((career) => career.key === selectedCareerKey) || groupedCareers[0] || null;
+
+  const selectedPeriodKey = currentGroup ? getGroupPeriodKey(currentGroup) : selectedCareer?.periods?.[0]?.key || null;
+  const selectedPeriod = selectedCareer?.periods?.find((period) => period.key === selectedPeriodKey)
+    || selectedCareer?.periods?.[0]
+    || null;
+
+  const visibleGroups = selectedPeriod?.groups || [];
+  const careerOptions = groupedCareers.map((career) => {
+    const careerGroupCount = career.periods.reduce(
+      (accumulator, period) => accumulator + period.groups.length,
+      0,
+    );
+
+    return {
+      value: career.key,
+      label: `${career.label} (${careerGroupCount})`,
+    };
+  });
+  const periodOptions = (selectedCareer?.periods || []).map((period) => ({
+    value: period.key,
+    label: `${period.label} (${period.groups.length})`,
+  }));
+  const groupOptions = visibleGroups.map((group) => {
+    const groupId = Number(group?.group_id);
+    return {
+      value: String(groupId),
+      label: group?.group_name || `Grupo ${groupId}`,
+    };
+  });
+
+  const groupsScheduled = Number(summary?.groups_scheduled) || groups.length;
+  const assignedCount = Number(scheduleVersion?.assigned_count) || Number(summary?.total_blocks_assigned) || 0;
+  const unassignedCount = Number(scheduleVersion?.unassigned_count) || Number(summary?.total_blocks_unassigned) || 0;
+
+  return {
+    groups,
+    summary,
+    currentGroup,
+    groupedCareers,
+    selectedCareer,
+    selectedPeriod,
+    visibleGroups,
+    unassignedReasons: buildUnassignedReasons(unassigned),
+    careerOptions,
+    periodOptions,
+    groupOptions,
+    groupsScheduled,
+    assignedCount,
+    unassignedCount,
+  };
+};
+
 export const ScheduleGeneratedPanel = ({
   loading,
   scheduleVersion,
@@ -710,50 +773,20 @@ export const ScheduleGeneratedPanel = ({
 }) => {
   const [showViewSettings, setShowViewSettings] = useState(false);
 
-  const data = scheduleVersion?.data || {};
-  const rawGroups = data?.groups;
-  const groups = Array.isArray(rawGroups) ? rawGroups : [];
-  const unassigned = Array.isArray(data?.unassigned) ? data.unassigned : [];
-  const summary = data?.summary && typeof data.summary === 'object' ? data.summary : {};
-
-  const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
-
-  const groupedCareers = buildGroupedCareers(groups);
-
-  const selectedCareerKey = currentGroup ? getGroupCareerKey(currentGroup) : groupedCareers[0]?.key || null;
-  const selectedCareer = groupedCareers.find((career) => career.key === selectedCareerKey) || groupedCareers[0] || null;
-
-  const selectedPeriodKey = currentGroup ? getGroupPeriodKey(currentGroup) : selectedCareer?.periods?.[0]?.key || null;
-  const selectedPeriod = selectedCareer?.periods?.find((period) => period.key === selectedPeriodKey)
-    || selectedCareer?.periods?.[0]
-    || null;
-
-  const visibleGroups = selectedPeriod?.groups || [];
-
-  const careerOptions = groupedCareers.map((career) => {
-    const careerGroupCount = career.periods.reduce(
-      (accumulator, period) => accumulator + period.groups.length,
-      0,
-    );
-
-    return {
-      value: career.key,
-      label: `${career.label} (${careerGroupCount})`,
-    };
-  });
-
-  const periodOptions = (selectedCareer?.periods || []).map((period) => ({
-      value: period.key,
-      label: `${period.label} (${period.groups.length})`,
-    }));
-
-  const groupOptions = visibleGroups.map((group) => {
-      const groupId = Number(group?.group_id);
-      return {
-        value: String(groupId),
-        label: group?.group_name || `Grupo ${groupId}`,
-      };
-    });
+  const {
+    groups,
+    currentGroup,
+    groupedCareers,
+    selectedCareer,
+    selectedPeriod,
+    unassignedReasons,
+    careerOptions,
+    periodOptions,
+    groupOptions,
+    groupsScheduled,
+    assignedCount,
+    unassignedCount,
+  } = deriveSchedulePanelState(scheduleVersion, selectedGroupId);
 
   const handleCareerChange = (event) => {
     const careerKey = String(event.target.value || '');
@@ -783,16 +816,10 @@ export const ScheduleGeneratedPanel = ({
     }
   };
 
-  const unassignedReasons = buildUnassignedReasons(unassigned);
-
   const isConfirmed = Number(scheduleVersion?.is_confirmed) === 1;
   const isConfirming = pendingAction?.type === 'confirm' && Number(pendingAction?.versionId) === Number(scheduleVersion?.id);
 
   const palette = getPalette(viewConfig?.forceWhiteBackground);
-
-  const groupsScheduled = Number(summary?.groups_scheduled) || groups.length;
-  const assignedCount = Number(scheduleVersion?.assigned_count) || Number(summary?.total_blocks_assigned) || 0;
-  const unassignedCount = Number(scheduleVersion?.unassigned_count) || Number(summary?.total_blocks_unassigned) || 0;
 
   if (loading) {
     return <LoadingStatePanel message="Cargando version seleccionada..." />;

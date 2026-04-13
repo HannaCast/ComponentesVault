@@ -250,6 +250,7 @@ export const UniversitiesPage = () => {
               const selected = isSelected(u.id);
               const selectionBusy = selectingId != null;
               const busy = selectingId === u.id;
+              const detailTargetName = u.name || u.short_name || `universidad ${u.id}`;
               let selectionLabel = 'Seleccionar universidad';
 
               if (busy) {
@@ -261,20 +262,19 @@ export const UniversitiesPage = () => {
               return (
                 <div
                   key={u.id}
-                  tabIndex={0}
-                  onClick={() => goToDetail(u.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      goToDetail(u.id);
-                    }
-                  }}
-                  className={`relative rounded-xl border p-4 pt-3 flex flex-col gap-3 bg-[var(--bg-elevated)] transition-shadow cursor-pointer hover:border-[var(--accent)]/50 text-left ${
+                  className={`relative rounded-xl border p-4 pt-3 flex flex-col gap-3 bg-[var(--bg-elevated)] transition-shadow hover:border-[var(--accent)]/50 text-left ${
                     selected
                       ? 'border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]'
                       : 'border-[var(--border-default)]'
                   }`}
                 >
+                  <button
+                    type="button"
+                    className="absolute inset-0 z-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent,#2563eb)]/40"
+                    onClick={() => goToDetail(u.id)}
+                    aria-label={`Ver detalle de ${detailTargetName}`}
+                  />
+
                   <button
                     type="button"
                     className="absolute top-2.5 right-2.5 z-10 inline-flex items-center justify-center rounded-lg p-2 border border-transparent bg-[var(--bg-elevated)]/90 shadow-sm hover:bg-red-50 hover:border-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
@@ -285,7 +285,7 @@ export const UniversitiesPage = () => {
                     <Trash2 className="w-5 h-5" strokeWidth={2.25} aria-hidden />
                   </button>
 
-                  <div className="flex gap-3 pr-12">
+                  <div className="relative z-10 flex gap-3 pr-12">
                     <UniversityLogoMark
                       imageUrl={u.image_url}
                       name={u.name || u.short_name}
@@ -312,7 +312,7 @@ export const UniversitiesPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[var(--border-default)]">
+                  <div className="relative z-10 flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[var(--border-default)]">
                     <button
                       type="button"
                       className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50 px-1 py-0.5 rounded"

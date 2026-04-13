@@ -13,6 +13,18 @@ const createDefaultFormData = () => ({
   shift: '',
 });
 
+const normalizeOptionalSelectValue = (value) => {
+  if (value == null || value === '') {
+    return '';
+  }
+  return String(value);
+};
+
+const normalizeLetterValue = (value) => {
+  const normalized = normalizeOptionalSelectValue(value);
+  return normalized ? normalized.trim().slice(0, 1) : '';
+};
+
 export const GroupForm = ({
   initialData = null,
   isLoading = false,
@@ -32,27 +44,16 @@ export const GroupForm = ({
   };
 
   useEffect(() => {
-    if (!initialData) {
-      return;
+    if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- alinear formulario con datos al editar
+      setFormData({
+        name: initialData.name || '',
+        career: normalizeOptionalSelectValue(initialData.career_id),
+        period_number: normalizeOptionalSelectValue(initialData.period_number),
+        letter: normalizeLetterValue(initialData.letter),
+        shift: normalizeOptionalSelectValue(initialData.shift_id),
+      });
     }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- alinear formulario con datos al editar
-    setFormData({
-      name: initialData.name || '',
-      career:
-        initialData.career_id != null && initialData.career_id !== ''
-          ? String(initialData.career_id)
-          : '',
-      period_number:
-        initialData.period_number != null && initialData.period_number !== ''
-          ? String(initialData.period_number)
-          : '',
-      letter: initialData.letter != null ? String(initialData.letter).trim().slice(0, 1) : '',
-      shift:
-        initialData.shift_id != null && initialData.shift_id !== ''
-          ? String(initialData.shift_id)
-          : '',
-    });
   }, [initialData]);
 
   useEffect(() => {

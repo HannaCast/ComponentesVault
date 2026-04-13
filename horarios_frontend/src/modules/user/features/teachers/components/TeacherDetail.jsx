@@ -13,7 +13,7 @@ export const TeacherDetail = ({
     return null;
   }
 
-  const hasUniversityLinkStatus = teacher.university_link_status == null ? false : true;
+  const hasUniversityLinkStatus = teacher.university_link_status != null;
   const isActive = hasUniversityLinkStatus
     ? Number(teacher.university_link_status) === 1
     : Number(teacher.status) === 1;

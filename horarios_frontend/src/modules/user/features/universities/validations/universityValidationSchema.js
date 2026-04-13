@@ -1,13 +1,26 @@
 import * as yup from 'yup';
 
 const timePattern = /^([01]?\d|2[0-3]):[0-5]\d$/;
+const timePartsPattern = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+
+const parseIntegerInput = (value) => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return Number.parseInt(value.trim(), 10);
+  }
+
+  return Number.NaN;
+};
 
 const parseTimeToMinutes = (raw) => {
   if (raw == null || raw === '') {
     return null;
   }
   const s = String(raw).trim();
-  const m = s.match(/^([01]?\d|2[0-3]):([0-5]\d)/);
+  const m = timePartsPattern.exec(s);
   if (!m) {
     return null;
   }
@@ -25,7 +38,7 @@ const modalitySchema = yup.object({
     .mixed()
     .required()
     .test('is-int', 'Indica un número válido', (v) => {
-      const n = typeof v === 'number' ? v : Number.parseInt(String(v ?? '').trim(), 10);
+      const n = parseIntegerInput(v);
       return Number.isFinite(n) && n >= 0 && n <= 7;
     }),
   allowed_days: yup
@@ -42,7 +55,7 @@ const shiftSchema = yup.object({
     .mixed()
     .required()
     .test('order', 'Orden inválido', (v) => {
-      const n = typeof v === 'number' ? v : Number.parseInt(String(v ?? '').trim(), 10);
+      const n = parseIntegerInput(v);
       return Number.isFinite(n) && n >= 1;
     }),
   start_time: yup
