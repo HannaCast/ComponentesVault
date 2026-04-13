@@ -286,7 +286,7 @@ export const TeachersPage = () => {
           toast.error(result.softWarning, { id: 'teachers-list-refresh-warning' });
         }
         handleCloseDrawer();
-      } else if (result && result.success === false) {
+      } else if (result?.success === false) {
         toast.error(result.message || 'No se pudo guardar el profesor.');
       }
     } catch (err) {

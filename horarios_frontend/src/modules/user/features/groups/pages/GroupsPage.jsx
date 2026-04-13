@@ -509,7 +509,7 @@ export const GroupsPage = () => {
             title={group.name}
             subtitle={group.career_name ? `Carrera: ${group.career_name}` : undefined}
             metaItems={[
-              group.period_number != null ? `Periodo: ${group.period_number}` : null,
+              group.period_number == null ? null : `Periodo: ${group.period_number}`,
               group.letter ? `Letra: ${group.letter}` : null,
               group.shift_name ? `Turno: ${group.shift_name}` : null,
             ]}

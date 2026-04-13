@@ -1,41 +1,50 @@
-export const parseUniversityApiError = (err, fallback) => {
-  const d = err?.response?.data;
-  if (typeof d?.message === 'string' && d.message.trim()) {
-    return d.message;
+const pickFirstNonEmptyString = (values) => values.find(
+  (value) => typeof value === 'string' && value.trim(),
+)?.trim() || '';
+
+const extractMessageFromObject = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return '';
   }
-  if (Array.isArray(d?.data)) {
-    const first = d.data.find((item) => typeof item === 'string' && item.trim());
+
+  for (const entry of Object.values(value)) {
+    if (typeof entry === 'string' && entry.trim()) {
+      return entry.trim();
+    }
+
+    if (Array.isArray(entry)) {
+      const first = pickFirstNonEmptyString(entry);
+      if (first) {
+        return first;
+      }
+    }
+  }
+
+  return '';
+};
+
+export const parseUniversityApiError = (err, fallback) => {
+  const data = err?.response?.data;
+  const directMessage = pickFirstNonEmptyString([data?.message, err?.message]);
+  if (directMessage) {
+    return directMessage;
+  }
+
+  if (Array.isArray(data?.data)) {
+    const first = pickFirstNonEmptyString(data.data);
     if (first) {
       return first;
     }
   }
-  if (d?.data && typeof d.data === 'object') {
-    const firstEntry = Object.values(d.data).find((value) => {
-      if (typeof value === 'string' && value.trim()) {
-        return true;
-      }
-      if (Array.isArray(value)) {
-        return value.some((item) => typeof item === 'string' && item.trim());
-      }
-      return false;
-    });
-    if (typeof firstEntry === 'string' && firstEntry.trim()) {
-      return firstEntry;
-    }
-    if (Array.isArray(firstEntry)) {
-      const firstArrayMessage = firstEntry.find(
-        (item) => typeof item === 'string' && item.trim()
-      );
-      if (firstArrayMessage) {
-        return firstArrayMessage;
-      }
-    }
+
+  const objectMessage = extractMessageFromObject(data?.data);
+  if (objectMessage) {
+    return objectMessage;
   }
-  if (d?.data != null && typeof d.data !== 'object') {
-    return String(d.data);
+
+  if (data?.data != null && typeof data.data !== 'object') {
+    return String(data.data);
   }
-  if (typeof err?.message === 'string') {
-    return err.message;
-  }
+
   return fallback;
 };

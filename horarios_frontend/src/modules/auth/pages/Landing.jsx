@@ -421,10 +421,10 @@ export const Landing = () => {
           </div>
 
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 md:justify-start">
-            <a className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100" href="#">Contacto</a>
-            <a className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100" href="#">Privacidad</a>
-            <a className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100" href="#">Terminos</a>
-            <a className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100" href="#">Ayuda</a>
+            <button type="button" className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100">Contacto</button>
+            <button type="button" className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100">Privacidad</button>
+            <button type="button" className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100">Terminos</button>
+            <button type="button" className="text-sm text-[var(--text-secondary)] opacity-80 transition-all hover:text-[var(--accent)] hover:opacity-100">Ayuda</button>
           </nav>
         </div>
       </footer>

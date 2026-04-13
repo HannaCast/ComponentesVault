@@ -226,7 +226,7 @@ export const UniversityDetail = ({
                 <div key={m.id} className={innerCard}>
                   <p className="font-semibold text-[var(--text-primary)]">{m.name || '—'}</p>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    {cdpw != null ? `${cdpw} días con salón` : '—'}
+                    {cdpw == null ? '—' : `${cdpw} días con salón`}
                   </p>
                   <p className="text-sm text-[var(--text-primary)] mt-2">{days}</p>
                 </div>

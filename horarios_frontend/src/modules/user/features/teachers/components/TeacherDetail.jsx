@@ -13,10 +13,10 @@ export const TeacherDetail = ({
     return null;
   }
 
-  const isActive =
-    teacher.university_link_status != null
-      ? Number(teacher.university_link_status) === 1
-      : Number(teacher.status) === 1;
+  const hasUniversityLinkStatus = teacher.university_link_status == null ? false : true;
+  const isActive = hasUniversityLinkStatus
+    ? Number(teacher.university_link_status) === 1
+    : Number(teacher.status) === 1;
   const displayName = teacher.full_name
     || [teacher.name, teacher.surname, teacher.last_name].filter(Boolean).join(' ');
 
@@ -123,6 +123,11 @@ TeacherDetail.propTypes = {
     last_name: PropTypes.string,
     full_name: PropTypes.string,
     require_classroom_display: PropTypes.string,
+    university_link_status: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+      PropTypes.bool,
+    ]),
     status: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.bool]),
     availabilities: PropTypes.arrayOf(
       PropTypes.shape({

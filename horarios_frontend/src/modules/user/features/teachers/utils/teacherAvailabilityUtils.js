@@ -32,7 +32,7 @@ export function dayOfWeekLabel(dayOfWeek) {
 
 /** Fila del formulario (clave estable para React). */
 export function mapAvailabilityFromApi(item, index) {
-  const key = item?.id != null ? `srv-${item.id}` : `row-${index}`;
+  const key = item?.id == null ? `row-${index}` : `srv-${item.id}`;
   let day = String(item.day_of_week ?? '1');
   if (day === '7') {
     day = '1';
@@ -47,8 +47,10 @@ export function mapAvailabilityFromApi(item, index) {
 }
 
 export function createEmptyAvailabilityRow() {
+  const randomSuffix = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+
   return {
-    rowKey: `new-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
+    rowKey: `new-${randomSuffix}`,
     day_of_week: '1',
     start_time: '08:00',
     end_time: '09:00',

@@ -19,6 +19,29 @@ export const ClassroomDetail = ({
   const isRestrictedToSubjects = Number(classroom.is_restricted_to_subjects) === 1;
   const restrictedSubjects = Array.isArray(classroom.subjects) ? classroom.subjects : [];
 
+  const renderCareerAccessContent = () => {
+    if (classroomCareersLoading) {
+      return <p className="text-sm text-[var(--text-secondary)]">Cargando carreras…</p>;
+    }
+
+    if (classroomCareers.length === 0) {
+      return <p className="text-sm italic text-[var(--text-tertiary)]">No hay carreras asignadas</p>;
+    }
+
+    return (
+      <ul className="flex flex-wrap gap-2">
+        {classroomCareers.map((row) => (
+          <li
+            key={row.id}
+            className="px-3 py-1 text-xs font-medium rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+          >
+            {row.career_name || '—'}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-start gap-4 pb-4 border-b border-[var(--border-default)]">
@@ -70,7 +93,7 @@ export const ClassroomDetail = ({
             Número de piso
           </p>
           <p className="text-lg font-semibold text-[var(--text-primary)]">
-            {classroom.floor != null ? classroom.floor : '—'}
+            {classroom.floor ?? '—'}
           </p>
         </div>
 
@@ -108,24 +131,7 @@ export const ClassroomDetail = ({
               Carreras con acceso
             </p>
             <div className="border border-dashed border-[var(--border-default)] rounded-lg p-3 bg-[var(--bg-surface)] min-h-[2.5rem]">
-              {classroomCareersLoading ? (
-                <p className="text-sm text-[var(--text-secondary)]">Cargando carreras…</p>
-              ) : classroomCareers.length === 0 ? (
-                <p className="text-sm italic text-[var(--text-tertiary)]">
-                  No hay carreras asignadas
-                </p>
-              ) : (
-                <ul className="flex flex-wrap gap-2">
-                  {classroomCareers.map((row) => (
-                    <li
-                      key={row.id}
-                      className="px-3 py-1 text-xs font-medium rounded-full border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                    >
-                      {row.career_name || '—'}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {renderCareerAccessContent()}
             </div>
           </div>
         )}

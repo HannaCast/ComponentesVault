@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Check, Download, SlidersHorizontal } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import Checkbox from '@shared/components/inputs/Checkbox';
@@ -93,7 +93,7 @@ const formatUniversityTitle = (value) => {
   }
 
   const universityName = raw.replace(/\s*\([^)]*\)\s*$/u, '').trim();
-  const abbreviationMatch = raw.match(/\(([^)]+)\)\s*$/u);
+  const abbreviationMatch = /\(([^)]+)\)\s*$/u.exec(raw);
   const abbreviation = abbreviationMatch ? String(abbreviationMatch[1]).trim() : '';
 
   if (universityName && abbreviation) {
@@ -148,7 +148,7 @@ const normalizeAllowedDays = (allowedDays) => {
   }
 
   const normalized = allowedDays
-    .map((day) => Number(day))
+    .map(Number)
     .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7);
 
   return Array.from(new Set(normalized)).sort((a, b) => a - b);
@@ -340,6 +340,89 @@ const compareGroupNames = (leftGroup, rightGroup) => {
   return leftName.localeCompare(rightName, 'es', { numeric: true, sensitivity: 'base' });
 };
 
+const compareNullablePeriods = (leftPeriod, rightPeriod) => {
+  if (leftPeriod === null && rightPeriod !== null) {
+    return 1;
+  }
+  if (leftPeriod !== null && rightPeriod === null) {
+    return -1;
+  }
+  if (leftPeriod !== rightPeriod) {
+    return (leftPeriod || 0) - (rightPeriod || 0);
+  }
+  return 0;
+};
+
+const compareGroupsByCareerPeriodAndName = (leftGroup, rightGroup) => {
+  const leftCareerLabel = getGroupCareerLabel(leftGroup);
+  const rightCareerLabel = getGroupCareerLabel(rightGroup);
+  const careerCompare = leftCareerLabel.localeCompare(rightCareerLabel, 'es', {
+    sensitivity: 'base',
+  });
+
+  if (careerCompare !== 0) {
+    return careerCompare;
+  }
+
+  const periodCompare = compareNullablePeriods(
+    getGroupPeriodNumber(leftGroup),
+    getGroupPeriodNumber(rightGroup),
+  );
+
+  if (periodCompare !== 0) {
+    return periodCompare;
+  }
+
+  return compareGroupNames(leftGroup, rightGroup);
+};
+
+const buildGroupedCareers = (groups) => {
+  const sortedGroups = [...groups].sort(compareGroupsByCareerPeriodAndName);
+  const careersMap = new Map();
+
+  sortedGroups.forEach((group) => {
+    const careerKey = getGroupCareerKey(group);
+    if (!careersMap.has(careerKey)) {
+      careersMap.set(careerKey, {
+        key: careerKey,
+        label: getGroupCareerLabel(group),
+        periodsMap: new Map(),
+      });
+    }
+
+    const careerEntry = careersMap.get(careerKey);
+    const periodNumber = getGroupPeriodNumber(group);
+    const periodKey = getGroupPeriodKey(group);
+
+    if (!careerEntry.periodsMap.has(periodKey)) {
+      careerEntry.periodsMap.set(periodKey, {
+        key: periodKey,
+        periodNumber,
+        label: periodNumber === null ? 'Sin periodo' : `Periodo ${periodNumber}`,
+        groups: [],
+      });
+    }
+
+    careerEntry.periodsMap.get(periodKey).groups.push(group);
+  });
+
+  return Array.from(careersMap.values())
+    .map((careerEntry) => {
+      const periods = Array.from(careerEntry.periodsMap.values()).sort((leftPeriod, rightPeriod) => (
+        compareNullablePeriods(leftPeriod.periodNumber, rightPeriod.periodNumber)
+      ));
+
+      return {
+        key: careerEntry.key,
+        label: careerEntry.label,
+        periods,
+      };
+    })
+    .sort((leftCareer, rightCareer) => leftCareer.label.localeCompare(rightCareer.label, 'es', {
+      sensitivity: 'base',
+    }));
+};
+
 const getScheduleWindowLabel = (
   group,
   gridModel,
@@ -385,6 +468,8 @@ const GroupScheduleView = ({
 }) => {
   const adjustToShiftWindow = viewConfig?.adjustToShiftWindow !== false;
   const use12HourFormat = Boolean(viewConfig?.use12HourFormat);
+  const showTeacherNames = Boolean(viewConfig?.showTeacherNames);
+  const showTeachersSummary = showTeacherNames === false;
   const gridModel = buildGridModel(group, { adjustToShiftWindow });
   const teachersSummary = buildTeachersSummary(group);
   const scheduleWindowLabel = getScheduleWindowLabel(
@@ -484,7 +569,7 @@ const GroupScheduleView = ({
                           <div className="space-y-1 p-2">
                             <p className="text-sm font-semibold">{block?.subject?.name || 'Materia'}</p>
 
-                            {viewConfig?.showTeacherNames ? (
+                            {showTeacherNames ? (
                               <p className="text-xs">{block?.teacher?.name || 'Sin profesor'}</p>
                             ) : null}
 
@@ -503,7 +588,7 @@ const GroupScheduleView = ({
         </table>
       </div>
 
-      {!viewConfig?.showTeacherNames ? (
+      {showTeachersSummary ? (
         <div className="rounded-lg border" style={{ borderColor: palette.border }}>
           <div
             className="grid grid-cols-2 border-b px-3 py-2 text-sm font-semibold"
@@ -539,6 +624,78 @@ const GroupScheduleView = ({
   );
 };
 
+GroupScheduleView.propTypes = {
+  group: PropTypes.shape({
+    group_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    group_name: PropTypes.string,
+    career_id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    period_number: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    allowed_days: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.number, PropTypes.string])),
+    academic_period: PropTypes.shape({
+      name: PropTypes.string,
+      year: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    }),
+    shift: PropTypes.shape({
+      name: PropTypes.string,
+      start_time: PropTypes.string,
+      end_time: PropTypes.string,
+    }),
+    career: PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      name: PropTypes.string,
+      short_name: PropTypes.string,
+      code: PropTypes.string,
+    }),
+    blocks: PropTypes.arrayOf(
+      PropTypes.shape({
+        slot: PropTypes.shape({
+          day_of_week: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+          start_time: PropTypes.string,
+          end_time: PropTypes.string,
+        }),
+        color: PropTypes.shape({
+          hex: PropTypes.string,
+          contrast_hex: PropTypes.string,
+        }),
+        subject: PropTypes.shape({ name: PropTypes.string }),
+        teacher: PropTypes.shape({ name: PropTypes.string }),
+        classroom: PropTypes.shape({ name: PropTypes.string }),
+      }),
+    ),
+  }),
+  scheduleVersion: PropTypes.shape({
+    academic_period: PropTypes.shape({
+      name: PropTypes.string,
+      year: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    }),
+    data: PropTypes.shape({
+      active_academic_period: PropTypes.shape({
+        name: PropTypes.string,
+        year: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      }),
+    }),
+  }),
+  userUniversityName: PropTypes.string,
+  viewConfig: PropTypes.shape({
+    showTeacherNames: PropTypes.bool,
+    includeHeader: PropTypes.bool,
+    useSubjectColors: PropTypes.bool,
+    adjustToShiftWindow: PropTypes.bool,
+    use12HourFormat: PropTypes.bool,
+  }),
+  palette: PropTypes.shape({
+    pageBg: PropTypes.string,
+    panelBg: PropTypes.string,
+    textPrimary: PropTypes.string,
+    textSecondary: PropTypes.string,
+    border: PropTypes.string,
+    tableHeaderBg: PropTypes.string,
+    emptyCellBg: PropTypes.string,
+  }).isRequired,
+  className: PropTypes.string,
+  rowHeightClass: PropTypes.string,
+};
+
 export const ScheduleGeneratedPanel = ({
   loading,
   scheduleVersion,
@@ -554,89 +711,14 @@ export const ScheduleGeneratedPanel = ({
   const [showViewSettings, setShowViewSettings] = useState(false);
 
   const data = scheduleVersion?.data || {};
-  const groups = Array.isArray(data?.groups) ? data.groups : [];
+  const rawGroups = data?.groups;
+  const groups = Array.isArray(rawGroups) ? rawGroups : [];
   const unassigned = Array.isArray(data?.unassigned) ? data.unassigned : [];
   const summary = data?.summary && typeof data.summary === 'object' ? data.summary : {};
 
   const currentGroup = groups.find((group) => Number(group?.group_id) === Number(selectedGroupId)) || groups[0] || null;
 
-  const groupedCareers = useMemo(() => {
-    const sortedGroups = [...groups].sort((leftGroup, rightGroup) => {
-      const leftCareerLabel = getGroupCareerLabel(leftGroup);
-      const rightCareerLabel = getGroupCareerLabel(rightGroup);
-      const careerCompare = leftCareerLabel.localeCompare(rightCareerLabel, 'es', {
-        sensitivity: 'base',
-      });
-
-      if (careerCompare !== 0) {
-        return careerCompare;
-      }
-
-      const leftPeriod = getGroupPeriodNumber(leftGroup);
-      const rightPeriod = getGroupPeriodNumber(rightGroup);
-      if (leftPeriod === null && rightPeriod !== null) {
-        return 1;
-      }
-      if (leftPeriod !== null && rightPeriod === null) {
-        return -1;
-      }
-      if (leftPeriod !== rightPeriod) {
-        return (leftPeriod || 0) - (rightPeriod || 0);
-      }
-
-      return compareGroupNames(leftGroup, rightGroup);
-    });
-
-    const careersMap = new Map();
-
-    sortedGroups.forEach((group) => {
-      const careerKey = getGroupCareerKey(group);
-      if (!careersMap.has(careerKey)) {
-        careersMap.set(careerKey, {
-          key: careerKey,
-          label: getGroupCareerLabel(group),
-          periodsMap: new Map(),
-        });
-      }
-
-      const careerEntry = careersMap.get(careerKey);
-      const periodNumber = getGroupPeriodNumber(group);
-      const periodKey = getGroupPeriodKey(group);
-
-      if (!careerEntry.periodsMap.has(periodKey)) {
-        careerEntry.periodsMap.set(periodKey, {
-          key: periodKey,
-          periodNumber,
-          label: periodNumber === null ? 'Sin periodo' : `Periodo ${periodNumber}`,
-          groups: [],
-        });
-      }
-
-      careerEntry.periodsMap.get(periodKey).groups.push(group);
-    });
-
-    return Array.from(careersMap.values())
-      .map((careerEntry) => {
-        const periods = Array.from(careerEntry.periodsMap.values()).sort((leftPeriod, rightPeriod) => {
-          if (leftPeriod.periodNumber === null && rightPeriod.periodNumber !== null) {
-            return 1;
-          }
-          if (leftPeriod.periodNumber !== null && rightPeriod.periodNumber === null) {
-            return -1;
-          }
-          return (leftPeriod.periodNumber || 0) - (rightPeriod.periodNumber || 0);
-        });
-
-        return {
-          key: careerEntry.key,
-          label: careerEntry.label,
-          periods,
-        };
-      })
-      .sort((leftCareer, rightCareer) => leftCareer.label.localeCompare(rightCareer.label, 'es', {
-        sensitivity: 'base',
-      }));
-  }, [groups]);
+  const groupedCareers = buildGroupedCareers(groups);
 
   const selectedCareerKey = currentGroup ? getGroupCareerKey(currentGroup) : groupedCareers[0]?.key || null;
   const selectedCareer = groupedCareers.find((career) => career.key === selectedCareerKey) || groupedCareers[0] || null;
@@ -648,7 +730,7 @@ export const ScheduleGeneratedPanel = ({
 
   const visibleGroups = selectedPeriod?.groups || [];
 
-  const careerOptions = useMemo(() => groupedCareers.map((career) => {
+  const careerOptions = groupedCareers.map((career) => {
     const careerGroupCount = career.periods.reduce(
       (accumulator, period) => accumulator + period.groups.length,
       0,
@@ -658,26 +740,20 @@ export const ScheduleGeneratedPanel = ({
       value: career.key,
       label: `${career.label} (${careerGroupCount})`,
     };
-  }), [groupedCareers]);
+  });
 
-  const periodOptions = useMemo(
-    () => (selectedCareer?.periods || []).map((period) => ({
+  const periodOptions = (selectedCareer?.periods || []).map((period) => ({
       value: period.key,
       label: `${period.label} (${period.groups.length})`,
-    })),
-    [selectedCareer],
-  );
+    }));
 
-  const groupOptions = useMemo(
-    () => visibleGroups.map((group) => {
+  const groupOptions = visibleGroups.map((group) => {
       const groupId = Number(group?.group_id);
       return {
         value: String(groupId),
         label: group?.group_name || `Grupo ${groupId}`,
       };
-    }),
-    [visibleGroups],
-  );
+    });
 
   const handleCareerChange = (event) => {
     const careerKey = String(event.target.value || '');
@@ -775,7 +851,15 @@ export const ScheduleGeneratedPanel = ({
               onClick={() => onExportPdf?.(scheduleVersion)}
             />
 
-            {!isConfirmed ? (
+            {isConfirmed ? (
+              <ActionButton
+                icon={Check}
+                label="Version confirmada"
+                variant="outline"
+                fullWidth={false}
+                disabled
+              />
+            ) : (
               <ActionButton
                 icon={Check}
                 label="Confirmar version"
@@ -785,14 +869,6 @@ export const ScheduleGeneratedPanel = ({
                 loading={isConfirming}
                 loadingLabel="Confirmando..."
                 disabled={Boolean(pendingAction?.type) && !isConfirming}
-              />
-            ) : (
-              <ActionButton
-                icon={Check}
-                label="Version confirmada"
-                variant="outline"
-                fullWidth={false}
-                disabled
               />
             )}
           </div>

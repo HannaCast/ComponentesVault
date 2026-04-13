@@ -22,36 +22,42 @@ const EMPTY_PENDING_ACTION = {
 
 const getResponseData = (response) => response?.data?.data ?? null;
 
+const pickFirstNonEmptyString = (values) => values.find(
+  (value) => typeof value === 'string' && value.trim(),
+)?.trim() || '';
+
+const extractMessageFromFieldErrors = (fieldErrors) => {
+  if (!fieldErrors || typeof fieldErrors !== 'object') {
+    return '';
+  }
+
+  for (const value of Object.values(fieldErrors)) {
+    if (Array.isArray(value)) {
+      const first = pickFirstNonEmptyString(value);
+      if (first) {
+        return first;
+      }
+      continue;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return '';
+};
+
 const extractApiErrorMessage = (err, fallbackMessage) => {
   const data = err?.response?.data;
+  const directMessage = pickFirstNonEmptyString([
+    data?.message,
+    data?.detail,
+    err?.message,
+  ]);
+  const fieldMessage = extractMessageFromFieldErrors(data?.data);
 
-  if (data && typeof data === 'object') {
-    if (typeof data.message === 'string' && data.message.trim()) {
-      return data.message.trim();
-    }
-
-    if (typeof data.detail === 'string' && data.detail.trim()) {
-      return data.detail.trim();
-    }
-
-    if (data.data && typeof data.data === 'object') {
-      for (const value of Object.values(data.data)) {
-        if (Array.isArray(value) && value[0]) {
-          return String(value[0]);
-        }
-
-        if (typeof value === 'string' && value.trim()) {
-          return value.trim();
-        }
-      }
-    }
-  }
-
-  if (typeof err?.message === 'string' && err.message.trim()) {
-    return err.message.trim();
-  }
-
-  return fallbackMessage;
+  return fieldMessage || directMessage || fallbackMessage;
 };
 
 export const useScheduleGenerator = () => {

@@ -8,30 +8,43 @@ import {
   createTeacher,
 } from '../api/teachersApi';
 
-/** Mensaje legible desde ApiResponse.error (message / errores de campo). */
-function extractApiErrorMessage(err) {
-  const d = err?.response?.data;
-  if (!d || typeof d !== 'object') {
-    return err?.message || '';
+const pickFirstNonEmptyString = (values) => values.find(
+  (value) => typeof value === 'string' && value.trim(),
+)?.trim() || '';
+
+const extractFieldErrorMessage = (fieldErrors) => {
+  if (!fieldErrors || typeof fieldErrors !== 'object') {
+    return '';
   }
-  if (typeof d.message === 'string' && d.message.trim()) {
-    return d.message.trim();
-  }
-  if (typeof d.detail === 'string' && d.detail.trim()) {
-    return d.detail.trim();
-  }
-  const fieldErrors = d.data;
-  if (fieldErrors && typeof fieldErrors === 'object') {
-    for (const val of Object.values(fieldErrors)) {
-      if (Array.isArray(val) && val[0]) {
-        return String(val[0]);
+
+  for (const value of Object.values(fieldErrors)) {
+    if (Array.isArray(value)) {
+      const first = pickFirstNonEmptyString(value);
+      if (first) {
+        return first;
       }
-      if (typeof val === 'string' && val) {
-        return val;
-      }
+      continue;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
     }
   }
+
   return '';
+};
+
+/** Mensaje legible desde ApiResponse.error (message / errores de campo). */
+function extractApiErrorMessage(err) {
+  const data = err?.response?.data;
+  const directMessage = pickFirstNonEmptyString([
+    data?.message,
+    data?.detail,
+    err?.message,
+  ]);
+  const fieldMessage = extractFieldErrorMessage(data?.data);
+
+  return fieldMessage || directMessage;
 }
 
 export const useTeachers = () => {

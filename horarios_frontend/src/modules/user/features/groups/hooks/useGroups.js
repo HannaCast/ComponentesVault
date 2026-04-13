@@ -10,36 +10,58 @@ import {
   updateGroup,
 } from '../api/groupsApi';
 
+const normalizeApiMessage = (message) => {
+  if (typeof message !== 'string') {
+    return '';
+  }
+
+  const trimmed = message.trim();
+  if (!trimmed || /^ha ocurrido un error$/i.test(trimmed)) {
+    return '';
+  }
+
+  return trimmed;
+};
+
+const buildFieldErrorMessage = (data) => {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) {
+    return '';
+  }
+
+  const parts = Object.entries(data).flatMap(([key, value]) => {
+    if (value == null) {
+      return [];
+    }
+
+    if (Array.isArray(value)) {
+      const text = value.filter(Boolean).join(' ');
+      return text ? [`${key}: ${text}`] : [];
+    }
+
+    if (typeof value === 'string') {
+      return value ? [`${key}: ${value}`] : [];
+    }
+
+    return [];
+  });
+
+  return parts.join(' · ');
+};
+
 /** Extrae texto útil de ApiResponse.error (DRF) para mostrar al usuario. */
 const formatGroupApiError = (err, fallback) => {
   const body = err?.response?.data;
   if (!body || typeof body !== 'object') {
     return fallback;
   }
-  const { message, data } = body;
-  if (
-    typeof message === 'string'
-    && message.trim()
-    && !/^ha ocurrido un error$/i.test(message.trim())
-  ) {
-    return message.trim();
+
+  const message = normalizeApiMessage(body.message);
+  if (message) {
+    return message;
   }
-  if (data != null && typeof data === 'object' && !Array.isArray(data)) {
-    const parts = [];
-    for (const [key, val] of Object.entries(data)) {
-      if (val == null) continue;
-      if (Array.isArray(val)) {
-        const text = val.filter(Boolean).join(' ');
-        if (text) parts.push(`${key}: ${text}`);
-      } else if (typeof val === 'string') {
-        parts.push(`${key}: ${val}`);
-      }
-    }
-    if (parts.length) {
-      return parts.join(' · ');
-    }
-  }
-  return fallback;
+
+  const fieldMessage = buildFieldErrorMessage(body.data);
+  return fieldMessage || fallback;
 };
 
 export const useGroups = () => {

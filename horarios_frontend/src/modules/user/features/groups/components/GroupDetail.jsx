@@ -68,7 +68,7 @@ export const GroupDetail = ({
             Periodo
           </p>
           <p className="text-lg font-semibold text-[var(--text-primary)]">
-            {group.period_number != null ? group.period_number : '—'}
+            {group.period_number ?? '—'}
           </p>
         </div>
 

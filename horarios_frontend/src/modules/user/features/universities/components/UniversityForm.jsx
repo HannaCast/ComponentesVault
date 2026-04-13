@@ -595,7 +595,7 @@ export const UniversityForm = ({
               />
               <div>
                 <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
-                  Días en que se estudía
+                  <span>Días en que se estudía</span>
                   <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
                 </p>
                 <div className="flex flex-wrap gap-2">

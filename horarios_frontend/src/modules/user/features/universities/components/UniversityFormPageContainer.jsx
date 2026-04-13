@@ -10,17 +10,19 @@ import { UniversityScreenShell } from './UniversityScreenShell';
 import { useUniversities } from '../hooks/useUniversities';
 import { parseUniversityApiError } from '../utils/parseUniversityApiError';
 
+const createInitialSaveModalState = () => ({
+  isOpen: false,
+  payload: null,
+  logoFile: null,
+  saveKind: 'create',
+  universityId: null,
+});
+
 export const UniversityFormPageContainer = ({ mode, universityId }) => {
   const navigate = useNavigate();
   const [formResetKey, setFormResetKey] = useState(0);
   const [editFormKey, setEditFormKey] = useState(0);
-  const [saveModal, setSaveModal] = useState({
-    isOpen: false,
-    payload: null,
-    logoFile: null,
-    saveKind: 'create',
-    universityId: null,
-  });
+  const [saveModal, setSaveModal] = useState(createInitialSaveModalState);
 
   const { shouldRun: shouldRunCatalog } = useRequestDeduper({ windowMs: 300 });
 
@@ -44,6 +46,10 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
   const goToView = useCallback((id) => {
     navigate(`/usuario/universidades/${id}`);
   }, [navigate]);
+
+  const closeSaveModal = useCallback(() => {
+    setSaveModal(createInitialSaveModalState());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,58 +114,58 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     });
   };
 
-  const handleConfirmSave = async () => {
+  const handleConfirmSave = useCallback(async () => {
     const {
       payload,
       logoFile,
       saveKind,
       universityId: uid,
     } = saveModal;
+
     if (!payload) {
       return;
     }
 
+    const isEditSave = saveKind === 'edit' && uid;
+
     try {
-      if (saveKind === 'edit' && uid) {
+      if (isEditSave) {
         await updateUniversityFullSetup(uid, payload, logoFile);
         toast.success('Universidad actualizada correctamente');
-        setSaveModal({
-          isOpen: false,
-          payload: null,
-          logoFile: null,
-          saveKind: 'create',
-          universityId: null,
-        });
+        closeSaveModal();
         goToView(uid);
+        return;
+      }
+
+      const response = await createUniversityFullSetup(payload, logoFile);
+      toast.success('Universidad creada correctamente');
+      closeSaveModal();
+      const newId = response?.data?.data?.university_id;
+      if (newId != null) {
+        goToView(newId);
       } else {
-        const response = await createUniversityFullSetup(payload, logoFile);
-        toast.success('Universidad creada correctamente');
-        setSaveModal({
-          isOpen: false,
-          payload: null,
-          logoFile: null,
-          saveKind: 'create',
-          universityId: null,
-        });
-        const newId = response?.data?.data?.university_id;
-        if (newId != null) {
-          goToView(newId);
-        } else {
-          goToList();
-        }
+        goToList();
       }
     } catch (err) {
       console.error(err);
-      const fallback = saveKind === 'edit'
+      const fallback = isEditSave
         ? 'No se pudo actualizar la universidad.'
         : 'No se pudo crear la universidad.';
       toast.error(parseUniversityApiError(err, fallback));
     }
-  };
+  }, [
+    saveModal,
+    updateUniversityFullSetup,
+    closeSaveModal,
+    goToView,
+    createUniversityFullSetup,
+    goToList,
+  ]);
 
   const editReady = mode === 'edit' && universityProfile?.id && Number(universityProfile.id) === Number(universityId);
   const showForm = mode === 'create' || editReady;
   const showLoader = mode === 'edit' && profileLoading && !editReady;
+  const showNotFoundMessage = mode === 'edit' && profileLoading === false && editReady === false;
 
   return (
     <>
@@ -171,7 +177,7 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
         {showLoader ? (
           <LoadingStatePanel message="Cargando datos de la universidad..." />
         ) : null}
-        {mode === 'edit' && !profileLoading && !editReady ? (
+        {showNotFoundMessage ? (
           <p className="text-sm text-[var(--text-secondary)]">
             No se encontró la universidad o no tienes acceso.
           </p>
@@ -195,13 +201,7 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
 
       <ConfirmModal
         isOpen={saveModal.isOpen}
-        onClose={() => setSaveModal({
-          isOpen: false,
-          payload: null,
-          logoFile: null,
-          saveKind: 'create',
-          universityId: null,
-        })}
+        onClose={closeSaveModal}
         onConfirm={handleConfirmSave}
         title={saveModal.saveKind === 'edit' ? 'Confirmar cambios' : 'Confirmar creación'}
         message={

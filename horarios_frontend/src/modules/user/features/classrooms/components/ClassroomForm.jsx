@@ -64,6 +64,86 @@ const normalizeInitialSubjects = (subjects) => {
     .filter(Boolean);
 };
 
+const collectValidationErrors = (validationError) => {
+  if (!validationError?.inner) {
+    return null;
+  }
+
+  const nextErrors = {};
+  validationError.inner.forEach((err) => {
+    if (err.path && !nextErrors[err.path]) {
+      nextErrors[err.path] = err.message;
+    }
+  });
+  return nextErrors;
+};
+
+const removeFieldError = (setFormErrors, field) => {
+  setFormErrors((prev) => {
+    if (!prev[field]) {
+      return prev;
+    }
+    const next = { ...prev };
+    delete next[field];
+    return next;
+  });
+};
+
+const resolveRestrictedCareerIds = ({ classroomId, classroomCareers, pendingCareers }) => {
+  if (classroomId) {
+    return classroomCareers
+      .map((row) => Number(row.careers))
+      .filter((id) => Number.isFinite(id));
+  }
+
+  return pendingCareers
+    .map((career) => Number.parseInt(career.careerId, 10))
+    .filter((id) => Number.isFinite(id));
+};
+
+const resolveRestrictedSubjectIds = (pendingSubjects) => Array.from(
+  new Set(
+    pendingSubjects
+      .map((subject) => Number.parseInt(subject.subjectId, 10))
+      .filter((id) => Number.isFinite(id)),
+  ),
+);
+
+const buildClassroomPayload = ({ formData, parsedFloor, classroomId, classroomCareers, pendingCareers, pendingSubjects }) => {
+  const payload = {
+    name: formData.name.trim(),
+    classroom_type: Number.parseInt(formData.classroom_type, 10),
+    floor: Number.isFinite(parsedFloor) ? parsedFloor : null,
+    building_code: formData.building_code.trim(),
+    is_restricted: formData.is_restricted ? 1 : 0,
+    is_restricted_to_subjects: formData.is_restricted_to_subjects ? 1 : 0,
+  };
+
+  const code = formData.code.trim();
+  if (code) {
+    payload.code = code;
+  }
+
+  const building = formData.building.trim();
+  if (building) {
+    payload.building = building;
+  }
+
+  if (formData.is_restricted) {
+    payload.careers = resolveRestrictedCareerIds({
+      classroomId,
+      classroomCareers,
+      pendingCareers,
+    });
+  }
+
+  if (formData.is_restricted_to_subjects) {
+    payload.subjects = resolveRestrictedSubjectIds(pendingSubjects);
+  }
+
+  return payload;
+};
+
 export const ClassroomForm = ({
   initialData = null,
   isLoading = false,
@@ -100,7 +180,6 @@ export const ClassroomForm = ({
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- alinear formulario con datos al editar
     setFormData({
       name: initialData.name || '',
       classroom_type: resolveClassroomTypeValue(initialData, typeOptions),
@@ -133,7 +212,6 @@ export const ClassroomForm = ({
     }
 
     if (enteringCreateMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicio al modo crear
       setFormData(createDefaultFormData());
       setFormErrors({});
       setPendingCareers([]);
@@ -448,16 +526,10 @@ export const ClassroomForm = ({
       await classroomValidationSchema.validate(values, { abortEarly: false });
       setFormErrors({});
     } catch (validationError) {
-      if (!validationError.inner) {
+      const nextErrors = collectValidationErrors(validationError);
+      if (!nextErrors) {
         return;
       }
-
-      const nextErrors = {};
-      validationError.inner.forEach((err) => {
-        if (err.path && !nextErrors[err.path]) {
-          nextErrors[err.path] = err.message;
-        }
-      });
       setFormErrors(nextErrors);
       return;
     }
@@ -474,12 +546,7 @@ export const ClassroomForm = ({
       return;
     }
 
-    setFormErrors((prev) => {
-      if (!prev.restricted_careers) return prev;
-      const next = { ...prev };
-      delete next.restricted_careers;
-      return next;
-    });
+    removeFieldError(setFormErrors, 'restricted_careers');
 
     if (formData.is_restricted_to_subjects && pendingSubjects.length === 0) {
       setFormErrors((prev) => ({
@@ -489,50 +556,16 @@ export const ClassroomForm = ({
       return;
     }
 
-    setFormErrors((prev) => {
-      if (!prev.restricted_subjects) return prev;
-      const next = { ...prev };
-      delete next.restricted_subjects;
-      return next;
+    removeFieldError(setFormErrors, 'restricted_subjects');
+
+    const payload = buildClassroomPayload({
+      formData,
+      parsedFloor,
+      classroomId,
+      classroomCareers,
+      pendingCareers,
+      pendingSubjects,
     });
-
-    const payload = {
-      name: formData.name.trim(),
-      classroom_type: Number.parseInt(formData.classroom_type, 10),
-      floor: Number.isFinite(parsedFloor) ? parsedFloor : null,
-      building_code: formData.building_code.trim(),
-      is_restricted: formData.is_restricted ? 1 : 0,
-      is_restricted_to_subjects: formData.is_restricted_to_subjects ? 1 : 0,
-    };
-
-    const code = formData.code.trim();
-    if (code) {
-      payload.code = code;
-    }
-
-    const building = formData.building.trim();
-    if (building) {
-      payload.building = building;
-    }
-
-    if (formData.is_restricted) {
-      const careerIds = classroomId
-        ? classroomCareers
-          .map((row) => Number(row.careers))
-          .filter((id) => Number.isFinite(id))
-        : pendingCareers.map((p) => Number.parseInt(p.careerId, 10));
-      payload.careers = careerIds;
-    }
-
-    if (formData.is_restricted_to_subjects) {
-      payload.subjects = Array.from(
-        new Set(
-          pendingSubjects
-            .map((subject) => Number.parseInt(subject.subjectId, 10))
-            .filter((id) => Number.isFinite(id)),
-        ),
-      );
-    }
 
     onSubmit(payload);
   };

@@ -57,14 +57,10 @@ export const GroupForm = ({
 
   useEffect(() => {
     const previousMode = previousModeRef.current;
-    const enteringCreateMode = mode === 'create' && previousMode !== 'create';
+    const enteringCreateMode = mode === 'create' && previousMode === 'edit';
     previousModeRef.current = mode;
 
-    if (mode !== 'create' || initialData) {
-      return;
-    }
-
-    if (enteringCreateMode) {
+    if (mode === 'create' && initialData == null && enteringCreateMode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reinicio al modo crear
       setFormData(createDefaultFormData());
       setFormErrors({});

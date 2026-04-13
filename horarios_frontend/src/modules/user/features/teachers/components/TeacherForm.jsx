@@ -263,7 +263,7 @@ export const TeacherForm = ({
                   </div>
                   <div className="flex flex-1 flex-wrap gap-3 min-w-0">
                     <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                      Inicio
+                      <span>Inicio</span>
                       <input
                         type="time"
                         value={row.start_time}
@@ -275,7 +275,7 @@ export const TeacherForm = ({
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                      Fin
+                      <span>Fin</span>
                       <input
                         type="time"
                         value={row.end_time}

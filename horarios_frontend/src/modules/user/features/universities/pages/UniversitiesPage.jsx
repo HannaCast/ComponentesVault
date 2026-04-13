@@ -109,6 +109,7 @@ export const UniversitiesPage = () => {
   const goToDetail = (id) => navigate(`/usuario/universidades/${id}`);
 
   const emptyState = getEmptyState(searchTerm, goToCreate);
+  const hasUniversities = universities.length > 0;
 
   const handleOrderChange = (event) => {
     const value = event?.target?.value;
@@ -236,65 +237,30 @@ export const UniversitiesPage = () => {
     };
   }, []);
 
-  return (
-    <div className="space-y-6">
-      <PageSectionHeader
-        title="Universidades"
-        contextLabel="Gestiona las universidades del sistema."
-        actionIcon={Plus}
-        actionLabel="Nueva Universidad"
-        actionVariant="primary"
-        onAction={goToCreate}
-      />
+  const renderUniversitiesContent = () => {
+    if (loading) {
+      return <LoadingStatePanel message="Cargando universidades..." />;
+    }
 
-      <SurfacePanel padding="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-12 lg:col-span-6">
-            <Input
-              label="Buscar Universidad"
-              placeholder="Nombre o nombre corto"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              reserveHelperSpace={false}
-            />
-          </div>
-
-          <div className="md:col-span-12 lg:col-span-6 lg:col-start-7">
-            <Select
-              label="Ordenar"
-              options={orderOptions}
-              value={ordenAscendente ? 'asc' : 'desc'}
-              onChange={handleOrderChange}
-              showPlaceholderOption={false}
-              reserveHelperSpace={false}
-            />
-          </div>
-        </div>
-      </SurfacePanel>
-
-      {loading ? (
-        <LoadingStatePanel message="Cargando universidades..." />
-      ) : !universities.length ? (
-        <EmptyStatePanel
-          icon={emptyState.icon}
-          title={emptyState.title}
-          description={emptyState.description}
-          actionIcon={emptyState.actionIcon}
-          actionLabel={emptyState.actionLabel}
-          onAction={emptyState.onAction}
-        />
-      ) : (
+    if (hasUniversities) {
+      return (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {universities.map((u) => {
               const selected = isSelected(u.id);
               const selectionBusy = selectingId != null;
               const busy = selectingId === u.id;
+              let selectionLabel = 'Seleccionar universidad';
+
+              if (busy) {
+                selectionLabel = 'Aplicando…';
+              } else if (selected) {
+                selectionLabel = 'Universidad activa';
+              }
 
               return (
                 <div
                   key={u.id}
-                  role="button"
                   tabIndex={0}
                   onClick={() => goToDetail(u.id)}
                   onKeyDown={(e) => {
@@ -353,7 +319,7 @@ export const UniversitiesPage = () => {
                       onClick={(e) => handleSelectUniversity(e, u)}
                       disabled={selectionBusy || selected}
                     >
-                      {busy ? 'Aplicando…' : selected ? 'Universidad activa' : 'Seleccionar universidad'}
+                      {selectionLabel}
                     </button>
                   </div>
                 </div>
@@ -371,7 +337,58 @@ export const UniversitiesPage = () => {
             hasNextPage={currentPage < totalPages}
           />
         </div>
-      )}
+      );
+    }
+
+    return (
+      <EmptyStatePanel
+        icon={emptyState.icon}
+        title={emptyState.title}
+        description={emptyState.description}
+        actionIcon={emptyState.actionIcon}
+        actionLabel={emptyState.actionLabel}
+        onAction={emptyState.onAction}
+      />
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageSectionHeader
+        title="Universidades"
+        contextLabel="Gestiona las universidades del sistema."
+        actionIcon={Plus}
+        actionLabel="Nueva Universidad"
+        actionVariant="primary"
+        onAction={goToCreate}
+      />
+
+      <SurfacePanel padding="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="md:col-span-12 lg:col-span-6">
+            <Input
+              label="Buscar Universidad"
+              placeholder="Nombre o nombre corto"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              reserveHelperSpace={false}
+            />
+          </div>
+
+          <div className="md:col-span-12 lg:col-span-6 lg:col-start-7">
+            <Select
+              label="Ordenar"
+              options={orderOptions}
+              value={ordenAscendente ? 'asc' : 'desc'}
+              onChange={handleOrderChange}
+              showPlaceholderOption={false}
+              reserveHelperSpace={false}
+            />
+          </div>
+        </div>
+      </SurfacePanel>
+
+      {renderUniversitiesContent()}
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}

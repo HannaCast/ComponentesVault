@@ -106,6 +106,11 @@ export const ScheduleVersionDetailPage = () => {
 
   useEffect(() => {
     const originalTitle = document.title;
+    const browserWindow = globalThis.window;
+
+    if (!browserWindow) {
+      return undefined;
+    }
 
     const handleBeforePrint = () => {
       document.title = '';
@@ -115,12 +120,12 @@ export const ScheduleVersionDetailPage = () => {
       document.title = originalTitle;
     };
 
-    window.addEventListener('beforeprint', handleBeforePrint);
-    window.addEventListener('afterprint', handleAfterPrint);
+    browserWindow.addEventListener('beforeprint', handleBeforePrint);
+    browserWindow.addEventListener('afterprint', handleAfterPrint);
 
     return () => {
-      window.removeEventListener('beforeprint', handleBeforePrint);
-      window.removeEventListener('afterprint', handleAfterPrint);
+      browserWindow.removeEventListener('beforeprint', handleBeforePrint);
+      browserWindow.removeEventListener('afterprint', handleAfterPrint);
       document.title = originalTitle;
     };
   }, []);

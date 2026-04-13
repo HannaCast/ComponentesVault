@@ -213,7 +213,10 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
   };
 };
 
-export const createDefaultFormState = () => {
+export const createDefaultFormState = (periodTypeOptions = []) => {
+  const defaultPeriodType =
+    periodTypeOptions[0]?.value != null ? String(periodTypeOptions[0].value) : '';
+
   return {
     name: '',
     short_name: '',
@@ -221,7 +224,7 @@ export const createDefaultFormState = () => {
     image_id: '',
     start_time: '07:00',
     end_time: '22:00',
-    period_type: '',
+    period_type: defaultPeriodType,
     uses_period_groups: false,
     modalities: createDefaultModalities(),
     shifts: [

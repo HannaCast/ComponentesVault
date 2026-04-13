@@ -163,16 +163,16 @@ export const Register = () => {
 
     const result = await registerUser(formData);
 
-    if (!result.success) {
-      setFormErrors((previous) => ({
-        ...previous,
-        ...(result.fieldErrors || {}),
-      }));
+    if (result.success) {
+      setAccountCreated(true);
+      setCreatedEmail(result?.data?.email || formData.email);
       return;
     }
 
-    setAccountCreated(true);
-    setCreatedEmail(result?.data?.email || formData.email);
+    setFormErrors((previous) => ({
+      ...previous,
+      ...result.fieldErrors,
+    }));
   };
 
   const handleGoLanding = () => {

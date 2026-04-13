@@ -10,11 +10,13 @@ const normalizeTheme = (theme) => (ALLOWED_THEMES.has(theme) ? theme : 'light');
 const normalizeAccent = (accent) => (ALLOWED_ACCENTS.has(accent) ? accent : 'blue');
 
 const getSystemTheme = () => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+  const browserWindow = globalThis.window;
+
+  if (!browserWindow || typeof browserWindow.matchMedia !== 'function') {
     return 'light';
   }
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return browserWindow.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
 const resolveTheme = (theme) => (theme === 'system' ? getSystemTheme() : theme);
@@ -35,22 +37,20 @@ export const ThemeProvider = ({ children }) => {
   }, [theme]);
 
   useEffect(() => {
-    if (theme !== 'system' || typeof window.matchMedia !== 'function') {
+    const browserWindow = globalThis.window;
+
+    if (theme !== 'system' || !browserWindow || typeof browserWindow.matchMedia !== 'function') {
       return undefined;
     }
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = browserWindow.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = (event) => {
       setResolvedTheme(event.matches ? 'dark' : 'light');
     };
 
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleSystemThemeChange);
-      return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
-    }
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
 
-    mediaQuery.addListener(handleSystemThemeChange);
-    return () => mediaQuery.removeListener(handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, [theme]);
 
   useEffect(() => {

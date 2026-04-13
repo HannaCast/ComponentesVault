@@ -118,6 +118,7 @@ export const ScheduleVersionHistoryPanel = ({
 }) => {
   const [editingVersionId, setEditingVersionId] = useState(null);
   const [editingLabel, setEditingLabel] = useState('');
+  const hasVersions = versions.length > 0;
 
   useEffect(() => {
     if (editingVersionId === null) {
@@ -171,6 +172,187 @@ export const ScheduleVersionHistoryPanel = ({
     }
   };
 
+  let historyContent = null;
+
+  if (loading) {
+    historyContent = <LoadingStatePanel message="Cargando historial de versiones..." />;
+  } else if (hasVersions) {
+    historyContent = (
+      <div className="space-y-3">
+        {versions.map((version) => {
+          const isConfirmed = Number(version?.is_confirmed) === 1;
+          const status = getVersionStatus(version);
+          const isInlineEditing = Number(editingVersionId) === Number(version?.id);
+
+          const isViewing = pendingAction?.versionId === version.id && pendingAction?.type === 'view';
+          const isConfirming = pendingAction?.versionId === version.id && pendingAction?.type === 'confirm';
+          const isDeleting = pendingAction?.versionId === version.id && pendingAction?.type === 'delete';
+          const isRenaming = pendingAction?.versionId === version.id && pendingAction?.type === 'rename';
+
+          return (
+            <SurfacePanel
+              key={version.id}
+              className="transition-all"
+              padding="p-4"
+            >
+              <div
+                className="rounded-lg border p-4"
+                style={{
+                  borderColor: 'var(--border-default, #d1d5db)',
+                  backgroundColor: 'var(--bg-elevated, #ffffff)',
+                }}
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isInlineEditing ? (
+                        <div className="flex max-w-full items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingLabel}
+                            onChange={(event) => setEditingLabel(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                submitInlineRename(version);
+                              }
+                              if (event.key === 'Escape') {
+                                event.preventDefault();
+                                cancelInlineRename();
+                              }
+                            }}
+                            className="h-10 w-56 max-w-full rounded-lg border px-3 text-base font-semibold md:w-72"
+                            style={{
+                              borderColor: 'var(--accent, #2563eb)',
+                              color: 'var(--text-primary, #111827)',
+                              backgroundColor: 'var(--bg-elevated, #ffffff)',
+                            }}
+                            autoFocus
+                          />
+
+                          <button
+                            type="button"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border"
+                            style={{ borderColor: 'var(--border-default, #d1d5db)' }}
+                            onClick={() => submitInlineRename(version)}
+                            disabled={isRenaming}
+                            aria-label="Guardar nombre"
+                          >
+                            <Check className="h-4 w-4" style={{ color: 'var(--accent, #2563eb)' }} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border"
+                            style={{ borderColor: 'var(--border-default, #d1d5db)' }}
+                            onClick={cancelInlineRename}
+                            disabled={isRenaming}
+                            aria-label="Cancelar edicion"
+                          >
+                            <X className="h-4 w-4" style={{ color: 'var(--text-secondary, #6b7280)' }} />
+                          </button>
+                        </div>
+                      ) : (
+                        <h4
+                          className="truncate text-lg font-semibold"
+                          style={{ color: 'var(--text-primary, #111827)' }}
+                          onDoubleClick={() => startInlineRename(version)}
+                          title={isConfirmed ? undefined : 'Doble clic para editar nombre'}
+                        >
+                          {version?.label || `Version ${version?.id}`}
+                        </h4>
+                      )}
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{
+                          color: status.textColor,
+                          backgroundColor: status.bgColor,
+                        }}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                      {getVersionMetaText(version)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    {isConfirmed ? (
+                      <>
+                        <ActionButton
+                          icon={Eye}
+                          label="Ver"
+                          variant="secondary"
+                          fullWidth={false}
+                          onClick={() => onViewVersion(version.id)}
+                          disabled={getButtonDisabledState(pendingAction, version.id, 'view', actionsDisabled)}
+                          loading={isViewing}
+                          loadingLabel="Abriendo..."
+                        />
+                        <ActionButton
+                          icon={Download}
+                          label="PDF"
+                          variant="secondary"
+                          fullWidth={false}
+                          onClick={() => onExportPdf(version)}
+                          disabled={actionsDisabled}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <ActionButton
+                          icon={Eye}
+                          label="Ver"
+                          variant="secondary"
+                          fullWidth={false}
+                          onClick={() => onViewVersion(version.id)}
+                          disabled={getButtonDisabledState(pendingAction, version.id, 'view', actionsDisabled)}
+                          loading={isViewing}
+                          loadingLabel="Abriendo..."
+                        />
+                        <ActionButton
+                          icon={Check}
+                          label="Confirmar"
+                          variant="outline"
+                          fullWidth={false}
+                          onClick={() => onConfirmVersion(version)}
+                          disabled={getButtonDisabledState(pendingAction, version.id, 'confirm', actionsDisabled)}
+                          loading={isConfirming}
+                          loadingLabel="Confirmando..."
+                        />
+                        <ActionButton
+                          icon={Trash2}
+                          label=""
+                          variant="secondary"
+                          fullWidth={false}
+                          onClick={() => onDeleteDraft(version)}
+                          disabled={getButtonDisabledState(pendingAction, version.id, 'delete', actionsDisabled)}
+                          loading={isDeleting}
+                          loadingLabel=""
+                          customStyle={{ padding: '0.55rem' }}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </SurfacePanel>
+          );
+        })}
+      </div>
+    );
+  } else {
+    historyContent = (
+      <SurfacePanel>
+        <p className="text-center text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+          Aun no hay versiones generadas para esta universidad.
+        </p>
+      </SurfacePanel>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -192,181 +374,7 @@ export const ScheduleVersionHistoryPanel = ({
           />
         </div>
       </div>
-
-      {loading ? (
-        <LoadingStatePanel message="Cargando historial de versiones..." />
-      ) : !versions.length ? (
-        <SurfacePanel>
-          <p className="text-center text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-            Aun no hay versiones generadas para esta universidad.
-          </p>
-        </SurfacePanel>
-      ) : (
-        <div className="space-y-3">
-          {versions.map((version) => {
-            const isConfirmed = Number(version?.is_confirmed) === 1;
-            const status = getVersionStatus(version);
-            const isInlineEditing = Number(editingVersionId) === Number(version?.id);
-
-            const isViewing = pendingAction?.versionId === version.id && pendingAction?.type === 'view';
-            const isConfirming = pendingAction?.versionId === version.id && pendingAction?.type === 'confirm';
-            const isDeleting = pendingAction?.versionId === version.id && pendingAction?.type === 'delete';
-            const isRenaming = pendingAction?.versionId === version.id && pendingAction?.type === 'rename';
-
-            return (
-              <SurfacePanel
-                key={version.id}
-                className="transition-all"
-                padding="p-4"
-              >
-                <div
-                  className="rounded-lg border p-4"
-                  style={{
-                    borderColor: 'var(--border-default, #d1d5db)',
-                    backgroundColor: 'var(--bg-elevated, #ffffff)',
-                  }}
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {isInlineEditing ? (
-                          <div className="flex max-w-full items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingLabel}
-                              onChange={(event) => setEditingLabel(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  submitInlineRename(version);
-                                }
-                                if (event.key === 'Escape') {
-                                  event.preventDefault();
-                                  cancelInlineRename();
-                                }
-                              }}
-                              className="h-10 w-56 max-w-full rounded-lg border px-3 text-base font-semibold md:w-72"
-                              style={{
-                                borderColor: 'var(--accent, #2563eb)',
-                                color: 'var(--text-primary, #111827)',
-                                backgroundColor: 'var(--bg-elevated, #ffffff)',
-                              }}
-                              autoFocus
-                            />
-
-                            <button
-                              type="button"
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border"
-                              style={{ borderColor: 'var(--border-default, #d1d5db)' }}
-                              onClick={() => submitInlineRename(version)}
-                              disabled={isRenaming}
-                              aria-label="Guardar nombre"
-                            >
-                              <Check className="h-4 w-4" style={{ color: 'var(--accent, #2563eb)' }} />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border"
-                              style={{ borderColor: 'var(--border-default, #d1d5db)' }}
-                              onClick={cancelInlineRename}
-                              disabled={isRenaming}
-                              aria-label="Cancelar edicion"
-                            >
-                              <X className="h-4 w-4" style={{ color: 'var(--text-secondary, #6b7280)' }} />
-                            </button>
-                          </div>
-                        ) : (
-                          <h4
-                            className="truncate text-lg font-semibold"
-                            style={{ color: 'var(--text-primary, #111827)' }}
-                            onDoubleClick={() => startInlineRename(version)}
-                            title={isConfirmed ? undefined : 'Doble clic para editar nombre'}
-                          >
-                            {version?.label || `Version ${version?.id}`}
-                          </h4>
-                        )}
-                        <span
-                          className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                          style={{
-                            color: status.textColor,
-                            backgroundColor: status.bgColor,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-
-                      <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-                        {getVersionMetaText(version)}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                      {!isConfirmed ? (
-                        <>
-                          <ActionButton
-                            icon={Eye}
-                            label="Ver"
-                            variant="secondary"
-                            fullWidth={false}
-                            onClick={() => onViewVersion(version.id)}
-                            disabled={getButtonDisabledState(pendingAction, version.id, 'view', actionsDisabled)}
-                            loading={isViewing}
-                            loadingLabel="Abriendo..."
-                          />
-                          <ActionButton
-                            icon={Check}
-                            label="Confirmar"
-                            variant="outline"
-                            fullWidth={false}
-                            onClick={() => onConfirmVersion(version)}
-                            disabled={getButtonDisabledState(pendingAction, version.id, 'confirm', actionsDisabled)}
-                            loading={isConfirming}
-                            loadingLabel="Confirmando..."
-                          />
-                          <ActionButton
-                            icon={Trash2}
-                            label=""
-                            variant="secondary"
-                            fullWidth={false}
-                            onClick={() => onDeleteDraft(version)}
-                            disabled={getButtonDisabledState(pendingAction, version.id, 'delete', actionsDisabled)}
-                            loading={isDeleting}
-                            loadingLabel=""
-                            customStyle={{ padding: '0.55rem' }}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <ActionButton
-                            icon={Eye}
-                            label="Ver"
-                            variant="secondary"
-                            fullWidth={false}
-                            onClick={() => onViewVersion(version.id)}
-                            disabled={getButtonDisabledState(pendingAction, version.id, 'view', actionsDisabled)}
-                            loading={isViewing}
-                            loadingLabel="Abriendo..."
-                          />
-                          <ActionButton
-                            icon={Download}
-                            label="PDF"
-                            variant="secondary"
-                            fullWidth={false}
-                            onClick={() => onExportPdf(version)}
-                            disabled={actionsDisabled}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </SurfacePanel>
-            );
-          })}
-        </div>
-      )}
+      {historyContent}
 
       {pagination ? (
         <Pagination
