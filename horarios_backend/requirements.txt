@@ -11,6 +11,10 @@ drf-spectacular==0.29.0
 # CORS
 django-cors-headers==4.9.0
 
+# Servidor producción
+gunicorn
+whitenoise
+
 # MySQL
 mysqlclient==2.2.8
 
