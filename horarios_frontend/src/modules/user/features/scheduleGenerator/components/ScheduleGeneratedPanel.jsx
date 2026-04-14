@@ -86,15 +86,50 @@ const formatAcademicPeriod = (academicPeriod) => {
   return `${periodName} ${periodYear}`.trim() || 'Sin periodo';
 };
 
+const splitTrailingParenthetical = (value) => {
+  const text = String(value || '').trim();
+
+  if (!text.endsWith(')')) {
+    return {
+      baseText: text,
+      trailingText: '',
+    };
+  }
+
+  const openParenIndex = text.lastIndexOf('(');
+  if (openParenIndex <= 0) {
+    return {
+      baseText: text,
+      trailingText: '',
+    };
+  }
+
+  const baseText = text.slice(0, openParenIndex).trim();
+  const trailingText = text.slice(openParenIndex + 1, -1).trim();
+
+  if (!baseText || !trailingText) {
+    return {
+      baseText: text,
+      trailingText: '',
+    };
+  }
+
+  return {
+    baseText,
+    trailingText,
+  };
+};
+
 const formatUniversityTitle = (value) => {
   const raw = String(value || '').trim();
   if (!raw) {
     return 'Universidad seleccionada';
   }
 
-  const universityName = raw.replace(/\s*\([^)]*\)\s*$/u, '').trim();
-  const abbreviationMatch = /\(([^)]+)\)\s*$/u.exec(raw);
-  const abbreviation = abbreviationMatch ? String(abbreviationMatch[1]).trim() : '';
+  const {
+    baseText: universityName,
+    trailingText: abbreviation,
+  } = splitTrailingParenthetical(raw);
 
   if (universityName && abbreviation) {
     return `${universityName} (${abbreviation})`;

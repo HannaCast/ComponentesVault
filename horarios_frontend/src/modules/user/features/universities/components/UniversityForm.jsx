@@ -35,7 +35,12 @@ const TABS = [
   { id: 'periods', label: 'Periodos académicos' },
 ];
 
-const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+let universityFormUidSequence = 0;
+
+const uid = () => {
+  universityFormUidSequence += 1;
+  return `${Date.now()}-${universityFormUidSequence.toString(36)}`;
+};
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = new Set([

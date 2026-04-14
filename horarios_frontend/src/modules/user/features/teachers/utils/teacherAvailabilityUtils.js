@@ -46,8 +46,18 @@ export function mapAvailabilityFromApi(item, index) {
   };
 }
 
+let availabilityTempRowSequence = 0;
+
+const getAvailabilityTempRowSuffix = () => {
+  availabilityTempRowSequence += 1;
+  return `${Date.now()}-${availabilityTempRowSequence.toString(36)}`;
+};
+
 export function createEmptyAvailabilityRow() {
-  const randomSuffix = crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  const randomSuffix =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : getAvailabilityTempRowSuffix();
 
   return {
     rowKey: `new-${randomSuffix}`,

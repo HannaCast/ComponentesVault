@@ -14,6 +14,13 @@ export const toApiTime = (value) => {
 
 const sortUniqueDays = (days) => [...new Set(days)].sort((a, b) => a - b);
 
+let universityPayloadUidSequence = 0;
+
+const uid = () => {
+  universityPayloadUidSequence += 1;
+  return `${Date.now()}-${universityPayloadUidSequence.toString(36)}`;
+};
+
 /**
  * Construye el cuerpo POST/PUT para alta o actualización completa.
  * @param {object} formState
@@ -109,8 +116,6 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
     academic_periods,
   };
 };
-
-const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 export const createDefaultModalities = () => [
   {

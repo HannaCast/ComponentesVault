@@ -28,6 +28,13 @@ const resolveModalityValue = (initialData, modalityOptions) => {
   return match ? String(match.value) : '';
 };
 
+let careerTempIdSequence = 0;
+
+const getCareerTempIdFallback = () => {
+  careerTempIdSequence += 1;
+  return `p-${Date.now()}-${careerTempIdSequence.toString(16)}`;
+};
+
 export const CareerForm = ({
   initialData = null,
   isLoading = false,
@@ -52,9 +59,9 @@ export const CareerForm = ({
   const previousModeRef = useRef(mode);
 
   const newTempId = () =>
-    typeof crypto !== 'undefined' && crypto.randomUUID
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
-      : `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      : getCareerTempIdFallback();
 
   useEffect(() => {
     if (!initialData) {
