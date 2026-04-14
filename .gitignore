@@ -1,0 +1,11 @@
+# Environment variables
+.env
+scripts/.env.base_de_datos
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Logs
+logs/

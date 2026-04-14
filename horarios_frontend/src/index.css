@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Fallbacks por defecto (light + blue) si no se define data-theme/data-accent */
+  --bg-base: #ffffff;
+  --bg-surface: #f3f4f6;
+  --bg-elevated: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-disabled: #d1d5db;
+  --text-on-accent: #ffffff;
+  --border-subtle: #e5e7eb;
+  --border-default: #d1d5db;
+  --border-strong: #9ca3af;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
+
+  /* Paleta de sistema (variant default) sincronizada con accent */
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
+
+  /* Feedback */
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fee2e2;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  /* Outline button defaults */
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-strong);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+
+[data-theme="light"] {
+
+  /* Fondos */
+  --bg-base:        #ffffff;   /* página principal */
+  --bg-surface:     #f3f4f6;   /* cards y superficies secundarias */
+  --bg-elevated:    #ffffff;   /* modals, dropdowns */
+
+  /* Texto */
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-disabled:  #d1d5db;
+  --text-on-accent: #ffffff;   /* texto sobre botón filled */
+
+  /* Bordes */
+  --border-subtle:  #e5e7eb;
+  --border-default: #d1d5db;
+  --border-strong:  #9ca3af;
+
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fecaca;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+/* ─── TEMA OSCURO ─────────────────────────────── */
+[data-theme="dark"] {
+
+  --bg-base:        #0f172a;
+  --bg-surface:     #1e293b;
+  --bg-elevated:    #334155;
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-disabled:  #475569;
+  --text-on-accent: #ffffff;
+
+  --border-subtle:  #1e293b;
+  --border-default: #334155;
+  --border-strong:  #475569;
+
+  --error: #f87171;
+  --error-subtle: #3f1d1d;
+  --error-border: #7f1d1d;
+  --warning: #fbbf24;
+  --warning-subtle: #3f2a0f;
+  --warning-border: #92400e;
+  --warning-text: #fde68a;
+  --danger-500: #f87171;
+  --danger-600: #ef4444;
+  --danger-700: #dc2626;
+  --danger-subtle: #3f1d1d;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: #f8fafc;
+  --button-outline-border: #94a3b8;
+  --button-outline-hover-bg: #334155;
+  --button-outline-hover-border: #cbd5e1;
+  --button-outline-hover-text: #ffffff;
+}
+
+
+
+/* ─── AZUL (default) ─────────────────────────── */
+[data-accent="blue"][data-theme="light"] {
+  --accent:          #2563eb; /* color principal de botones, links, highlights */
+  --accent-hover:    #1d4ed8; /* hover de botones, links */
+  --accent-subtle:   #eff6ff;  /* hover de outline, badges */
+}
+[data-accent="blue"][data-theme="dark"] {
+  --accent:          #60a5fa;   /* más claro para contraste */
+  --accent-hover:    #93c5fd;
+  --accent-subtle:   #1e3a5f;
+}
+
+/* ─── ROJO ───────────────────────────────────── */
+[data-accent="red"][data-theme="light"] {
+  --accent:          #dc2626;
+  --accent-hover:    #b91c1c;
+  --accent-subtle:   #fef2f2;
+}
+[data-accent="red"][data-theme="dark"] {
+  --accent:          #f87171;
+  --accent-hover:    #fca5a5;
+  --accent-subtle:   #450a0a;
+}
+
+/* ─── VERDE ──────────────────────────────────── */
+[data-accent="green"][data-theme="light"] {
+  --accent:          #16a34a;
+  --accent-hover:    #15803d;
+  --accent-subtle:   #f0fdf4;
+}
+[data-accent="green"][data-theme="dark"] {
+  --accent:          #4ade80;
+  --accent-hover:    #86efac;
+  --accent-subtle:   #052e16;
+}
+
+/* ─── MORADO ─────────────────────────────────── */
+[data-accent="purple"][data-theme="light"] {
+  --accent:          #7c3aed;
+  --accent-hover:    #6d28d9;
+  --accent-subtle:   #f5f3ff;
+}
+[data-accent="purple"][data-theme="dark"] {
+  --accent:          #c084fc;
+  --accent-hover:    #d8b4fe;
+  --accent-subtle:   #3b0764;
+}
+
+/* ─── TEMA ACADEMICO (Landing/Login) ─────────── */
+[data-system-theme="academic"] {
+  --bg-base: #f8faff;
+  --bg-surface: #eff6ff;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-disabled: #94a3b8;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: #dbeafe;
+  --border-default: #bfdbfe;
+  --border-strong: #93c5fd;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
+
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
+
+  --error: #b91c1c;
+  --error-subtle: #fef2f2;
+  --error-border: #fecaca;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm;
+  }
+
+  html,
+  body,
+  #root {
+    background: #ffffff !important;
+    height: auto !important;
+  }
+
+  .no-print,
+  .screen-only,
+  .app-shell-header,
+  .app-shell-sidebar {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .app-shell,
+  .app-shell-main,
+  .app-shell-content {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  .app-shell-content {
+    padding: 0 !important;
+  }
+
+  .print-schedule-content {
+    padding: 0 !important;
+  }
+
+  .print-schedule-wrapper {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .print-schedule-page {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    padding: 2mm !important;
+  }
+
+  .print-schedule-page .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  .print-schedule-page table {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  .print-schedule-page th,
+  .print-schedule-page td {
+    word-break: break-word;
+  }
+
+  .print-break-after {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
