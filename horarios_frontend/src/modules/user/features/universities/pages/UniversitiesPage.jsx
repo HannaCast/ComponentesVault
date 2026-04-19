@@ -288,6 +288,7 @@ export const UniversitiesPage = () => {
                   <div className="relative z-10 flex gap-3 pr-12">
                     <UniversityLogoMark
                       imageUrl={u.image_url}
+                      isLoading={Boolean(u.image_loading)}
                       name={u.name || u.short_name}
                       size="md"
                     />

@@ -88,6 +88,7 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
 | `GET` | `/api/v1/universities/paginated/` | Lista paginada con filtros (vista de lista). |
 | `POST` | `/api/v1/universities/` | **Transaccion completa:** crea universidad + modalidades + turnos + periodos academicos. |
 | `GET` | `/api/v1/universities/{pk}/` | Detalle de **datos generales** unicamente (pestana "Datos generales"). |
+| `GET` | `/api/v1/universities/{pk}/image/` | Retorna el logo/imagen de la universidad en binario (solo usuario autenticado con acceso a esa universidad). |
 | `PUT` | `/api/v1/universities/{pk}/` | Actualiza **solo datos generales** de la universidad. |
 | `PUT` | `/api/v1/universities/{pk}/toggle-status/` | Activa o desactiva la universidad. |
 | `DELETE` | `/api/v1/universities/{pk}/` | Soft delete. |

@@ -1,9 +1,13 @@
 import logging
 import os
+from pathlib import Path
 
+from django.conf import settings
 from django.db import transaction
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -22,6 +26,64 @@ from universities.services.university_image_upload import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_media_file(image_path: str):
+    rel = (image_path or '').strip().replace('\\', '/').lstrip('/')
+    if not rel or '..' in rel.split('/'):
+        return None
+
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    candidate = (media_root / rel).resolve()
+
+    try:
+        candidate.relative_to(media_root)
+    except ValueError:
+        return None
+
+    if not candidate.is_file():
+        return None
+
+    return candidate
+
+
+@extend_schema(
+    tags=['Universities'],
+    responses={200: OpenApiTypes.BINARY},
+    description='Obtiene el logo de una universidad por id de universidad',
+    summary='Obtener logo de universidad',
+)
+class UniversityImageByUniversityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, university_id):
+        university = Universities.objects.select_related('image').filter(
+            id=university_id,
+            user=request.user,
+            status=1,
+            is_deleted=0,
+        ).first()
+
+        if university is None:
+            return ApiResponse.error(message='Universidad no encontrada', status_code=404)
+
+        image = university.image
+        if image is None or image.is_deleted == 1:
+            return ApiResponse.error(message='Imagen no encontrada', status_code=404)
+
+        abs_path = _resolve_media_file(image.image_path)
+        if abs_path is None:
+            return ApiResponse.error(message='Imagen no encontrada', status_code=404)
+
+        mime_type = (image.mime_type or 'application/octet-stream')[:100]
+        filename = (image.image_name or f'university-{university.id}.{image.extension or "bin"}')[:120]
+
+        return FileResponse(
+            open(abs_path, 'rb'),
+            as_attachment=False,
+            filename=filename,
+            content_type=mime_type,
+        )
 
 
 @extend_schema(
@@ -101,7 +163,6 @@ class UniversityUploadImageView(APIView):
         return ApiResponse.success(
             data={
                 'image_id': image.id,
-                'image_path': relative_path,
             },
             message='Imagen subida correctamente',
         )

@@ -28,6 +28,11 @@ export const deleteUniversity = (universityId) =>
 export const getUniversityProfile = (universityId) =>
   apiToken.get(`/api/v1/universities/${universityId}/profile/`);
 
+export const getUniversityImage = (universityId) =>
+  apiToken.get(`/api/v1/universities/${universityId}/image/`, {
+    responseType: 'blob',
+  });
+
 /**
  * @param {number|null} universityId - Id de universidad o `null` para dejar sin universidad activa.
  */
