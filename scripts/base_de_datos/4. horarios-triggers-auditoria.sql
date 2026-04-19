@@ -1,5 +1,5 @@
 -- ============================================================
---  TRIGGERS DE AUDITORÍA → audit_logs - cdi_horarios (MySQL)
+--  TRIGGERS DE AUDITORÍA → audit_logs - dci_horarios (MySQL)
 -- ============================================================
 --
 --  LÓGICA DE source:
@@ -24,7 +24,7 @@
 --    SET @app_action = NULL;
 -- ============================================================
 
-USE `cdi_horarios`;
+USE `dci_horarios`;
 
 -- Expandir el ENUM para incluir los nuevos valores de la app
 ALTER TABLE `audit_logs`

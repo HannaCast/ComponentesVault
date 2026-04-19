@@ -1,4 +1,4 @@
-USE cdi_horarios;
+USE dci_horarios;
 
 -- -----------------------------------------------------
 /*  DATOS DE PRUEBA (NO CATALOGOS BASE)               */
