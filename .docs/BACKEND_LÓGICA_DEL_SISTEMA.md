@@ -195,6 +195,11 @@ La tabla `shifts` define turnos por universidad, por ejemplo:
 
 Incluye horario de inicio y fin.
 
+Regla funcional implementada:
+
+- El horario de cada turno debe quedar dentro del rango operativo de su universidad (`universities.start_time` - `universities.end_time`).
+- Se valida tanto en endpoints directos de turnos como en el setup completo de universidad.
+
 ---
 
 ## Aulas

@@ -37,8 +37,8 @@ def _set_access_cookie(response, access_token: str) -> None:
         'access_token',
         access_token,
         httponly=True,
-        secure=not settings.DEBUG,
-        samesite='Lax',
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
         max_age=_ACCESS_COOKIE_MAX_AGE,
         path=_ACCESS_COOKIE_PATH,
     )
@@ -50,8 +50,8 @@ def _set_refresh_cookie(response, refresh_token: str) -> None:
         'refresh_token',
         refresh_token,
         httponly=True,
-        secure=not settings.DEBUG,
-        samesite='Lax',
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
         max_age=_REFRESH_COOKIE_MAX_AGE,
         path=_REFRESH_COOKIE_PATH,
     )

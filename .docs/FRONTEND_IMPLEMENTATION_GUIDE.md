@@ -65,7 +65,14 @@ Responsabilidades:
 - Cada dominio funcional vive en `modules`.
 - Estado actual del repo:
   - `modules/auth/`: implementado (api, hooks, pages).
-  - `modules/user/features/subjects/`: implementado completo y usado como patron.
+  - `modules/user/features/subjects/`: implementado completo y usado como patron base.
+  - `modules/user/features/universities/`: implementado (setup completo, logo, modalidades, turnos y periodos).
+  - `modules/user/features/careers/`: implementado.
+  - `modules/user/features/groups/`: implementado.
+  - `modules/user/features/teachers/`: implementado.
+  - `modules/user/features/classrooms/`: implementado.
+  - `modules/user/features/scheduleGenerator/`: implementado.
+  - `modules/user/features/dashboard/` y `settings/`: implementados.
 
 ---
 
@@ -100,7 +107,7 @@ Segun backend y `.docs`, el frontend debe asumir:
 - Toggle status: `/api/v1/university/subjects/{id}/toggle-status/`
 - Catalogo colores: `/api/v1/subjects/colors/`
 - Catalogo carreras: `/api/v1/university/careers/`
-- Catalogo profesores: `/api/v1/teachers/`
+- Catalogo profesores: `/api/v1/university/teachers/`
 
 ---
 
@@ -194,6 +201,14 @@ Reglas:
 
 - Mensajes de error claros para usuario.
 - Reglas condicionales por `mode` cuando aplique.
+
+### 4.6 Reglas implementadas en formulario de universidades
+
+- Al crear universidad, la modalidad inicial por defecto es solo `Presencial`.
+- Al agregar nuevas modalidades, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- Al agregar nuevos turnos, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- En los turnos, `start_time` y `end_time` se limitan en UI con `min/max` al rango operativo de la universidad (`start_time`/`end_time` de universidad).
+- Ademas de la restriccion visual, el frontend valida que cada turno quede dentro del rango de apertura/cierre antes de enviar.
 
 ---
 

@@ -23,6 +23,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _normalize_samesite(raw_value: str | None, default: str) -> str:
+    value = str(raw_value if raw_value is not None else default).strip().lower()
+    if value in {'none', 'lax', 'strict'}:
+        return value.capitalize()
+    return default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -96,6 +110,28 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-encrypted',
 ]
 
+_csrf_trusted = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = [s.strip() for s in _csrf_trusted.split(',') if s.strip()]
+
+_default_cookie_secure = not DEBUG
+AUTH_COOKIE_SECURE = _env_bool('AUTH_COOKIE_SECURE', _default_cookie_secure)
+AUTH_COOKIE_SAMESITE = _normalize_samesite(
+    os.getenv('AUTH_COOKIE_SAMESITE'),
+    'None' if AUTH_COOKIE_SECURE else 'Lax',
+)
+
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', AUTH_COOKIE_SECURE)
+SESSION_COOKIE_SAMESITE = _normalize_samesite(
+    os.getenv('SESSION_COOKIE_SAMESITE'),
+    AUTH_COOKIE_SAMESITE,
+)
+
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', AUTH_COOKIE_SECURE)
+CSRF_COOKIE_SAMESITE = _normalize_samesite(
+    os.getenv('CSRF_COOKIE_SAMESITE'),
+    AUTH_COOKIE_SAMESITE,
+)
+
 
 # Base de datos
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -160,7 +196,7 @@ SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1), # minutes=30
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': False,
@@ -196,13 +232,15 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Archivos estáticos (CSS, JavaScript, Imágenes)
+# Archivos estáticos (CSS y JavaScript)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR/'media'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Almacenamiento privado de imágenes (no servido por URL pública)
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 ## Configuración de logging con Loguru

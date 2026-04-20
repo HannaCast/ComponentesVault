@@ -1,41 +1,9 @@
-from pathlib import Path
-
-from django.conf import settings
 from rest_framework import serializers
 
 from universities.models import Universities
 
 
-def _public_media_path(image_path: str) -> str:
-    """Ruta URL bajo MEDIA_URL, p.ej. /media/images/archivo.png."""
-    rel = (image_path or '').strip().lstrip('/')
-    if not rel:
-        return ''
-    base = settings.MEDIA_URL.rstrip('/')
-    return f'{base}/{rel}'
-
-
-def _media_file_exists(image_path: str) -> bool:
-    """
-    Comprueba que el fichero exista bajo MEDIA_ROOT.
-    Evita URLs rotas cuando en BD quedan rutas antiguas (p. ej. universities/…)
-    o archivos borrados manualmente.
-    """
-    rel = (image_path or '').strip().replace('\\', '/').lstrip('/')
-    if not rel or '..' in rel.split('/'):
-        return False
-    root = Path(settings.MEDIA_ROOT).resolve()
-    candidate = (root / rel).resolve()
-    try:
-        candidate.relative_to(root)
-    except ValueError:
-        return False
-    return candidate.is_file()
-
-
 class UniversityWriteSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField(read_only=True)
-
     class Meta:
         model = Universities
         fields = (
@@ -44,35 +12,31 @@ class UniversityWriteSerializer(serializers.ModelSerializer):
             'short_name',
             'institution_code',
             'image',
-            'image_url',
             'start_time',
             'end_time',
             'period_type',
             'uses_period_groups',
         )
 
-    def get_image_url(self, obj):
-        img = getattr(obj, 'image', None)
-        if img is None:
-            return None
-        path = getattr(img, 'image_path', None)
-        if not path:
-            return None
-        if not _media_file_exists(path):
-            return None
-        url_path = _public_media_path(path)
-        if not url_path:
-            return None
-        request = self.context.get('request')
-        if request is not None:
-            return request.build_absolute_uri(url_path)
-        return url_path
-
     def create(self, validated_data):
         validated_data['uses_period_groups'] = validated_data.get('uses_period_groups', 0)
         validated_data['status'] = 1
         validated_data['is_deleted'] = 0
         return Universities.objects.create(**validated_data)
+
+    @staticmethod
+    def _normalize_flag(value):
+        if isinstance(value, bool):
+            return 1 if value else 0
+
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+
+        if parsed in (0, 1):
+            return parsed
+        return None
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -81,6 +45,22 @@ class UniversityWriteSerializer(serializers.ModelSerializer):
         return instance
 
     def validate(self, data):
+        if self.instance is not None and 'uses_period_groups' in data:
+            current_flag = self._normalize_flag(self.instance.uses_period_groups)
+            requested_flag = self._normalize_flag(data.get('uses_period_groups'))
+            if requested_flag is None:
+                raise serializers.ValidationError(
+                    {'uses_period_groups': 'Valor inválido. Debe ser 0 o 1.'}
+                )
+            if current_flag != requested_flag:
+                raise serializers.ValidationError(
+                    {
+                        'uses_period_groups': (
+                            'No se puede cambiar este valor después de crear la universidad.'
+                        )
+                    }
+                )
+
         start_time = data.get('start_time')
         end_time = data.get('end_time')
 
@@ -100,5 +80,3 @@ class UniversityWriteSerializer(serializers.ModelSerializer):
             )
 
         return data
-
-

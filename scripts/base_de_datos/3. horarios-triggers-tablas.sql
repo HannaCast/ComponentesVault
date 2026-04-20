@@ -18,7 +18,7 @@
 --    El trigger usa USER() → ej: 'root@localhost'
 -- ============================================================
 
-USE `cdi_horarios`;
+USE `dci_horarios`;
 
 DELIMITER $$
 

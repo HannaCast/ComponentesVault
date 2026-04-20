@@ -8,12 +8,13 @@ from universities.views import (
     UniversityList,
     UniversityProfileView,
 )
-from universities.views.upload_image import UniversityUploadImageView
+from universities.views.university_images import UniversityImageByUniversityView, UniversityUploadImageView
 
 urlpatterns = [
     path('v1/universities/', UniversityList.as_view()),
     path('v1/universities/create/', UniversityCreate.as_view()),
     path('v1/universities/<int:university_id>/profile/', UniversityProfileView.as_view()),
+    path('v1/universities/<int:university_id>/image/', UniversityImageByUniversityView.as_view()),
     path('v1/universities/<int:university_id>/full-setup/', UniversityFullSetupUpdateView.as_view()),
     path('v1/universities/<int:university_id>/', UniversityDetail.as_view()),
     path('setup/university-complete/', UniversityFullSetupView.as_view()),

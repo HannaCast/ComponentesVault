@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { School } from 'lucide-react';
+import { LoaderCircle, School } from 'lucide-react';
 import { resolveMediaUrl } from '../utils/resolveMediaUrl';
 
 const sizeClass = {
@@ -19,6 +19,7 @@ const sizeClass = {
  */
 export const UniversityLogoMark = ({
   imageUrl,
+  isLoading = false,
   name,
   size = 'md',
   className = '',
@@ -44,6 +45,8 @@ export const UniversityLogoMark = ({
           loading="lazy"
           decoding="async"
         />
+      ) : isLoading ? (
+        <LoaderCircle className={`${sc.icon} animate-spin`} aria-label="Cargando imagen" />
       ) : (
         <School className={sc.icon} aria-hidden />
       )}
@@ -53,6 +56,7 @@ export const UniversityLogoMark = ({
 
 UniversityLogoMark.propTypes = {
   imageUrl: PropTypes.string,
+  isLoading: PropTypes.bool,
   name: PropTypes.string,
   size: PropTypes.oneOf(['md', 'lg']),
   className: PropTypes.string,

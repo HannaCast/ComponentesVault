@@ -288,6 +288,7 @@ export const UniversitiesPage = () => {
                   <div className="relative z-10 flex gap-3 pr-12">
                     <UniversityLogoMark
                       imageUrl={u.image_url}
+                      isLoading={Boolean(u.image_loading)}
                       name={u.name || u.short_name}
                       size="md"
                     />
@@ -313,6 +314,17 @@ export const UniversitiesPage = () => {
                   </div>
 
                   <div className="relative z-10 flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[var(--border-default)]">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline px-1 py-0.5 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToDetail(u.id);
+                      }}
+                      aria-label={`Ver detalle de ${detailTargetName}`}
+                    >
+                      Ver detalle
+                    </button>
                     <button
                       type="button"
                       className="text-sm font-medium text-[var(--accent,#2563eb)] hover:underline disabled:opacity-50 px-1 py-0.5 rounded"

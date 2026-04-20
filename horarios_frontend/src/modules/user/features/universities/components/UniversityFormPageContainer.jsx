@@ -14,6 +14,7 @@ const createInitialSaveModalState = () => ({
   isOpen: false,
   payload: null,
   logoFile: null,
+  removeLogo: false,
   saveKind: 'create',
   universityId: null,
 });
@@ -112,6 +113,7 @@ const persistUniversitySave = async ({
   const {
     payload,
     logoFile,
+    removeLogo,
     saveKind,
     universityId: uid,
   } = saveModal;
@@ -124,7 +126,7 @@ const persistUniversitySave = async ({
 
   try {
     if (isEditSave) {
-      await updateUniversityFullSetup(uid, payload, logoFile);
+      await updateUniversityFullSetup(uid, payload, logoFile, removeLogo);
       toast.success('Universidad actualizada correctamente');
       closeSaveModal();
       goToView(uid);
@@ -233,12 +235,13 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     [mode, universityProfile?.name, universityProfile?.short_name],
   );
 
-  const handleFormSubmit = ({ payload, logoFile }) => {
+  const handleFormSubmit = ({ payload, logoFile, removeLogo }) => {
     const isEdit = mode === 'edit';
     setSaveModal({
       isOpen: true,
       payload,
       logoFile,
+      removeLogo: Boolean(removeLogo),
       saveKind: isEdit ? 'edit' : 'create',
       universityId: isEdit ? universityProfile?.id : null,
     });

@@ -40,8 +40,11 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
     start_time: toApiTime(formState.start_time),
     end_time: toApiTime(formState.end_time),
     period_type: Number(formState.period_type),
-    uses_period_groups: usesGroups ? 1 : 0,
   };
+
+  if (!isEdit) {
+    university.uses_period_groups = usesGroups ? 1 : 0;
+  }
 
   if (!isEdit || hasImageId) {
     university.image = imageVal;
@@ -123,18 +126,6 @@ export const createDefaultModalities = () => [
     name: 'Presencial',
     classroom_days_per_week: 5,
     allowed_days: [1, 2, 3, 4, 5],
-  },
-  {
-    key: `m-${uid()}`,
-    name: 'En línea',
-    classroom_days_per_week: 0,
-    allowed_days: [1],
-  },
-  {
-    key: `m-${uid()}`,
-    name: 'Mixta',
-    classroom_days_per_week: 3,
-    allowed_days: [1, 3, 5],
   },
 ];
 

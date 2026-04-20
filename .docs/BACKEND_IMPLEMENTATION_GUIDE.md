@@ -23,11 +23,11 @@ horarios_backend/              ← raíz del proyecto Django
     settings.py
     urls.py                    ← URL raíz del proyecto
     user_accounts/               ← app: autenticación y usuarios
-    subjects/                    ← app: materias y colores (referencia implementada)
-    universities/                ← app: universidades y configuración (por implementar)
-    careers/                     ← app: carreras y grupos (por implementar)
-    teachers/                    ← app: profesores (por implementar)
-    classrooms/                  ← app: salones (por implementar)
+    subjects/                    ← app: materias y colores
+    universities/                ← app: universidades y configuración
+    careers/                     ← app: carreras y grupos
+    teachers/                    ← app: profesores
+    classrooms/                  ← app: salones
     schedule_generator/          ← app: generacion y versionamiento de horarios
     audit/                       ← app: logs de auditoria (modelo y soporte de auditoria)
 ```
@@ -88,17 +88,18 @@ Y su prefijo de URL en `horarios_backend/urls.py`:
 
 ```python
 urlpatterns = [
-    path('api/', include('user_accounts.urls')),
+    path('api/v1/', include('user_accounts.urls')),
     path('api/', include('subjects.urls')),
     path('api/', include('universities.urls')),
     path('api/', include('careers.urls')),
     path('api/', include('teachers.urls')),
     path('api/', include('classrooms.urls')),
+    path('api/', include('audit.urls')),
     path('api/', include('schedule_generator.urls')),
 ]
 ```
 
-> Nota: actualmente `audit` no expone rutas API propias; el registro se realiza por triggers SQL y helpers de `core.audit_context`.
+> Nota: `audit` sí expone lectura API (`/api/v1/audit/logs/paginated/`, `/api/v1/audit/logs/{pk}/`) con acceso restringido a administradores.
 
 ---
 
@@ -142,13 +143,15 @@ Cada modelo con gestión de estado tiene **dos campos diferenciados**:
 - **`POST`**: crea el registro con `status = 1` e `is_deleted = 0`. Ambos valores son inyectados por el serializer; el cliente no los envía.
 - **`PUT`**: acepta todos los campos como opcionales (`partial=True`). Nunca modifica `is_deleted`.
 - **`DELETE`**: no elimina físicamente. Cambia `is_deleted = 1`. El registro queda oculto en todas las consultas posteriores.
-- **`toggle-status`**: alterna `status` entre 1 y 0. Permite activar o desactivar un recurso para la generación de horarios sin eliminarlo. **Este endpoint existe en todos los módulos**, independientemente del nivel de permiso requerido.
+- **`toggle-status`**: alterna `status` entre 1 y 0 en los recursos que implementan este endpoint.
 - **Consultas (`GET` lista/select, `GET` paginado, `GET` por ID)**: siempre filtran por `is_deleted = 0`. Un registro con `is_deleted = 1` nunca es retornado ni accesible por ID.
 
 - **Escalabilidad en PUT con listas completas** (por ejemplo subjects-carreras-profesores, teachers-subjects, classrooms-careers): el backend debe comparar estado actual vs payload y evitar escrituras innecesarias cuando no haya cambios efectivos (no-op).
 ### Campos de auditoría (managed por triggers de BD)
 
-Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionados **automáticamente por triggers en MySQL**. Django **no debe tocarlos nunca**:
+En este proyecto, los campos `created_at`, `created_by`, `updated_at` y `updated_by` se gestionan principalmente por triggers de MySQL.
+
+Notas de implementación real:
 
 - No deben aparecer en ningún serializer (ni Write, ni Detail, ni List, ni Select).
 - No se setean en `create()` ni en `update()` del serializer.
@@ -157,8 +160,8 @@ Los campos `created_at`, `created_by`, `updated_at` y `updated_by` son gestionad
 ### Otras reglas
 
 - El campo `is_deleted` **nunca se expone en ningún serializer** (ni Write, ni Detail, ni List). Es un campo de infraestructura interno.
-- El endpoint paginado soporta `page`, `limit`, `search`, `sortBy` y `order`.
-- Todos los endpoints requieren autenticación JWT (`IsAuthenticated`).
+- El endpoint paginado soporta al menos `page` y `limit`; según el recurso puede incluir `search`, `status`, `sortBy`, `order` u otros filtros.
+- La mayoría de endpoints requieren autenticación JWT (`IsAuthenticated`). Excepción: endpoints públicos de auth (`login`, `register`, `verify-account`, `refresh`, `logout`).
 - Para módulos de **datos operativos por universidad** (materias, carreras, grupos, etc.) se debe exigir universidad seleccionada con `RequireSelectedUniversity` o `@require_selected_university(...)`.
 - El permiso de universidad seleccionada **NO aplica** a:
     - `user_accounts` (auth/configuración de usuario)
@@ -225,10 +228,12 @@ Solo los módulos indicados requieren rol de administrador en escritura. El rest
 | App | Módulo | GET | POST | PUT | DELETE | toggle-status |
 |-----|--------|-----|------|-----|--------|---------------|
 | `subjects` | `colors` | ✅ Auth | 🔒 Admin | 🔒 Admin | 🔒 Admin | 🔒 Admin |
-| `universities` | `period_types` | ✅ Auth | 🔒 Admin | 🔒 Admin | 🔒 Admin | 🔒 Admin |
-| Todos los demás | todos | ✅ Auth | ✅ Auth | ✅ Auth | ✅ Auth | ✅ Auth |
+| `universities` | `period_types` | ✅ Auth | N/A | N/A | N/A | N/A |
+| `classrooms` | `classroom_types` | ✅ Auth | N/A | N/A | N/A | N/A |
+| `audit` | `audit_logs` | 🔒 Admin | N/A | N/A | N/A | N/A |
+| Módulos operativos | (universities, careers, groups, subjects, teachers, classrooms, schedule) | ✅ Auth | ✅ Auth | ✅ Auth | ✅ Auth | Según recurso |
 
-> **Nota:** `toggle-status` está presente en **todos los módulos sin excepción**. Es el mecanismo para controlar si un recurso participa en la generación de horarios (`status = 1`) o no (`status = 0`), independientemente de si está pendiente de eliminación.
+> **Nota:** `toggle-status` no aplica a todos los catálogos. Ver contratos reales en `BACKEND_ENDPOINTS_POR_REALIZAR.md`.
 
 Para aplicar el permiso de administrador sobre un método específico se usa el decorador `@require_permissions(IsAdmin)` de `core.permissions`:
 
@@ -364,7 +369,7 @@ def get(self, request):
 | `status` | Nunca se envía en el cuerpo de escritura; se gestiona solo via `toggle-status`. Solo se puede incluir en Detail/List si el diseño lo requiere para visualización, pero **nunca en WriteSerializer**. |
 | `created_at`, `created_by`, `updated_at`, `updated_by` | Gestionados por **triggers de MySQL**. Django no los toca nunca. |
 
-El `WriteSerializer` siempre inyecta `status = 1` e `is_deleted = 0` en `create()`:
+En la mayoría de recursos con ciclo de vida, el `WriteSerializer` inyecta `status = 1` e `is_deleted = 0` en `create()`:
 
 ```python
 def create(self, validated_data):
@@ -415,214 +420,32 @@ def post(self, request):
 
 ---
 
-## 10. Orden de implementación de apps y módulos
+## 10. Estado actual de apps y módulos
 
-### App: `user_accounts` ✅ (implementada)
-Modelos: `roles`, `users`
+Estado de implementación en backend:
 
-Endpoints activos:
-- `POST /api/v1/auth/login/`
-- `POST /api/v1/auth/register/`
-- `POST /api/v1/auth/register-admin/`
-- `POST /api/v1/auth/verify-account/`
-- `POST /api/v1/auth/logout/`
-- `POST /api/v1/auth/refresh/`
-- `GET  /api/v1/user/my-info/`
-- `PUT  /api/v1/user/configurations/`
+- `user_accounts`: implementado (auth, info de usuario, configuración y universidad seleccionada).
+- `subjects`: implementado (`colors` y `subjects`).
+- `universities`: implementado (CRUD, setup completo, logo privado, period_types, shifts, academic_periods, prioridades de tipo de aula).
+- `careers`: implementado (careers, modalities, groups, career_subjects, career_period_exceptions).
+- `teachers`: implementado (teachers, teachers_subjects, teachers_universities, teacher_availabilities).
+- `classrooms`: implementado (classrooms, classroom_careers, classroom_types).
+- `schedule_generator`: implementado (generación, borradores, confirmación, etiquetado e historial).
+- `audit`: implementado (consulta paginada y detalle para administradores, más auditoría por triggers/contexto).
 
-> **Nota de seguridad (auth):** `login` y `register` usan `@decrypt_request()`.
-> El cliente debe enviar `{ key, iv, data }`, donde:
-> - `key`: llave AES cifrada con RSA-OAEP (base64)
-> - `iv`: IV NO cifrado de 12 bytes para AES-GCM (serializado en base64)
-> - `data`: payload cifrado con AES-GCM (base64, incluyendo tag)
+Rutas base activas por dominio:
 
-Variables de entorno requeridas para descifrado en backend:
-- `RSA_PRIVATE_KEY` (contenido PEM)
-- `RSA_PRIVATE_KEY_PATH` (ruta al archivo PEM)
+- Auth/usuario: `/api/v1/auth/*`, `/api/v1/user/*`
+- Universidades y setup: `/api/v1/universities/*`, `/api/setup/university-complete/`
+- Módulos por universidad: `/api/v1/university/*`
+- Catálogos globales: `/api/v1/period-types/`, `/api/v1/classroom-types/`, `/api/v1/subjects/colors/`
+- Generación/versionado: `/api/v1/university/schedules/*`, `/api/schedule-generator/preview/`
+- Auditoría: `/api/v1/audit/logs/*`
 
-Flujo de verificacion de cuenta:
-- Al registrar (`register` / `register-admin`) se crea un token en `user_tokens` con tipo `email_verification`.
-- El backend envia correo automaticamente usando template Django HTML (`emails/verification_account.html`).
-- `POST /api/v1/auth/verify-account/` valida token, expiracion y uso previo, marca `users.is_verificated = 1` y crea `user_configurations` por defecto (`theme=light`, `accent=blue`, `schedule_generation={"draft_schedule_university_ids":[]}`, `selected_university_id=NULL`, `status=1`).
-- Al verificar exitosamente, se limpian cookies `access_token` y `refresh_token` para evitar auto-login no intencional.
-- `login` y cualquier endpoint autenticado rechazan usuarios con `status != 1` o `is_verificated != 1`.
-- Las respuestas de `register` y `register-admin` ya no exponen el token de verificacion; solo confirman el correo destino.
-- Los links de correo se construyen de forma hardcodeada por modulo usando `LINK_FRONTEND` como base.
-- Los endpoints publicos de auth (`login`, `refresh`, `register`, `verify-account`, `logout`) no usan autenticacion por defecto para evitar errores por cookies access viejas o invalidas.
+Contratos exactos y payloads vigentes:
 
-Variables de entorno para envio de correo:
-- `EMAIL_BACKEND`
-- `EMAIL_HOST`
-- `EMAIL_PORT`
-- `EMAIL_HOST_USER`
-- `EMAIL_HOST_PASSWORD`
-- `EMAIL_USE_TLS`
-- `EMAIL_USE_SSL`
-- `EMAIL_TIMEOUT`
-- `DEFAULT_FROM_EMAIL`
-- `LINK_FRONTEND`
-
----
-
-### App: `subjects` ✅ (implementada)
-Modelos: `colors` ✅, `subjects` (pendiente)
-
-Endpoints activos (`colors`):
-- `GET    /api/v1/colors/`
-- `POST   /api/v1/colors/`  🔒 Admin
-- `GET    /api/v1/colors/paginated/`
-- `GET    /api/v1/colors/{pk}/`
-- `PUT    /api/v1/colors/{pk}/`  🔒 Admin
-- `DELETE /api/v1/colors/{pk}/`  🔒 Admin
-- `PUT    /api/v1/colors/{pk}/toggle-status/`  🔒 Admin
-
-Modelo `subjects` (campos):
-```
-name, short_name, code, description, hours_per_week,
-color (FK → colors), university (FK → universities), is_mandatory, status,
-created_at, created_by, updated_at, updated_by
-```
-
----
-
-### App: `universities` (por implementar)
-Modelos en orden de implementación: `images`, `period_types`, `universities`, `shifts`, `academic_periods`
-
-**`images`**
-```
-image_name, mime_type, extension, sha256, file_size, data,
-created_at, created_by, updated_at, updated_by
-```
-
-**`period_types`** 🔒 POST/PUT/DELETE requieren Admin
-```
-name, code, months_duration, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`universities`**
-```
-name, short_name, image (FK → images), user (FK → users),
-start_time, end_time, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`shifts`**
-```
-name, university (FK → universities), order,
-start_time, end_time, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`academic_periods`**
-```
-name, university (FK → universities), period_type (FK → period_types),
-start_month, end_month, order,
-created_at, created_by, updated_at, updated_by
-```
-
----
-
-### App: `careers` (por implementar)
-Modelos en orden: `careers`, `groups`, `career_subjects`, `career_period_exceptions`
-
-**`careers`**
-```
-name, short_name, code, university (FK → universities),
-total_periods, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`groups`**
-```
-name, career (FK → careers), period_number, letter,
-shift (FK → shifts), status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`career_subjects`** (tabla relacional, sin status)
-```
-subjects (FK → subjects), careers (FK → careers), period_number
-```
-
-**`career_period_exceptions`**
-```
-career (FK → careers), period_number, reason, status,
-created_at, created_by, updated_at, updated_by
-```
-
----
-
-### App: `teachers` (por implementar)
-Modelos en orden: `teachers`, `teacher_availabilities`, `teachers_subjects`, `teachers_universities`
-
-**`teachers`**
-```
-name, surname, last_name, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`teacher_availabilities`**
-```
-teacher (FK → teachers), day_of_week, start_time, end_time,
-is_available, created_at, created_by, updated_at, updated_by
-```
-
-**`teachers_subjects`** (tabla relacional)
-```
-teachers (FK → teachers), subjects (FK → subjects)
-```
-
-**`teachers_universities`** (tabla relacional con status)
-```
-teachers (FK → teachers), universities (FK → universities), status
-```
-
----
-
-### App: `classrooms` (por implementar)
-Modelos en orden: `classroom_types`, `classrooms`, `classroom_careers`
-
-**`classroom_types`**
-```
-name, description, status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`classrooms`**
-```
-name, classroom_type (FK → classroom_types), code, floor,
-building, building_code, is_restricted,
-universities (FK → universities), status,
-created_at, created_by, updated_at, updated_by
-```
-
-**`classroom_careers`** (tabla relacional)
-```
-careers (FK → careers), classrooms (FK → classrooms)
-```
-
----
-
-### App: `audit` (implementada)
-Modelo principal: `audit_logs`
-
-```
-user_id, username, source, transaction_id,
-table_name, record_id, action,
-old_data (JSON), new_data (JSON),
-ip_address, user_agent, is_succesfull, error_message, created_at
-```
-
-Comportamiento:
-
-- Exitos de operaciones de datos: registrados por triggers MySQL.
-- Errores de aplicacion en endpoints decorados: registrados desde backend con `with_audit_context(...)`, usando `is_succesfull = 0` y `error_message`.
-- Acciones puntuales (ejemplo `CHANGE_STATUS`): via `with_audit_action(...)`.
-
-Referencia completa:
-
-- `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
+- `.docs/BACKEND_ENDPOINTS_POR_REALIZAR.md`
+- `.docs/modulos_especificos/*.md`
 
 ---
 
@@ -839,10 +662,10 @@ from django.urls import path
 from subjects.views import ColorListView, ColorPaginatedView, ColorDetailView, ColorToggleStatusView
 
 urlpatterns = [
-    path('colors/',                       ColorListView.as_view()),
-    path('colors/paginated/',             ColorPaginatedView.as_view()),
-    path('colors/<int:pk>/',              ColorDetailView.as_view()),
-    path('colors/<int:pk>/toggle-status/', ColorToggleStatusView.as_view()),
+    path('v1/subjects/colors/',                        ColorListView.as_view()),
+    path('v1/subjects/colors/paginated/',              ColorPaginatedView.as_view()),
+    path('v1/subjects/colors/<int:pk>/',               ColorDetailView.as_view()),
+    path('v1/subjects/colors/<int:pk>/toggle-status/', ColorToggleStatusView.as_view()),
 ]
 ```
 
@@ -852,7 +675,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('', include('subjects.urls.colors')),
-    # path('', include('subjects.urls.subjects')),  # cuando se implemente
+    path('', include('subjects.urls.subjects')),
 ]
 ```
 

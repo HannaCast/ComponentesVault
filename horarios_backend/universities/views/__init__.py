@@ -8,3 +8,4 @@ from .classroom_type_priorities import (
 )
 from .full_universities import UniversityFullSetupUpdateView, UniversityFullSetupView
 from .university_profile import UniversityProfileView
+from .university_images import UniversityImageByUniversityView, UniversityUploadImageView
