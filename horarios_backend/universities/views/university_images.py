@@ -47,6 +47,16 @@ def _resolve_media_file(image_path: str):
     return candidate
 
 
+def _mark_image_as_deleted(image: Images, username: str):
+    if image is None or image.is_deleted == 1:
+        return
+
+    image.is_deleted = 1
+    image.updated_at = timezone.now()
+    image.updated_by = username
+    image.save(update_fields=['is_deleted', 'updated_at', 'updated_by'])
+
+
 @extend_schema(
     tags=['Universities'],
     responses={200: OpenApiTypes.BINARY},
@@ -86,17 +96,17 @@ class UniversityImageByUniversityView(APIView):
         )
 
 
-@extend_schema(
-    tags=['Universities'],
-    request=UploadImageSerializer,
-    responses={200: None},
-    description='Subir imagen de universidad',
-    summary='Subir logo de universidad',
-)
 class UniversityUploadImageView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
 
+    @extend_schema(
+        tags=['Universities'],
+        request=UploadImageSerializer,
+        responses={200: None},
+        description='Subir imagen de universidad',
+        summary='Subir logo de universidad',
+    )
     @with_audit_context(table_name='universities')
     def post(self, request, pk):
         # Con MultiPartParser, `request.data` ya incluye los ficheros; no pasar `files=`
@@ -113,6 +123,7 @@ class UniversityUploadImageView(APIView):
             status=1,
             is_deleted=0,
         )
+        current_image = university.image if university.image and university.image.is_deleted == 0 else None
 
         storage_name, extension = safe_storage_basename(
             uploaded.content_type,
@@ -132,6 +143,8 @@ class UniversityUploadImageView(APIView):
             file_written = True
 
             with transaction.atomic():
+                _mark_image_as_deleted(current_image, request.user.get_username())
+
                 image = Images.objects.create(
                     image_name=image_name,
                     mime_type=mime_type,
@@ -166,3 +179,31 @@ class UniversityUploadImageView(APIView):
             },
             message='Imagen subida correctamente',
         )
+
+    @extend_schema(
+        tags=['Universities'],
+        request=None,
+        responses={200: None},
+        description='Quitar logo de universidad con borrado lógico de imagen',
+        summary='Quitar logo de universidad',
+    )
+    @with_audit_context(table_name='universities')
+    def delete(self, request, pk):
+        university = get_object_or_404(
+            Universities,
+            pk=pk,
+            user=request.user,
+            status=1,
+            is_deleted=0,
+        )
+
+        image = university.image
+        if image is None or image.is_deleted == 1:
+            return ApiResponse.deleted('La universidad no tiene logo activo.')
+
+        with transaction.atomic():
+            university.image = None
+            university.save(update_fields=['image'])
+            _mark_image_as_deleted(image, request.user.get_username())
+
+        return ApiResponse.deleted('Logo eliminado correctamente.')

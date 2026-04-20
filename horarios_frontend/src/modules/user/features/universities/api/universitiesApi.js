@@ -73,3 +73,6 @@ export const uploadUniversityLogo = (universityId, file) => {
     ],
   });
 };
+
+export const deleteUniversityLogo = (universityId) =>
+  apiToken.delete(`/api/universities/${universityId}/upload-image/`);

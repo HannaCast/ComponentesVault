@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  deleteUniversityLogo,
   getUniversityImage,
   getUniversitiesPaginated,
   getUniversityProfile,
@@ -230,10 +231,19 @@ export const useUniversities = () => {
     }
   }, []);
 
-  const updateUniversityFullSetup = useCallback(async (universityId, payload, logoFile) => {
+  const updateUniversityFullSetup = useCallback(async (
+    universityId,
+    payload,
+    logoFile,
+    removeLogo = false,
+  ) => {
     setUpdateLoading(true);
     try {
       const response = await putFullUniversitySetup(universityId, payload);
+
+      if (universityId && removeLogo && !(logoFile instanceof File)) {
+        await deleteUniversityLogo(universityId);
+      }
 
       if (universityId && logoFile instanceof File) {
         await uploadUniversityLogo(universityId, logoFile);
