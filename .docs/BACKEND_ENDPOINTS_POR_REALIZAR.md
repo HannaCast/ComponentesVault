@@ -28,6 +28,7 @@
 | `POST` | `/api/v1/auth/register/` | Registrar usuario. Crea la cuenta, genera token de verificacion y envia correo. |
 | `POST` | `/api/v1/auth/register-admin/` | Registrar administrador (solo admin autenticado). Genera token y envia correo de verificacion. |
 | `POST` | `/api/v1/auth/verify-account/` | Verificar cuenta con token, activar `is_verificated = 1`, crear `user_configurations` por defecto e invalidar cookies de sesion. |
+| `PUT` | `/api/v1/auth/change-password/` | Cambiar contraseña del usuario autenticado (requiere contraseña actual). |
 | `POST` | `/api/v1/auth/login/` | Iniciar sesion (email + password). Retorna token. |
 | `POST` | `/api/v1/auth/refresh/` | Renovar access token usando refresh token en cookie HttpOnly. |
 | `POST` | `/api/v1/auth/logout/` | Cerrar sesion. Invalida el token. |
@@ -45,7 +46,8 @@ Notas:
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
 | `GET` | `/api/v1/user/my-info/` | Datos del usuario autenticado (nombre, correo, rol, configuracion actual). |
-| `PUT` | `/api/v1/user/configurations/` | Actualiza configuracion del usuario (`selected_university_id`, `theme`, `accent`). |
+| `GET` | `/api/v1/user/configurations/` | Obtiene la configuracion actual del usuario autenticado. |
+| `PUT` | `/api/v1/user/configurations/selected-university/` | Asigna o limpia la universidad seleccionada del usuario autenticado. |
 
 Notas de respuesta para configuracion de usuario:
 - Cuando se consulta configuracion (`GET /api/v1/user/configurations/`), el backend retorna `selected_university` (id, name, short_name).
@@ -60,10 +62,12 @@ Entidades que casi nunca cambian. Se usan principalmente en selects de formulari
 
 | Metodo | Endpoint | Descripcion | Donde se usa |
 |--------|----------|-------------|--------------|
-| `GET` | `/api/v1/roles/` | Lista todos los roles. | Gestion de usuarios |
 | `GET` | `/api/v1/period-types/` | Lista tipos de periodo (semestre, cuatrimestre, trimestre). | Formulario **Nueva Universidad** -> "Tipo de Periodo" |
-| `GET` | `/api/v1/colors/` | Lista colores con hex y contrast_hex. | Formulario **Nueva Materia** -> selector de color |
+| `GET` | `/api/v1/subjects/colors/` | Lista colores con hex y contrast_hex. | Formulario **Nueva Materia** -> selector de color |
 | `GET` | `/api/v1/classroom-types/` | Lista tipos de aula (Salon, Laboratorio, Compuaula). | Formulario **Nueva Aula** -> "Tipo de Aula" |
+
+Nota:
+- Actualmente no existe endpoint publico para `/api/v1/roles/`.
 
 ---
 
@@ -176,7 +180,9 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
 | `GET` | `/api/v1/university/modalities/` | Lista **todas** las modalidades de la universidad seleccionada. Tambien usado en select de **Nueva Carrera** -> "Modalidad". |
+| `GET` | `/api/v1/university/modalities/paginated/` | Lista modalidades paginadas con filtros y ordenamiento. |
 | `POST` | `/api/v1/university/modalities/` | Crea una nueva modalidad. |
+| `PUT` | `/api/v1/university/modalities/{modality_pk}/toggle-status/` | Activa o desactiva una modalidad. |
 | `PUT` | `/api/v1/university/modalities/{modality_pk}/` | Actualiza una modalidad. |
 | `DELETE` | `/api/v1/university/modalities/{modality_pk}/` | Elimina una modalidad. |
 
@@ -229,11 +235,18 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `GET` | `/api/v1/academic-periods/` | Lista **todos** los periodos de la universidad seleccionada. Tambien usado en select de **Nuevo Grupo** -> "Periodo academico". |
-| `POST` | `/api/v1/academic-periods/` | Crea un nuevo periodo academico. |
-| `PUT` | `/api/v1/academic-periods/{period_pk}/` | Actualiza un periodo. |
-| `PUT` | `/api/v1/academic-periods/{period_pk}/toggle-status/` | Activa el periodo (desactiva los demas; solo uno puede estar activo a la vez). |
-| `DELETE` | `/api/v1/academic-periods/{period_pk}/` | Elimina un periodo. |
+| `GET` | `/api/v1/university/academic-periods/` | Lista periodos academicos de la universidad seleccionada (respuesta paginada). Tambien usado en select de **Nuevo Grupo** -> "Periodo academico". |
+| `POST` | `/api/v1/university/academic-periods/` | Crea un nuevo periodo academico. |
+| `PUT` | `/api/v1/university/academic-periods/{period_pk}/` | Actualiza un periodo. |
+| `PUT` | `/api/v1/university/academic-periods/{period_pk}/toggle-status/` | Activa el periodo (desactiva los demas; solo uno puede estar activo a la vez). |
+| `DELETE` | `/api/v1/university/academic-periods/{period_pk}/` | Elimina un periodo. |
+
+**Query params de `GET /api/v1/university/academic-periods/`:**
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - filtro por nombre
+- `sortBy` - campo de orden (default: `id`)
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
@@ -296,11 +309,12 @@ La creacion incluye las excepciones de periodos en la misma transaccion.
 | `DELETE` | `/api/v1/university/careers/{pk}/` | Soft delete. |
 
 **Query params paginado:**
-- `search` - nombre o nombre corto
-- `status` - `1` / `0`
-- `modality_id` - filtrar por modalidad
-- `order` - `asc` / `desc`
-- `page`, `per_page`
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - nombre o codigo
+- `status` - `true` / `false`
+- `sortBy` - `id`, `name`, `code`, `total_periods`, `status`
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
@@ -308,7 +322,7 @@ La creacion incluye las excepciones de periodos en la misma transaccion.
   "name": "Desarrollo de Software",
   "short_name": "DSM",
   "code": "DSM-01",
-  "modality_id": 1,
+  "modality": 1,
   "total_periods": 12,
   "period_exceptions": [
     { "period_number": 6, "reason": "Periodo de estadias" },
@@ -317,7 +331,9 @@ La creacion incluye las excepciones de periodos en la misma transaccion.
 }
 ```
 
-> Las excepciones de periodo se gestionan siempre junto con la carrera (no tienen endpoints propios), ya que en la pantalla aparecen dentro del mismo formulario.
+> El campo `period_exceptions` puede enviarse en `POST`/`PUT` de carrera para sincronizar excepciones junto con la carrera.
+
+> Adicionalmente existen endpoints directos para excepciones: `/api/v1/university/career-period-exceptions/*`.
 
 ---
 
@@ -336,10 +352,12 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignac
 | `DELETE` | `/api/v1/university/subjects/{pk}/` | Soft delete. |
 
 **Query params paginado:**
-- `search` - nombre o nombre corto
-- `status` - `1` / `0`
-- `order` - `asc` / `desc`
-- `page`, `per_page`
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - nombre o codigo
+- `status` - `true` / `false`
+- `sortBy` - `id`, `name`, `code`, `hours_per_week`
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
@@ -376,7 +394,7 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignac
 > - `GET /api/v1/university/careers/` -> "Carreras a las que pertenece"
 > - `GET /api/v1/university/teachers/` -> "Profesores que pueden impartir"
 > - `GET /api/v1/classroom-types/` -> "Tipos de aula permitidos" (cuando aplica)
-> - `GET /api/v1/colors/` -> selector visual de color
+> - `GET /api/v1/subjects/colors/` -> selector visual de color
 
 ---
 
@@ -393,25 +411,27 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignac
 | `DELETE` | `/api/v1/university/groups/{pk}/` | Soft delete. |
 
 **Query params paginado:**
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
 - `search` - nombre del grupo
 - `career_id` - filtrar por carrera
-- `status` - `1` / `0`
-- `order` - `asc` / `desc`
-- `page`, `per_page`
+- `status` - `true` / `false`
+- `sortBy` - `id`, `name`, `period_number`, `letter`, `status`, `career_id`
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
 {
   "name": "3D",
-  "career_id": 1,
+  "career": 1,
   "period_number": 3,
   "letter": "D",
-  "shift_id": 1,
-  "academic_period_id": null
+  "shift": 1,
+  "academic_period": null
 }
 ```
 
-> `academic_period_id` solo aplica si `uses_period_groups = true` en la universidad seleccionada.
+> `academic_period` solo aplica si `uses_period_groups = true` en la universidad seleccionada.
 
 > Selects que alimentan este formulario:
 > - `GET /api/v1/university/careers/` -> "Carrera"
@@ -435,10 +455,12 @@ La creacion incluye intervalos de disponibilidad horaria y materias que puede im
 | `DELETE` | `/api/v1/university/teachers/{pk}/` | Soft delete. |
 
 **Query params paginado:**
-- `search` - nombre del profesor
-- `status` - `1` / `0`
-- `order` - `asc` / `desc`
-- `page`, `per_page`
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - nombre o apellidos del profesor
+- `status` - `true` / `false` (estado del vinculo profesor-universidad)
+- `sortBy` - `id`, `name`, `surname`, `last_name`
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
@@ -480,17 +502,19 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la
 | `DELETE` | `/api/v1/university/classrooms/{pk}/` | Soft delete. |
 
 **Query params paginado:**
-- `search` - nombre del aula o edificio
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - nombre, codigo, edificio o codigo de edificio
 - `classroom_type_id` - filtrar por tipo de aula
-- `status` - `1` / `0`
-- `order` - `asc` / `desc`
-- `page`, `per_page`
+- `status` - `true` / `false`
+- `sortBy` - `id`, `name`, `code`, `building`, `building_code`, `is_restricted`, `status`
+- `order` - `ASC` / `DESC`
 
 **Body (POST / PUT):**
 ```json
 {
   "name": "A2",
-  "classroom_type_id": 2,
+  "classroom_type": 2,
   "code": "A3",
   "floor": 1,
   "building": "Docencia 4",
@@ -566,6 +590,83 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 
 ---
 
+## 11. Endpoints auxiliares activos (relaciones y auditoria)
+
+Estos endpoints existen y estan activos en backend aunque no siempre se consumen desde las pantallas principales.
+
+### 11.1 Relaciones de carreras
+
+#### CareerSubjects
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/career-subjects/` | Lista relaciones materia-carrera-periodo de la universidad seleccionada. |
+| `POST` | `/api/v1/university/career-subjects/` | Crea una relacion materia-carrera-periodo. |
+| `GET` | `/api/v1/university/career-subjects/{pk}/` | Detalle de la relacion. |
+| `PUT` | `/api/v1/university/career-subjects/{pk}/` | Actualiza la relacion. |
+| `DELETE` | `/api/v1/university/career-subjects/{pk}/` | Soft delete de la relacion. |
+
+#### CareerPeriodExceptions
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/career-period-exceptions/` | Lista excepciones de periodo. Soporta query param opcional `career`. |
+| `POST` | `/api/v1/university/career-period-exceptions/` | Crea una excepcion de periodo. |
+| `GET` | `/api/v1/university/career-period-exceptions/{pk}/` | Detalle de excepcion. |
+| `PUT` | `/api/v1/university/career-period-exceptions/{pk}/` | Actualiza excepcion. |
+| `DELETE` | `/api/v1/university/career-period-exceptions/{pk}/` | Soft delete de excepcion. |
+
+### 11.2 Relaciones de profesores
+
+#### TeachersSubjects
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/teachers-subjects/` | Lista relaciones profesor-materia. |
+| `POST` | `/api/v1/university/teachers-subjects/` | Crea relacion profesor-materia. |
+| `GET` | `/api/v1/university/teachers-subjects/{pk}/` | Detalle de relacion. |
+| `PUT` | `/api/v1/university/teachers-subjects/{pk}/` | Actualiza relacion. |
+| `DELETE` | `/api/v1/university/teachers-subjects/{pk}/` | Soft delete de relacion. |
+
+#### TeachersUniversities
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/teacher-universities/` | Lista vinculos profesor-universidad de la universidad seleccionada. |
+| `POST` | `/api/v1/university/teacher-universities/` | Crea vinculo profesor-universidad. |
+| `GET` | `/api/v1/university/teacher-universities/{pk}/` | Detalle de vinculo. |
+| `PUT` | `/api/v1/university/teacher-universities/{pk}/` | Actualiza vinculo. |
+| `DELETE` | `/api/v1/university/teacher-universities/{pk}/` | Soft delete de vinculo. |
+
+#### TeacherAvailabilities
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/teacher-availabilities/` | Lista disponibilidades. Soporta query param opcional `teacher`. |
+| `GET` | `/api/v1/teacher-availabilities/paginated/` | Paginado de disponibilidades. Soporta `teacher`, `day_of_week`, `sortBy`, `order`. |
+| `POST` | `/api/v1/teacher-availabilities/` | Crea disponibilidad. |
+| `GET` | `/api/v1/teacher-availabilities/{pk}/` | Detalle de disponibilidad. |
+| `PUT` | `/api/v1/teacher-availabilities/{pk}/` | Actualiza disponibilidad. |
+| `PUT` | `/api/v1/teacher-availabilities/{pk}/toggle-available/` | Alterna disponibilidad (`is_available`). |
+| `DELETE` | `/api/v1/teacher-availabilities/{pk}/` | Soft delete de disponibilidad. |
+
+### 11.3 Relaciones de aulas
+
+#### ClassroomCareers
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/university/classroom-careers/` | Lista vinculos aula-carrera. Soporta query param opcional `classroom_id`. |
+| `POST` | `/api/v1/university/classroom-careers/` | Crea o reactiva vinculo aula-carrera. |
+| `GET` | `/api/v1/university/classroom-careers/{pk}/` | Detalle de vinculo. |
+| `DELETE` | `/api/v1/university/classroom-careers/{pk}/` | Soft delete de vinculo. |
+
+### 11.4 Auditoria
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `GET` | `/api/v1/audit/logs/paginated/` | Lista paginada de bitacora. Requiere rol administrador. |
+| `GET` | `/api/v1/audit/logs/{pk}/` | Detalle de bitacora. Requiere rol administrador. |
+
+Query params de `GET /api/v1/audit/logs/paginated/`:
+- `page`, `limit`, `search`, `entity`, `action`, `sortBy`, `order`
+
+---
+
 ## Resumen: selects y sus endpoints
 
 | Formulario | Campo select | Endpoint |
@@ -575,7 +676,7 @@ Notas de comportamiento en `POST /api/v1/university/schedules/generate/`:
 | Nueva Materia | Carreras a las que pertenece | `GET /api/v1/university/careers/` |
 | Nueva Materia | Profesores que pueden impartir | `GET /api/v1/university/teachers/` |
 | Nueva Materia | Tipos de aula permitidos | `GET /api/v1/classroom-types/` |
-| Nueva Materia | Color de la Materia | `GET /api/v1/colors/` |
+| Nueva Materia | Color de la Materia | `GET /api/v1/subjects/colors/` |
 | Nuevo Grupo | Carrera | `GET /api/v1/university/careers/` |
 | Nuevo Grupo | Turno | `GET /api/v1/university/shifts/` |
 | Nuevo Grupo | Periodo academico | `GET /api/v1/university/academic-periods/` |

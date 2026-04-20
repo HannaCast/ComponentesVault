@@ -65,7 +65,14 @@ Responsabilidades:
 - Cada dominio funcional vive en `modules`.
 - Estado actual del repo:
   - `modules/auth/`: implementado (api, hooks, pages).
-  - `modules/user/features/subjects/`: implementado completo y usado como patron.
+  - `modules/user/features/subjects/`: implementado completo y usado como patron base.
+  - `modules/user/features/universities/`: implementado (setup completo, logo, modalidades, turnos y periodos).
+  - `modules/user/features/careers/`: implementado.
+  - `modules/user/features/groups/`: implementado.
+  - `modules/user/features/teachers/`: implementado.
+  - `modules/user/features/classrooms/`: implementado.
+  - `modules/user/features/scheduleGenerator/`: implementado.
+  - `modules/user/features/dashboard/` y `settings/`: implementados.
 
 ---
 
@@ -100,7 +107,7 @@ Segun backend y `.docs`, el frontend debe asumir:
 - Toggle status: `/api/v1/university/subjects/{id}/toggle-status/`
 - Catalogo colores: `/api/v1/subjects/colors/`
 - Catalogo carreras: `/api/v1/university/careers/`
-- Catalogo profesores: `/api/v1/teachers/`
+- Catalogo profesores: `/api/v1/university/teachers/`
 
 ---
 

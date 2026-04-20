@@ -105,7 +105,7 @@ Rutas:
 ### 3.4 Recursos relacionados en contexto de universidad
 - Modalidades: `/api/v1/university/modalities/*`
 - Turnos: `/api/v1/university/shifts/*`
-- Periodos academicos: `/api/v1/academic-periods/*`
+- Periodos academicos: `/api/v1/university/academic-periods/*`
 
 ---
 
