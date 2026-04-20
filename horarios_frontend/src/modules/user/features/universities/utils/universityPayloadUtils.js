@@ -40,8 +40,11 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
     start_time: toApiTime(formState.start_time),
     end_time: toApiTime(formState.end_time),
     period_type: Number(formState.period_type),
-    uses_period_groups: usesGroups ? 1 : 0,
   };
+
+  if (!isEdit) {
+    university.uses_period_groups = usesGroups ? 1 : 0;
+  }
 
   if (!isEdit || hasImageId) {
     university.image = imageVal;

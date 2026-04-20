@@ -148,6 +148,7 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
 
 > `academic_periods` solo se envia si `uses_period_groups` es `true`.
 > El logo no se envia como URL/path en este payload; se gestiona con `upload-image`.
+> `uses_period_groups` se define al crear la universidad y no se puede cambiar despues (si se intenta cambiar en `PUT`, backend responde error de validacion).
 
 **Body PUT (actualizacion solo datos generales):**
 ```json
@@ -228,11 +229,11 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `GET` | `/api/v1/university/academic-periods/` | Lista **todos** los periodos. Tambien usado en select de **Nuevo Grupo** -> "Periodo academico". |
-| `POST` | `/api/v1/university/academic-periods/` | Crea un nuevo periodo academico. |
-| `PUT` | `/api/v1/university/academic-periods/{period_pk}/` | Actualiza un periodo. |
-| `PUT` | `/api/v1/university/academic-periods/{period_pk}/toggle-status/` | Activa el periodo (desactiva los demas; solo uno puede estar activo a la vez). |
-| `DELETE` | `/api/v1/university/academic-periods/{period_pk}/` | Elimina un periodo. |
+| `GET` | `/api/v1/academic-periods/` | Lista **todos** los periodos de la universidad seleccionada. Tambien usado en select de **Nuevo Grupo** -> "Periodo academico". |
+| `POST` | `/api/v1/academic-periods/` | Crea un nuevo periodo academico. |
+| `PUT` | `/api/v1/academic-periods/{period_pk}/` | Actualiza un periodo. |
+| `PUT` | `/api/v1/academic-periods/{period_pk}/toggle-status/` | Activa el periodo (desactiva los demas; solo uno puede estar activo a la vez). |
+| `DELETE` | `/api/v1/academic-periods/{period_pk}/` | Elimina un periodo. |
 
 **Body (POST / PUT):**
 ```json

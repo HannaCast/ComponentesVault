@@ -471,6 +471,7 @@ export const UniversityForm = ({
   const existingLogoSrc = removeExistingLogo ? null : resolvedExistingLogoSrc;
   const logoDisplaySrc = logoPreviewUrl || (!logoFile && existingLogoSrc) || null;
   const showLogoDropZone = !logoDisplaySrc;
+  const isPeriodGroupsLocked = mode === 'edit';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full pb-4 sm:pb-6">
@@ -574,11 +575,15 @@ export const UniversityForm = ({
               label="¿Gestionar periodos académicos?"
               checked={formData.uses_period_groups}
               onChange={(e) => handleInputChange('uses_period_groups', e.target.checked)}
-              disabled={isLoading}
+              disabled={isLoading || isPeriodGroupsLocked}
               helperText={
-                'Si activas esta opción, los grupos estarán relacionados con periodos '
-                + 'académicos específicos. Podrás configurarlos en la pestaña '
-                + '"Periodos académicos".'
+                isPeriodGroupsLocked
+                  ? 'Esta configuración se define al crear la universidad y no se puede modificar en edición.'
+                  : (
+                    'Si activas esta opción, los grupos estarán relacionados con periodos '
+                    + 'académicos específicos. Podrás configurarlos en la pestaña '
+                    + '"Periodos académicos".'
+                  )
               }
             />
           </div>
