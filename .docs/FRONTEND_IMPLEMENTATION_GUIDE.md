@@ -195,6 +195,14 @@ Reglas:
 - Mensajes de error claros para usuario.
 - Reglas condicionales por `mode` cuando aplique.
 
+### 4.6 Reglas implementadas en formulario de universidades
+
+- Al crear universidad, la modalidad inicial por defecto es solo `Presencial`.
+- Al agregar nuevas modalidades, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- Al agregar nuevos turnos, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- En los turnos, `start_time` y `end_time` se limitan en UI con `min/max` al rango operativo de la universidad (`start_time`/`end_time` de universidad).
+- Ademas de la restriccion visual, el frontend valida que cada turno quede dentro del rango de apertura/cierre antes de enviar.
+
 ---
 
 ## 5. Flujo recomendado end-to-end (ejemplo subjects)

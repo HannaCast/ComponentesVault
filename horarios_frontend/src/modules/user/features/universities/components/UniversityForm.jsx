@@ -198,7 +198,7 @@ export const UniversityForm = ({
             key: `s-${uid()}`,
             name: '',
             start_time: prev.start_time || '08:00',
-            end_time: '14:00',
+            end_time: prev.end_time || '14:00',
             order: nextOrder,
           },
           ...prev.shifts,
@@ -904,6 +904,8 @@ export const UniversityForm = ({
                         <Input
                           label="Hora Inicio "
                           type="time"
+                          min={formData.start_time || undefined}
+                          max={formData.end_time || undefined}
                           value={s.start_time}
                           onChange={(e) => updateShift(idx, { start_time: e.target.value })}
                           disabled={isLoading}
@@ -915,6 +917,8 @@ export const UniversityForm = ({
                         <Input
                           label="Hora Fin "
                           type="time"
+                          min={formData.start_time || undefined}
+                          max={formData.end_time || undefined}
                           value={s.end_time}
                           onChange={(e) => updateShift(idx, { end_time: e.target.value })}
                           disabled={isLoading}

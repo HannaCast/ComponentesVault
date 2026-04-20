@@ -73,10 +73,15 @@ Entidades que casi nunca cambian. Se usan principalmente en selects de formulari
 
 El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, Modalidades, Turnos y Periodos academicos.
 
-- La carga es **lazy por pestana**: al abrir el formulario solo se trae el detalle general (`GET /api/v1/universities/{pk}/`).
-- Cuando el usuario navega a una pestana, se dispara el GET del sub-recurso en contexto de universidad seleccionada.
-- El **`POST` de creacion si es una transaccion completa** (datos + modalidades + turnos + periodos), ya que al crear se configura todo de golpe y debe ser atomico.
-- El **`PUT` de actualizacion solo toca los datos generales** de la universidad. Modalidades, turnos y periodos tienen sus propios endpoints de actualizacion.
+- Para edicion completa en frontend se usa `GET /api/v1/universities/{pk}/profile/`.
+- La lista principal usa `GET /api/v1/universities/` con paginacion por query params.
+- El setup completo se maneja con:
+  - `POST /api/setup/university-complete/` (creacion atomica)
+  - `PUT /api/v1/universities/{pk}/full-setup/` (actualizacion atomica)
+- La gestion de logo es separada del setup:
+  - `GET /api/v1/universities/{pk}/image/` (binario autenticado)
+  - `POST /api/universities/{pk}/upload-image/` (subir/reemplazar)
+  - `DELETE /api/universities/{pk}/upload-image/` (quitar logo con borrado logico)
 
 ---
 
@@ -84,31 +89,37 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
 
 | Metodo | Endpoint | Descripcion |
 |--------|----------|-------------|
-| `GET` | `/api/v1/universities/` | Lista **todas** las universidades del usuario (para selects). |
-| `GET` | `/api/v1/universities/paginated/` | Lista paginada con filtros (vista de lista). |
-| `POST` | `/api/v1/universities/` | **Transaccion completa:** crea universidad + modalidades + turnos + periodos academicos. |
+| `GET` | `/api/v1/universities/` | Lista paginada de universidades del usuario (vista principal). |
+| `POST` | `/api/v1/universities/create/` | Crea solo datos generales de universidad. |
 | `GET` | `/api/v1/universities/{pk}/` | Detalle de **datos generales** unicamente (pestana "Datos generales"). |
+| `GET` | `/api/v1/universities/{pk}/profile/` | Perfil completo para edicion (datos generales + modalidades + turnos + periodos). |
 | `GET` | `/api/v1/universities/{pk}/image/` | Retorna el logo/imagen de la universidad en binario (solo usuario autenticado con acceso a esa universidad). |
 | `PUT` | `/api/v1/universities/{pk}/` | Actualiza **solo datos generales** de la universidad. |
-| `PUT` | `/api/v1/universities/{pk}/toggle-status/` | Activa o desactiva la universidad. |
+| `PUT` | `/api/v1/universities/{pk}/full-setup/` | Actualiza setup completo (universidad + modalidades + turnos + periodos). |
+| `POST` | `/api/setup/university-complete/` | Crea setup completo de universidad (atomico). |
+| `POST` | `/api/universities/{pk}/upload-image/` | Sube o reemplaza logo de universidad. |
+| `DELETE` | `/api/universities/{pk}/upload-image/` | Quita logo de universidad; marca `images.is_deleted = 1`. |
 | `DELETE` | `/api/v1/universities/{pk}/` | Soft delete. |
 
 **Query params paginado:**
-- `search` - nombre o nombre corto
-- `status` - `1` / `0`
-- `page`, `per_page`
+- `page` - numero de pagina (default: `1`)
+- `limit` - tamano de pagina (default: `10`)
+- `search` - filtro por nombre, nombre corto o codigo institucional
+- `sortBy` - campo de orden (default: `name`)
+- `order` - `ASC` / `DESC`
 
-**Body POST (creacion - transaccion completa):**
+**Body POST (creacion setup completo):**
 ```json
 {
-  "name": "Universidad Emiliano Zapata",
-  "short_name": "UTEZ",
-  "institution_code": "UTEZ001",
-  "start_time": "07:00",
-  "end_time": "22:00",
-  "period_type_id": 1,
-  "uses_period_groups": true,
-  "image_url": "https://ejemplo.com/logo.png",
+  "university": {
+    "name": "Universidad Emiliano Zapata",
+    "short_name": "UTEZ",
+    "institution_code": "UTEZ001",
+    "start_time": "07:00",
+    "end_time": "22:00",
+    "period_type": 1,
+    "uses_period_groups": 1
+  },
   "modalities": [
     {
       "name": "Presencial",
@@ -136,8 +147,9 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
 ```
 
 > `academic_periods` solo se envia si `uses_period_groups` es `true`.
+> El logo no se envia como URL/path en este payload; se gestiona con `upload-image`.
 
-**Body PUT (actualizacion - solo datos generales):**
+**Body PUT (actualizacion solo datos generales):**
 ```json
 {
   "name": "Universidad Emiliano Zapata",
@@ -145,11 +157,14 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
   "institution_code": "UTEZ001",
   "start_time": "07:00",
   "end_time": "22:00",
-  "period_type_id": 1,
-  "uses_period_groups": true,
-  "image_url": "https://ejemplo.com/logo.png"
+  "period_type": 1,
+  "uses_period_groups": 1
 }
 ```
+
+**Body PUT (actualizacion setup completo):**
+
+Mismo contrato que `POST /api/setup/university-complete/`, pudiendo incluir `id` en elementos de listas para actualizar registros existentes.
 
 ---
 
@@ -199,7 +214,11 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 }
 ```
 
-> Las horas deben estar dentro del rango `start_time`-`end_time` de la universidad (validacion backend).
+> Las horas deben estar dentro del rango `start_time`-`end_time` de la universidad.
+>
+> Esta validacion se aplica en backend tanto para:
+> - Endpoints directos de turnos (`/api/v1/university/shifts/*`)
+> - Setup completo (`POST /api/setup/university-complete/`, `PUT /api/v1/universities/{pk}/full-setup/`)
 
 ---
 
