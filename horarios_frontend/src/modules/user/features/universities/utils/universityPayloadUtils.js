@@ -124,18 +124,6 @@ export const createDefaultModalities = () => [
     classroom_days_per_week: 5,
     allowed_days: [1, 2, 3, 4, 5],
   },
-  {
-    key: `m-${uid()}`,
-    name: 'En línea',
-    classroom_days_per_week: 0,
-    allowed_days: [1],
-  },
-  {
-    key: `m-${uid()}`,
-    name: 'Mixta',
-    classroom_days_per_week: 3,
-    allowed_days: [1, 3, 5],
-  },
 ];
 
 const pad2 = (n) => String(n).padStart(2, '0');

@@ -163,13 +163,13 @@ export const UniversityForm = ({
     setFormData((prev) => ({
       ...prev,
       modalities: [
-        ...prev.modalities,
         {
           key: `m-${uid()}`,
           name: '',
           classroom_days_per_week: 0,
           allowed_days: [1],
         },
+        ...prev.modalities,
       ],
     }));
   };
