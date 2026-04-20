@@ -184,9 +184,6 @@ export const validateUniversityCrossRules = (data) => {
       if (b < a) {
         errors[`period_${idx}_range`] = 'La fecha de fin no puede ser anterior a la de inicio';
       }
-      if (a.getFullYear() !== b.getFullYear()) {
-        errors[`period_${idx}_year`] = 'El periodo debe estar dentro del mismo año calendario';
-      }
     });
 
     const activeCount = (data.academic_periods || []).filter((p) => p.is_active).length;

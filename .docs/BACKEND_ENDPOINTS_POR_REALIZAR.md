@@ -140,8 +140,8 @@ El formulario de edicion de universidad tiene **4 pestanas**: Datos generales, M
   "academic_periods": [
     {
       "name": "Mayo - Agosto 2025",
-      "start_month": 5,
-      "end_month": 8,
+      "start_date": "2025-05-01",
+      "end_date": "2025-08-31",
       "year": 2025,
       "order": 1,
       "is_active": true
@@ -252,8 +252,8 @@ Se gestionan de forma independiente. Se cargan cuando el usuario navega a la pes
 ```json
 {
   "name": "Mayo - Agosto 2025",
-  "start_month": 5,
-  "end_month": 8,
+  "start_date": "2025-05-01",
+  "end_date": "2025-08-31",
   "year": 2025,
   "order": 1
 }

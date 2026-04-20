@@ -226,7 +226,6 @@ export const UniversityForm = ({
     setFormData((prev) => ({
       ...prev,
       academic_periods: [
-        ...prev.academic_periods,
         {
           key: `p-${uid()}`,
           name: '',
@@ -235,6 +234,7 @@ export const UniversityForm = ({
           order: prev.academic_periods.length + 1,
           is_active: prev.academic_periods.length === 0,
         },
+        ...prev.academic_periods,
       ],
     }));
   };

@@ -49,7 +49,7 @@ class UniversityProfileView(APIView):
         academic_periods = AcademicPeriods.objects.filter(
             university_id=university.id,
             is_deleted=0,
-        ).order_by('order', 'id')
+        ).order_by('-id')
 
         payload = {
             **UniversityWriteSerializer(

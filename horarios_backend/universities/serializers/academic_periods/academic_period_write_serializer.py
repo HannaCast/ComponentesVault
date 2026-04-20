@@ -9,24 +9,30 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
         model = AcademicPeriods
         fields = [
             'name',
-            'start_month',
-            'end_month',
+            'start_date',
+            'end_date',
             'year',
             'order',
             'is_active',
         ]
 
     @staticmethod
-    def _validate_month_range(value):
-        if value < 1 or value > 12:
-            raise serializers.ValidationError('Debe estar entre 1 y 12.')
-        return value
+    def _get_effective_value(attrs, instance, field_name):
+        if field_name in attrs:
+            return attrs.get(field_name)
+        if instance is not None:
+            return getattr(instance, field_name, None)
+        return None
 
-    def validate_start_month(self, value):
-        return self._validate_month_range(value)
+    @staticmethod
+    def _validate_dates(start_date, end_date):
+        if start_date is None or end_date is None:
+            return
 
-    def validate_end_month(self, value):
-        return self._validate_month_range(value)
+        if end_date < start_date:
+            raise serializers.ValidationError(
+                {'end_date': 'La fecha de fin no puede ser anterior a la fecha de inicio.'}
+            )
 
     @staticmethod
     def _get_selected_university_id(context):
@@ -52,11 +58,27 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
         return university
 
     @staticmethod
-    def _validate_period_group_fields(attrs, uses_period_groups):
+    def _validate_period_group_fields(
+        attrs,
+        uses_period_groups,
+        *,
+        start_date,
+        instance,
+    ):
         year = attrs.get('year')
         order = attrs.get('order')
 
+        if instance is not None:
+            if year is None:
+                year = instance.year
+            if order is None:
+                order = instance.order
+
         if uses_period_groups:
+            if year is None and start_date is not None:
+                year = start_date.year
+                attrs['year'] = year
+
             if year is None:
                 raise serializers.ValidationError(
                     {'year': 'Este campo es obligatorio cuando uses_period_groups = True.'}
@@ -65,7 +87,13 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'order': 'Este campo es obligatorio cuando uses_period_groups = True.'}
                 )
-        elif year is not None or order is not None:
+
+            if start_date is not None and int(year) != start_date.year:
+                raise serializers.ValidationError(
+                    {'year': 'El campo year debe coincidir con start_date.'}
+                )
+
+        elif 'year' in attrs or 'order' in attrs:
             raise serializers.ValidationError(
                 {
                     'order': (
@@ -106,7 +134,16 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
         university = self._get_university_for_validation(selected_university_id)
 
         uses_period_groups = int(university.uses_period_groups or 0) == 1
-        order = self._validate_period_group_fields(attrs, uses_period_groups)
+        start_date = self._get_effective_value(attrs, self.instance, 'start_date')
+        end_date = self._get_effective_value(attrs, self.instance, 'end_date')
+        self._validate_dates(start_date, end_date)
+
+        order = self._validate_period_group_fields(
+            attrs,
+            uses_period_groups,
+            start_date=start_date,
+            instance=self.instance,
+        )
         self._validate_unique_order(selected_university_id, uses_period_groups, order)
         self._validate_is_active_field(attrs)
 

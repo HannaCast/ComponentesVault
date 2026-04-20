@@ -167,8 +167,8 @@ Comportamiento implementado:
   "academic_periods": [
     {
       "name": "Mayo - Agosto 2026",
-      "start_month": 5,
-      "end_month": 8,
+      "start_date": "2026-05-01",
+      "end_date": "2026-08-31",
       "year": 2026,
       "order": 1,
       "is_active": 1
