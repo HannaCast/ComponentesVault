@@ -194,7 +194,6 @@ export const UniversityForm = ({
       return {
         ...prev,
         shifts: [
-          ...prev.shifts,
           {
             key: `s-${uid()}`,
             name: '',
@@ -202,6 +201,7 @@ export const UniversityForm = ({
             end_time: '14:00',
             order: nextOrder,
           },
+          ...prev.shifts,
         ],
       };
     });
@@ -774,63 +774,66 @@ export const UniversityForm = ({
             >
               <button
                 type="button"
-                className="absolute top-3 right-3 text-[var(--error,#dc2626)] p-1"
+                className="absolute top-3 right-3 rounded-lg p-1.5 sm:p-2 text-[var(--error,#dc2626)] border border-[var(--error,#dc2626)]/20 bg-[var(--bg-elevated,#ffffff)] hover:bg-red-50 hover:border-[var(--error,#dc2626)]/40 transition-colors"
                 onClick={() => removeModality(idx)}
                 disabled={isLoading || formData.modalities.length <= 1}
                 aria-label="Eliminar modalidad"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
               </button>
-              <Input
-                label="Nombre "
-                value={m.name}
-                onChange={(e) => updateModality(idx, { name: e.target.value })}
-                error={formErrors[`modalities[${idx}].name`] || formErrors[`modality_${idx}_field`]}
-                disabled={isLoading}
-                reserveHelperSpace={false}
-                required
-              />
-              <Input
-                label="Días con salón por semana "
-                type="number"
-                min={0}
-                max={7}
-                value={m.classroom_days_per_week}
-                onChange={(e) => updateModality(idx, { classroom_days_per_week: e.target.value })}
-                error={formErrors[`modality_${idx}_cdpw`]}
-                disabled={isLoading}
-                reserveHelperSpace={false}
-                required
-              />
-              <div>
-                <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
-                  <span>Días en que se estudía</span>
-                  <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {WEEKDAYS.map(({ day, label }) => {
-                    const selected = (m.allowed_days || []).includes(day);
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => toggleModalityDay(idx, day)}
-                        className={`min-w-[2.25rem] px-2 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                          selected
-                            ? 'bg-[var(--accent,#2563eb)] text-white border-[var(--accent,#2563eb)]'
-                            : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)]'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+
+              <div className="space-y-3 pr-12">
+                <Input
+                  label="Nombre "
+                  value={m.name}
+                  onChange={(e) => updateModality(idx, { name: e.target.value })}
+                  error={formErrors[`modalities[${idx}].name`] || formErrors[`modality_${idx}_field`]}
+                  disabled={isLoading}
+                  reserveHelperSpace={false}
+                  required
+                />
+                <Input
+                  label="Días con salón por semana "
+                  type="number"
+                  min={0}
+                  max={7}
+                  value={m.classroom_days_per_week}
+                  onChange={(e) => updateModality(idx, { classroom_days_per_week: e.target.value })}
+                  error={formErrors[`modality_${idx}_cdpw`]}
+                  disabled={isLoading}
+                  reserveHelperSpace={false}
+                  required
+                />
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
+                    <span>Días en que se estudía</span>
+                    <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAYS.map(({ day, label }) => {
+                      const selected = (m.allowed_days || []).includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => toggleModalityDay(idx, day)}
+                          className={`min-w-[2.25rem] px-2 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                            selected
+                              ? 'bg-[var(--accent,#2563eb)] text-white border-[var(--accent,#2563eb)]'
+                              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)]'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+                <p className="text-xs italic text-[var(--text-secondary)]">
+                  Modalidad por defecto: los días de estudio y salones son editables según tu universidad.
+                </p>
               </div>
-              <p className="text-xs italic text-[var(--text-secondary)]">
-                Modalidad por defecto: los días de estudio y salones son editables según tu universidad.
-              </p>
             </div>
           ))}
           {formErrors.modalities && (
@@ -874,65 +877,64 @@ export const UniversityForm = ({
             <div className="space-y-3">
               {formData.shifts.map((s, idx) => (
                 <div key={s.key || idx} className="space-y-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                    <div className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Nombre "
-                            value={s.name}
-                            onChange={(e) => updateShift(idx, { name: e.target.value })}
-                            placeholder="Matutino"
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Hora Inicio "
-                            type="time"
-                            value={s.start_time}
-                            onChange={(e) => updateShift(idx, { start_time: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Hora Fin "
-                            type="time"
-                            value={s.end_time}
-                            onChange={(e) => updateShift(idx, { end_time: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Orden "
-                            type="number"
-                            min={1}
-                            value={s.order}
-                            onChange={(e) => updateShift(idx, { order: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
+                  <div className="min-w-0 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4 relative">
                     <button
                       type="button"
-                      className="self-end sm:self-auto shrink-0 rounded-lg p-2.5 text-[var(--error,#dc2626)] border border-transparent hover:bg-red-50 hover:border-red-100 sm:mb-1"
+                      className="absolute top-3 right-3 rounded-lg p-1.5 sm:p-2 text-[var(--error,#dc2626)] border border-[var(--error,#dc2626)]/20 bg-[var(--bg-elevated,#ffffff)] hover:bg-red-50 hover:border-[var(--error,#dc2626)]/40 transition-colors"
                       onClick={() => removeShift(idx)}
                       disabled={isLoading}
                       aria-label="Eliminar turno"
                     >
-                      <X className="w-5 h-5" strokeWidth={2.25} />
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
                     </button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pr-12">
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Nombre "
+                          value={s.name}
+                          onChange={(e) => updateShift(idx, { name: e.target.value })}
+                          placeholder="Matutino"
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Hora Inicio "
+                          type="time"
+                          value={s.start_time}
+                          onChange={(e) => updateShift(idx, { start_time: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Hora Fin "
+                          type="time"
+                          value={s.end_time}
+                          onChange={(e) => updateShift(idx, { end_time: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Orden "
+                          type="number"
+                          min={1}
+                          value={s.order}
+                          onChange={(e) => updateShift(idx, { order: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
                   {(formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]) && (
                     <p className="text-sm text-[var(--error,#dc2626)] pl-0 sm:pl-1">
