@@ -1,6 +1,8 @@
 from dataclasses import asdict
+import json
 import secrets
 
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone
 
@@ -87,6 +89,11 @@ def _normalize_optional_non_negative_int_parameter(value) -> int | None:
 def _build_random_seed() -> int:
     # Se usa rango amplio positivo para facilitar interoperabilidad en serializacion JSON.
     return secrets.randbelow(2_147_483_647) + 1
+
+
+def _to_json_compatible_dict(payload: dict) -> dict:
+    """Convierte objetos no serializables (date/datetime/time/Decimal) a formas JSON seguras."""
+    return json.loads(json.dumps(payload, cls=DjangoJSONEncoder))
 
 
 def _get_or_create_user_configuration(user) -> UserConfiguration:
@@ -206,7 +213,7 @@ def generate_or_update_draft_schedule_version(
         randomize_generation=bool(parameters_payload.get('randomize_generation', False)),
         random_seed=parameters_payload.get('random_seed'),
     )
-    result_payload = asdict(result)
+    result_payload = _to_json_compatible_dict(asdict(result))
 
     summary = result_payload.get('summary') if isinstance(result_payload.get('summary'), dict) else {}
     assigned_count = _safe_non_negative_int(summary.get('total_blocks_assigned'))
