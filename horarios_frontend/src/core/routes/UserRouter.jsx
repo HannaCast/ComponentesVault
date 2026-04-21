@@ -1,4 +1,4 @@
-import { Route } from 'react-router-dom';
+import { Navigate, Route } from 'react-router-dom';
 import { UserLayout } from '../../modules/user/layout/UserLayout';
 import { SubjectsPage } from '../../modules/user/features/subjects/pages/SubjectsPage';
 import { TeachersPage } from '../../modules/user/features/teachers/pages/TeachersPage';
@@ -16,12 +16,11 @@ import { UniversityViewPage } from '../../modules/user/features/universities/pag
 import { UniversityEditPage } from '../../modules/user/features/universities/pages/UniversityEditPage';
 import { UserHomePage } from '../../modules/user/features/dashboard/pages/UserHomePage';
 
-const UserPlaceholderPage = () => <div>Módulo de usuario — próximamente</div>;
-
 // Elemento de rutas de usuario para ser compuesto desde el router principal.
 export const userRoutes = (
   <Route path="/usuario" element={<UserLayout />}>
-    <Route index element={<UserHomePage />} />
+    <Route index element={<Navigate to="dashboard" replace />} />
+    <Route path="dashboard" element={<UserHomePage />} />
     <Route path="universidad/generar-horario" element={<ScheduleGeneratorPage />} />
     <Route path="universidad/generar-horario/ver/:versionId" element={<ScheduleVersionDetailPage />} />
     <Route path="universidades" element={<UniversitiesSection />}>
@@ -32,8 +31,8 @@ export const userRoutes = (
     </Route>
     <Route path="universidad/carreras" element={<CareersPage />} />
     <Route path="universidad/materias" element={<SubjectsPage />} />
-    <Route path="universidad/materias/crear" element={<UserPlaceholderPage />} />
-    <Route path="universidad/materias/editar/:id" element={<UserPlaceholderPage />} />
+    <Route path="universidad/materias/crear" element={<div>Módulo de usuario — próximamente</div>} />
+    <Route path="universidad/materias/editar/:id" element={<div>Módulo de usuario — próximamente</div>} />
     <Route path="universidad/grupos" element={<GroupsPage />} />
     <Route path="universidad/profesores" element={<TeachersPage />} />
     <Route path="universidad/aulas" element={<ClassroomsPage />} />

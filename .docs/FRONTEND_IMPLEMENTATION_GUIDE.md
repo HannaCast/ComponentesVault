@@ -113,6 +113,10 @@ Segun backend y `.docs`, el frontend debe asumir:
 - `GET /api/v1/university/careers/{id}/`
 - `data.period_exceptions` ya trae `id` y `career_id`, por lo que no se requiere una segunda consulta a `/api/v1/university/career-period-exceptions/`.
 
+7. En `dashboard` (home del usuario) se consume un resumen consolidado por universidad:
+- `GET /api/v1/university/dashboard/summary/`
+- El frontend debe usar este endpoint como fuente unica para hero, cards KPI, estado de borrador y progreso de completitud.
+
 ---
 
 ## 4. Patron recomendado de modulo frontend
@@ -253,6 +257,15 @@ Reglas:
 1. Usuario confirma delete.
 2. Hook llama DELETE.
 3. Lista se refresca (el item ya no aparece por `is_deleted=0` en backend).
+
+### 5.6 Dashboard (home de usuario)
+
+1. Al entrar a `/usuario/dashboard`, la page dispara una sola carga de `dashboard/summary`.
+2. El hook del modulo (`useDashboard`) concentra estados `loading/error/summary`.
+3. El hero y cards se alimentan exclusivamente del payload resumen.
+4. La alerta de borrador usa `schedule_generation.has_draft` y metadatos de version.
+5. El panel de completitud usa `completion.score_percentage` + `completion.items`.
+6. Los accesos rapidos se derivan del menu lateral y excluyen el item actual (`/usuario/dashboard`).
 
 ---
 

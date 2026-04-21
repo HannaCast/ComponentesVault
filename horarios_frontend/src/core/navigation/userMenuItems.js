@@ -7,6 +7,7 @@ import {
   Building2,
   Settings,
   School,
+  LayoutDashboard,
 } from 'lucide-react';
 
 /**
@@ -14,6 +15,7 @@ import {
  * Mantener paths alineados con UserRouter.
  */
 export const USER_MENU_ITEMS = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/usuario/dashboard' },
   { icon: Calendar, label: 'Generar horario', path: '/usuario/universidad/generar-horario' },
   { icon: School, label: 'Universidades', path: '/usuario/universidades' },
   { icon: Building2, label: 'Aulas', path: '/usuario/universidad/aulas' },

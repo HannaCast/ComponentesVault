@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, GraduationCap, Menu, User } from 'lucide-react';
 import { useAuth } from '../../../core/context/AuthContext';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
@@ -16,6 +16,7 @@ import { ConfirmModal } from '@shared/components/ConfirmModal';
 export const Header = ({ className = '', onMenuClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
@@ -24,6 +25,7 @@ export const Header = ({ className = '', onMenuClick }) => {
   const secondaryLabel = user?.selected_university?.short_name
     || user?.selected_university?.name
     || 'Sesión activa';
+  const shouldHideSessionSummary = pathname === '/usuario' || pathname.startsWith('/usuario/dashboard');
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -80,10 +82,12 @@ export const Header = ({ className = '', onMenuClick }) => {
         </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="text-right hidden md:block min-w-0">
-              <p className="text-sm font-medium text-[var(--text-primary)]">{roleLabel}</p>
-              <p className="text-xs text-[var(--text-secondary)] truncate">{secondaryLabel}</p>
-            </div>
+            {!shouldHideSessionSummary ? (
+              <div className="text-right hidden md:block min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)]">{roleLabel}</p>
+                <p className="text-xs text-[var(--text-secondary)] truncate">{secondaryLabel}</p>
+              </div>
+            ) : null}
 
             <button
               type="button"
