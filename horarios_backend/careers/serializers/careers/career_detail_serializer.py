@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
 from careers.models import CareerPeriodExceptions, Careers
+from careers.serializers.career_period_exceptions import (
+    CareerPeriodExceptionListSerializer,
+)
 
 
 class CareerDetailSerializer(serializers.ModelSerializer):
@@ -27,7 +30,4 @@ class CareerDetailSerializer(serializers.ModelSerializer):
             career_id=obj.pk,
             is_deleted=0,
         ).order_by('period_number', 'id')
-        return [
-            {'period_number': r.period_number, 'reason': r.reason or ''}
-            for r in rows
-        ]
+        return CareerPeriodExceptionListSerializer(rows, many=True).data

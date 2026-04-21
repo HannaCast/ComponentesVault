@@ -102,7 +102,6 @@ export const CareersPage = () => {
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
   const { shouldRun: shouldRunModalitiesRequest } = useRequestDeduper({ windowMs: 150 });
-  const { shouldRun: shouldRunPeriodExceptionsRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -149,9 +148,6 @@ export const CareersPage = () => {
     fetchCareerById,
     handleCreateCareer,
     handleUpdateCareer,
-    periodExceptions,
-    periodExceptionsLoading,
-    fetchPeriodExceptionsForCareer,
   } = useCareers();
 
   const selectedUniversity = user?.selected_university;
@@ -403,35 +399,6 @@ export const CareersPage = () => {
   ]);
 
   useEffect(() => {
-    if (!drawerOpen || drawerMode === 'create') {
-      return;
-    }
-
-    const id = selectedCareer?.id;
-    if (id) {
-      const signature = buildRequestSignature(
-        {
-          resource: 'career-period-exceptions',
-          careerId: id,
-        },
-        ['resource', 'careerId'],
-      );
-
-      if (!shouldRunPeriodExceptionsRequest(signature)) {
-        return;
-      }
-
-      fetchPeriodExceptionsForCareer(id);
-    }
-  }, [
-    drawerOpen,
-    drawerMode,
-    selectedCareer?.id,
-    fetchPeriodExceptionsForCareer,
-    shouldRunPeriodExceptionsRequest,
-  ]);
-
-  useEffect(() => {
     if (error) {
       if (drawerOpen && drawerMode !== 'view') {
         return;
@@ -556,8 +523,8 @@ export const CareersPage = () => {
         {drawerMode === 'view' ? (
           <CareerDetail
             career={selectedCareer}
-            periodExceptions={periodExceptions}
-            periodExceptionsLoading={periodExceptionsLoading}
+            periodExceptions={selectedCareer?.period_exceptions || []}
+            periodExceptionsLoading={careerLoading}
             onClose={handleCloseDrawer}
             onEdit={handleDrawerEditClick}
           />
@@ -570,8 +537,8 @@ export const CareersPage = () => {
             mode={drawerMode}
             modalityOptions={modalitiesOptions}
             careerId={selectedCareer?.id}
-            periodExceptions={periodExceptions}
-            periodExceptionsLoading={periodExceptionsLoading}
+            periodExceptions={selectedCareer?.period_exceptions || []}
+            periodExceptionsLoading={careerLoading}
           />
         )}
       </SideDrawer>
