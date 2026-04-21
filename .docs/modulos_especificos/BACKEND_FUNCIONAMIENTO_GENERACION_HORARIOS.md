@@ -663,6 +663,25 @@ Responsabilidad:
 - Registrar old_data/new_data en audit_logs.
 - Incluir JSON parameters y data dentro del payload auditado.
 
+### 18.4 Indices y eventos de mantenimiento
+
+Archivos SQL:
+
+- scripts/base_de_datos/5. horarios-indices.sql
+- scripts/base_de_datos/6. horarios-eventos.sql
+
+Objetivo:
+
+- Reducir costo de consultas frecuentes sobre `schedule_versions` y `academic_periods`.
+- Ejecutar limpieza periodica de registros no necesarios para evitar crecimiento operativo.
+
+Elementos clave:
+
+- `idx_schedule_versions_uni_del_conf_id` para borrador activo por universidad.
+- `idx_academic_periods_uni_del_active_id` para periodo activo por universidad.
+- `evt_purge_expired_tokens` para tokens expirados no usados.
+- `evt_purge_soft_deleted_draft_versions` para borradores con soft delete antiguos.
+
 ## 19) Reglas funcionales clave (resumen)
 
 1. Toda operacion se acota a selected_university_id del usuario.

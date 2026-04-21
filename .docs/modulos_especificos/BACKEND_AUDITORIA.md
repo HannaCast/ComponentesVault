@@ -13,7 +13,10 @@ Documentar como funciona la auditoria de datos en backend con enfoque mixto:
 2. Triggers SQL en:
    - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
    - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-3. Contexto de sesion en backend con `core.audit_context`.
+3. Scripts operativos complementarios:
+   - `scripts/base_de_datos/5. horarios-indices.sql`
+   - `scripts/base_de_datos/6. horarios-eventos.sql`
+4. Contexto de sesion en backend con `core.audit_context`.
 
 Archivos clave:
 
@@ -21,6 +24,8 @@ Archivos clave:
 - `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
 - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
 - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
+- `scripts/base_de_datos/5. horarios-indices.sql`
+- `scripts/base_de_datos/6. horarios-eventos.sql`
 - `horarios_backend/core/audit_context.py`
 - `horarios_backend/subjects/views/subjects.py`
 
@@ -100,8 +105,10 @@ def put(self, request, pk):
 2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
 3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
 4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-5. `scripts/base_de_datos/5. horarios-catalogos-base.sql`
-6. `scripts/base_de_datos/6. horarios-datos-prueba.sql` (opcional)
+5. `scripts/base_de_datos/5. horarios-indices.sql`
+6. `scripts/base_de_datos/6. horarios-eventos.sql`
+7. `scripts/base_de_datos/7. horarios-catalogos-base.sql`
+8. `scripts/base_de_datos/8. horarios-datos-prueba.sql` (opcional)
 
 ## Revision rapida de los SQL actuales
 
@@ -124,11 +131,19 @@ Estado general: funcionales para el modelo de auditoria actual, con observacione
    - Incluye auditoria para `schedule_versions` (INSERT/UPDATE/DELETE).
    - Consideracion: los triggers no llenan `error_message` por si solos; los errores de app los registra backend.
 
-5. `scripts/base_de_datos/5. horarios-catalogos-base.sql`
+5. `scripts/base_de_datos/5. horarios-indices.sql`
+   - Correcto: agrega indices compuestos para consultas frecuentes.
+   - Enfoque: acelerar filtros por universidad/estado en `schedule_versions` y `academic_periods`.
+
+6. `scripts/base_de_datos/6. horarios-eventos.sql`
+   - Correcto: define eventos de limpieza periodica.
+   - Incluye purga de `user_tokens` expirados y borradores soft-delete antiguos de `schedule_versions`.
+
+7. `scripts/base_de_datos/7. horarios-catalogos-base.sql`
    - Correcto: concentra catalogos del sistema (roles, period_types, colors y classroom_types).
    - Enfoque: datos estables para cualquier entorno.
 
-6. `scripts/base_de_datos/6. horarios-datos-prueba.sql`
+8. `scripts/base_de_datos/8. horarios-datos-prueba.sql`
    - Correcto: agrupa toda la data semilla para pruebas funcionales.
    - Nota: no inserta registros en `schedule_versions`.
 
