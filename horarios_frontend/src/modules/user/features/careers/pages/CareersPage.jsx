@@ -152,8 +152,6 @@ export const CareersPage = () => {
     periodExceptions,
     periodExceptionsLoading,
     fetchPeriodExceptionsForCareer,
-    handleCreatePeriodException,
-    handleDeletePeriodException,
   } = useCareers();
 
   const selectedUniversity = user?.selected_university;
@@ -301,22 +299,6 @@ export const CareersPage = () => {
     } catch (err) {
       console.error('Error al guardar carrera:', err);
     }
-  };
-
-  const handleCreateExceptionWithToast = async (payload) => {
-    const ok = await handleCreatePeriodException(payload);
-    if (ok) {
-      toast.success('Excepción registrada');
-    }
-    return ok;
-  };
-
-  const handleDeleteExceptionWithToast = async (exceptionId, careerId) => {
-    const ok = await handleDeletePeriodException(exceptionId, careerId);
-    if (ok) {
-      toast.success('Excepción eliminada');
-    }
-    return ok;
   };
 
   const emptyState = getEmptyState(searchTerm, estadoFiltro, handleOpenDrawerCreate);
@@ -590,8 +572,6 @@ export const CareersPage = () => {
             careerId={selectedCareer?.id}
             periodExceptions={periodExceptions}
             periodExceptionsLoading={periodExceptionsLoading}
-            onCreatePeriodException={handleCreateExceptionWithToast}
-            onDeletePeriodException={handleDeleteExceptionWithToast}
           />
         )}
       </SideDrawer>

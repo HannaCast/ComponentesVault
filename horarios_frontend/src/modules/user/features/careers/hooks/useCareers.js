@@ -1,9 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   createCareer,
-  createCareerPeriodException,
   deleteCareer,
-  deleteCareerPeriodException,
   getCareer,
   getCareerPeriodExceptions,
   getCareersPaginated,
@@ -234,39 +232,6 @@ export const useCareers = () => {
     }
   };
 
-  const handleCreatePeriodException = async ({ careerId, period_number, reason }) => {
-    try {
-      setError(null);
-      await createCareerPeriodException({
-        career: careerId,
-        period_number,
-        reason: reason?.trim() || '',
-      });
-      await fetchPeriodExceptionsForCareer(careerId);
-      return true;
-    } catch (err) {
-      console.error('Error al crear excepción:', err);
-      const msg =
-        extractApiErrorMessage(err) || 'No se pudo registrar la excepción de periodo.';
-      setError(msg);
-      return false;
-    }
-  };
-
-  const handleDeletePeriodException = async (exceptionId, careerId) => {
-    try {
-      setError(null);
-      await deleteCareerPeriodException(exceptionId);
-      await fetchPeriodExceptionsForCareer(careerId);
-      return true;
-    } catch (err) {
-      console.error('Error al eliminar excepción:', err);
-      const msg = extractApiErrorMessage(err) || 'No se pudo eliminar la excepción.';
-      setError(msg);
-      return false;
-    }
-  };
-
   const handleToggleStatus = async (id) => {
     try {
       await toggleCareerStatus(id);
@@ -323,7 +288,5 @@ export const useCareers = () => {
     periodExceptions,
     periodExceptionsLoading,
     fetchPeriodExceptionsForCareer,
-    handleCreatePeriodException,
-    handleDeletePeriodException,
   };
 };
