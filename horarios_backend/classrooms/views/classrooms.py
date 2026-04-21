@@ -366,7 +366,7 @@ class ClassroomDetailView(APIView):
 
     def get_object(self, pk, university_id):
         try:
-            return Classrooms.objects.select_related('classroom_type').get(
+            return Classrooms.objects.select_related('classroom_type', 'universities').get(
                 pk=pk,
                 is_deleted=0,
                 universities_id=university_id,

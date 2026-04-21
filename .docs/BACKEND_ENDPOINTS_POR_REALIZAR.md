@@ -333,6 +333,8 @@ La creacion incluye las excepciones de periodos en la misma transaccion.
 
 > El campo `period_exceptions` puede enviarse en `POST`/`PUT` de carrera para sincronizar excepciones junto con la carrera.
 
+> En `GET /api/v1/university/careers/{pk}/`, cada elemento de `period_exceptions` incluye `id`, `career_id`, `period_number` y `reason`.
+
 > Adicionalmente existen endpoints directos para excepciones: `/api/v1/university/career-period-exceptions/*`.
 
 ---
@@ -531,6 +533,8 @@ La creacion incluye la asignacion de carreras cuando `is_restricted = true` y la
 ```
 
 > Si `is_restricted = false`, el campo `careers` se omite o se envia vacio.
+
+> En `GET /api/v1/university/classrooms/{pk}/`, la respuesta de detalle incluye `university_name` (nombre de la universidad del aula).
 
 > Si `is_restricted_to_subjects = false`, el campo `subjects` se omite o se envia vacio.
 

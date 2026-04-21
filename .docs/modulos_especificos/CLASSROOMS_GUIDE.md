@@ -106,7 +106,7 @@ En `ClassroomForm`:
 Comportamiento esperado:
 - si el aula esta restringida por carrera, el selector de carrera para materias usa solo carreras permitidas del aula,
 - en edicion, el formulario carga materias ya guardadas y permite agregar/quitar antes de guardar,
-- en detalle, se muestra bandera de restriccion por materia y la lista de materias permitidas.
+- en detalle, se muestra el nombre de la universidad (`university_name`), bandera de restriccion por materia y la lista de materias permitidas.
 
 Archivos frontend clave:
 - `horarios_frontend/src/modules/user/features/classrooms/components/ClassroomForm.jsx`

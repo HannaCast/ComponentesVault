@@ -109,6 +109,10 @@ Segun backend y `.docs`, el frontend debe asumir:
 - Catalogo carreras: `/api/v1/university/careers/`
 - Catalogo profesores: `/api/v1/university/teachers/`
 
+6. En `careers`, al abrir ver/editar se usa una sola llamada de detalle:
+- `GET /api/v1/university/careers/{id}/`
+- `data.period_exceptions` ya trae `id` y `career_id`, por lo que no se requiere una segunda consulta a `/api/v1/university/career-period-exceptions/`.
+
 ---
 
 ## 4. Patron recomendado de modulo frontend
