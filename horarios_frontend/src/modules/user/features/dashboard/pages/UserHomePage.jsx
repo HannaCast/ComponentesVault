@@ -1,15 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@context/AuthContext';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
+import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
-import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
+import { getSelectedUniversityDisplayName, getSelectedUniversityId } from '@shared/utils/universityContext';
 import { USER_MENU_ITEMS } from '../../../../../core/navigation/userMenuItems';
 import { DashboardCompletionPanel } from '../components/DashboardCompletionPanel';
 import { DashboardDraftAlert } from '../components/DashboardDraftAlert';
 import { DashboardHero } from '../components/DashboardHero';
 import { DashboardMetricCards } from '../components/DashboardMetricCards';
 import { DashboardQuickAccess } from '../components/DashboardQuickAccess';
+import { DashboardScheduleSteps } from '../components/DashboardScheduleSteps';
 import { useDashboard } from '../hooks/useDashboard';
 
 const QUICK_ACCESS_ITEMS = USER_MENU_ITEMS.filter(
@@ -17,8 +19,11 @@ const QUICK_ACCESS_ITEMS = USER_MENU_ITEMS.filter(
 );
 
 export const UserHomePage = () => {
-  const { user } = useAuth();
-  const selectedUniversityId = Number(user?.selected_university?.id) || null;
+  const { user, authLoading, restoreSession } = useAuth();
+  const selectedUniversity = user?.selected_university || null;
+  const selectedUniversityId = getSelectedUniversityId(selectedUniversity);
+  const hasSelectedUniversity = Boolean(selectedUniversity) || selectedUniversityId !== null;
+  const attemptedSessionSyncRef = useRef(false);
   const { shouldRun } = useRequestDeduper({ windowMs: 180 });
 
   const {
@@ -48,7 +53,19 @@ export const UserHomePage = () => {
     fetchDashboardSummary({ selectedUniversityId });
   }, [selectedUniversityId, fetchDashboardSummary, shouldRun]);
 
-  const fallbackUniversity = user?.selected_university || null;
+  useEffect(() => {
+    if (authLoading || hasSelectedUniversity || attemptedSessionSyncRef.current) {
+      return;
+    }
+
+    attemptedSessionSyncRef.current = true;
+    restoreSession()
+      .catch(() => {
+        // Si la sincronizacion falla, mostramos vista sin universidad de forma controlada.
+      });
+  }, [authLoading, hasSelectedUniversity, restoreSession]);
+
+  const fallbackUniversity = selectedUniversity;
   const summaryUniversity = summary?.university || fallbackUniversity;
   const universityName = getSelectedUniversityDisplayName(
     summaryUniversity,
@@ -63,6 +80,29 @@ export const UserHomePage = () => {
   ).trim() || null;
 
   const completionScore = Number(summary?.completion?.score_percentage) || 0;
+
+  if (authLoading) {
+    return <LoadingStatePanel message="Cargando dashboard institucional..." />;
+  }
+
+  if (!hasSelectedUniversity) {
+    return (
+      <div className="mx-auto max-w-7xl space-y-4">
+        <DashboardHero
+          universityName="Sin universidad seleccionada"
+          shortUniversityName={null}
+          activePeriodName={null}
+          completionScore={0}
+        />
+
+        <SelectedUniversityAlert message="Selecciona una universidad para ver tus indicadores y poder generar horarios." />
+
+        <DashboardQuickAccess items={QUICK_ACCESS_ITEMS} />
+
+        <DashboardScheduleSteps hasSelectedUniversity={true} />
+      </div>
+    );
+  }
 
   if (loading && !summary) {
     return <LoadingStatePanel message="Cargando dashboard institucional..." />;
@@ -121,6 +161,8 @@ export const UserHomePage = () => {
       </div>
 
       <DashboardQuickAccess items={QUICK_ACCESS_ITEMS} />
+
+      <DashboardScheduleSteps />
     </div>
   );
 };

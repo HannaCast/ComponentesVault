@@ -61,6 +61,7 @@ modules/user/features/dashboard/
     DashboardDraftAlert.jsx
     DashboardCompletionPanel.jsx
     DashboardQuickAccess.jsx
+    DashboardScheduleSteps.jsx
   pages/
     UserHomePage.jsx
 ```
@@ -75,12 +76,40 @@ modules/user/features/dashboard/
    - Alerta de borrador pendiente.
    - Panel de completitud.
    - Accesos rapidos (derivados de sidebar, excluyendo Dashboard).
+   - Seccion `Pasos para generar horarios` debajo de Accesos rapidos.
+
+### Seccion de pasos para generar horarios
+
+La seccion presenta, en lenguaje de usuario, una guia rapida para preparar y generar horarios:
+
+1. Seleccionar universidad y periodo activo.
+2. Configurar base academica (carreras, materias, grupos activos).
+3. Completar profesores/disponibilidad y aulas.
+4. Generar o actualizar borrador en el modulo de generacion.
+5. Revisar resultado y confirmar version final.
+
+Tambien muestra mensajes frecuentes que impiden generar el horario:
+
+- No hay universidad seleccionada.
+- No hay periodo activo.
+- No hay grupos activos.
+- No hay materias listas para asignar.
 
 ### Navegacion
 
 - Ruta explicita: `/usuario/dashboard`.
 - Redireccion base: `/usuario` -> `/usuario/dashboard`.
 - Sidebar: item `Dashboard` agregado al menu principal.
+
+### Comportamiento sin universidad seleccionada
+
+- El dashboard ahora es accesible aun sin universidad seleccionada.
+- En ese estado no se consulta `dashboard/summary`.
+- Se muestran:
+  - Hero en estado neutro.
+  - Alerta para seleccionar universidad.
+  - Accesos rapidos.
+  - Seccion `Pasos para generar horarios`.
 
 ### Nota UX
 
