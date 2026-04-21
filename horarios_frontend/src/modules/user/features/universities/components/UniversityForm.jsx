@@ -96,7 +96,10 @@ export const UniversityForm = ({
   const [formErrors, setFormErrors] = useState({});
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
+  const [isLogoDragActive, setIsLogoDragActive] = useState(false);
+  const [removeExistingLogo, setRemoveExistingLogo] = useState(false);
   const fileInputRef = useRef(null);
+  const hasExistingLogo = Boolean(mode === 'edit' && initialProfile?.image_url);
 
   useEffect(() => {
     return () => {
@@ -160,13 +163,13 @@ export const UniversityForm = ({
     setFormData((prev) => ({
       ...prev,
       modalities: [
-        ...prev.modalities,
         {
           key: `m-${uid()}`,
           name: '',
           classroom_days_per_week: 0,
           allowed_days: [1],
         },
+        ...prev.modalities,
       ],
     }));
   };
@@ -191,14 +194,14 @@ export const UniversityForm = ({
       return {
         ...prev,
         shifts: [
-          ...prev.shifts,
           {
             key: `s-${uid()}`,
             name: '',
             start_time: prev.start_time || '08:00',
-            end_time: '14:00',
+            end_time: prev.end_time || '14:00',
             order: nextOrder,
           },
+          ...prev.shifts,
         ],
       };
     });
@@ -223,7 +226,6 @@ export const UniversityForm = ({
     setFormData((prev) => ({
       ...prev,
       academic_periods: [
-        ...prev.academic_periods,
         {
           key: `p-${uid()}`,
           name: '',
@@ -232,6 +234,7 @@ export const UniversityForm = ({
           order: prev.academic_periods.length + 1,
           is_active: prev.academic_periods.length === 0,
         },
+        ...prev.academic_periods,
       ],
     }));
   };
@@ -258,34 +261,131 @@ export const UniversityForm = ({
     }));
   };
 
-  const handleLogoPick = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      e.target.value = '';
-      return;
+  const validateLogoFile = (file) => {
+    if (!(file instanceof File)) {
+      return 'Selecciona un archivo de imagen válido.';
     }
+
     const contentType = String(file.type || '').toLowerCase().trim();
     if (!ALLOWED_LOGO_TYPES.has(contentType)) {
-      toast.error('Tipo de archivo no permitido. Usa JPEG, PNG, GIF o WebP.');
-      e.target.value = '';
+      return 'Tipo de archivo no permitido. Usa JPEG, PNG, GIF o WebP.';
+    }
+
+    if (file.size > MAX_LOGO_BYTES) {
+      return 'La imagen supera el tamaño máximo permitido (5 MB).';
+    }
+
+    return null;
+  };
+
+  const applyLogoFile = (file) => {
+    const validationError = validateLogoFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
-    if (file.size > MAX_LOGO_BYTES) {
-      toast.error('La imagen supera el tamaño máximo permitido (5 MB).');
-      e.target.value = '';
-      return;
+
+    if (logoPreviewUrl) {
+      URL.revokeObjectURL(logoPreviewUrl);
     }
     setLogoPreviewUrl(URL.createObjectURL(file));
     setLogoFile(file);
+  };
+
+  const openLogoPicker = () => {
+    if (isLoading) {
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleLogoPick = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      applyLogoFile(file);
+    }
     e.target.value = '';
   };
 
+  const handleLogoDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isLoading) {
+      return;
+    }
+    setIsLogoDragActive(true);
+  };
+
+  const handleLogoDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isLoading) {
+      return;
+    }
+    e.dataTransfer.dropEffect = 'copy';
+    if (!isLogoDragActive) {
+      setIsLogoDragActive(true);
+    }
+  };
+
+  const handleLogoDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget)) {
+      return;
+    }
+    setIsLogoDragActive(false);
+  };
+
+  const handleLogoDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsLogoDragActive(false);
+    if (isLoading) {
+      return;
+    }
+
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    applyLogoFile(file);
+  };
+
+  const handleLogoDropZoneKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openLogoPicker();
+    }
+  };
+
   const clearLogoSelection = () => {
+    if (logoPreviewUrl) {
+      URL.revokeObjectURL(logoPreviewUrl);
+    }
     setLogoFile(null);
     setLogoPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const markCurrentLogoForRemoval = () => {
+    if (isLoading || mode !== 'edit' || !hasExistingLogo) {
+      return;
+    }
+
+    clearLogoSelection();
+    setRemoveExistingLogo(true);
+  };
+
+  const restoreCurrentLogo = () => {
+    if (isLoading || mode !== 'edit' || !hasExistingLogo) {
+      return;
+    }
+
+    setRemoveExistingLogo(false);
   };
 
   const runValidation = async () => {
@@ -345,7 +445,11 @@ export const UniversityForm = ({
     }
 
     const payload = buildFullUniversityPayload(formData, { isEdit: mode === 'edit' });
-    onSubmit({ payload, logoFile });
+    onSubmit({
+      payload,
+      logoFile,
+      removeLogo: mode === 'edit' && removeExistingLogo,
+    });
   };
 
   const tabButtonClass = (tabId, disabled) => {
@@ -360,11 +464,14 @@ export const UniversityForm = ({
     }`;
   };
 
-  const existingLogoSrc =
+  const resolvedExistingLogoSrc =
     mode === 'edit' && initialProfile?.image_url
       ? resolveMediaUrl(initialProfile.image_url)
       : null;
+  const existingLogoSrc = removeExistingLogo ? null : resolvedExistingLogoSrc;
   const logoDisplaySrc = logoPreviewUrl || (!logoFile && existingLogoSrc) || null;
+  const showLogoDropZone = !logoDisplaySrc;
+  const isPeriodGroupsLocked = mode === 'edit';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full pb-4 sm:pb-6">
@@ -468,72 +575,174 @@ export const UniversityForm = ({
               label="¿Gestionar periodos académicos?"
               checked={formData.uses_period_groups}
               onChange={(e) => handleInputChange('uses_period_groups', e.target.checked)}
-              disabled={isLoading}
+              disabled={isLoading || isPeriodGroupsLocked}
               helperText={
-                'Si activas esta opción, los grupos estarán relacionados con periodos '
-                + 'académicos específicos. Podrás configurarlos en la pestaña '
-                + '"Periodos académicos".'
+                isPeriodGroupsLocked
+                  ? 'Esta configuración se define al crear la universidad y no se puede modificar en edición.'
+                  : (
+                    'Si activas esta opción, los grupos estarán relacionados con periodos '
+                    + 'académicos específicos. Podrás configurarlos en la pestaña '
+                    + '"Periodos académicos".'
+                  )
               }
             />
           </div>
 
           <div className="space-y-3">
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Input
-                  label="Logo (archivo)"
-                  value={logoFile ? logoFile.name : ''}
-                  onChange={() => {}}
-                  placeholder="Selecciona un archivo de imagen"
-                  disabled={isLoading}
-                  readOnly
-                  reserveHelperSpace={false}
-                />
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  {mode === 'edit'
-                    ? 'Si eliges un archivo, reemplazará el logo actual al guardar.'
-                    : 'Tras guardar, si eliges un archivo se subirá automáticamente como logo de la universidad.'}
-                </p>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/"
-                className="hidden"
-                onChange={handleLogoPick}
-              />
-              <button
-                type="button"
-                className="mb-0.5 p-2 rounded-lg border border-[var(--border-default)] hover:bg-[var(--bg-surface)]"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                aria-label="Seleccionar imagen"
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Logo
+            </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleLogoPick}
+            />
+
+            {showLogoDropZone ? (
+              <div
+                role="button"
+                tabIndex={isLoading ? -1 : 0}
+                aria-label="Arrastra una imagen o selecciona un archivo de logo"
+                className={`relative overflow-hidden rounded-2xl border-2 border-dashed p-4 sm:p-5 transition-all ${
+                  isLogoDragActive
+                    ? 'border-[var(--accent,#2563eb)] bg-[var(--accent-subtle,#eff6ff)] shadow-sm'
+                    : 'border-[var(--border-default,#d1d5db)] bg-[var(--bg-surface,#f9fafb)] hover:border-[var(--accent,#2563eb)]/60 hover:bg-[var(--accent-subtle,#eff6ff)]/50'
+                } ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                onClick={openLogoPicker}
+                onKeyDown={handleLogoDropZoneKeyDown}
+                onDragEnter={handleLogoDragEnter}
+                onDragOver={handleLogoDragOver}
+                onDragLeave={handleLogoDragLeave}
+                onDrop={handleLogoDrop}
               >
-                <Upload className="w-5 h-5 text-[var(--accent,#2563eb)]" />
-              </button>
-            </div>
-            {logoDisplaySrc ? (
-              <div className="flex flex-wrap items-start gap-3">
-                <div
-                  className="rounded-xl border overflow-hidden bg-[var(--bg-surface,#fff)] p-2"
-                  style={{ borderColor: 'var(--border-default,#e5e7eb)' }}
-                >
-                  <img
-                    src={logoDisplaySrc}
-                    alt="Vista previa del logo"
-                    className="max-h-36 max-w-[min(100%,280px)] w-auto object-contain block mx-auto"
-                  />
-                </div>
-                {logoFile ? (
+                <div className="pointer-events-none absolute -top-10 -right-6 h-28 w-28 rounded-full bg-[var(--accent,#2563eb)]/10 blur-2xl" />
+
+                <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl border border-[var(--border-default,#d1d5db)] bg-[var(--bg-elevated,#ffffff)] p-3">
+                      <Upload className="w-5 h-5 text-[var(--accent,#2563eb)]" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        Arrastra y suelta tu logo aquí
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        O haz clic para seleccionar un archivo (JPEG, PNG, GIF o WebP, máximo 5 MB).
+                      </p>
+                      {logoFile ? (
+                        <p className="text-xs font-medium text-[var(--accent,#2563eb)] mt-2 break-all">
+                          Archivo seleccionado: {logoFile.name}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={clearLogoSelection}
+                    className="rounded-lg border border-[var(--border-default,#d1d5db)] bg-[var(--bg-elevated,#ffffff)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface,#f8fafc)]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLogoPicker();
+                    }}
                     disabled={isLoading}
-                    className="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline-offset-2 hover:underline"
                   >
-                    Quitar imagen seleccionada
+                    Elegir archivo
                   </button>
-                ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {!(mode === 'edit' && removeExistingLogo && !logoFile) ? (
+              <p className="text-xs text-[var(--text-secondary)]">
+                {mode === 'edit'
+                  ? 'Al guardar, la imagen seleccionada reemplazará el logo actual.'
+                  : 'Si cargas una imagen y guardas, se asociará como logo de la universidad.'}
+              </p>
+            ) : null}
+
+            {logoDisplaySrc ? (
+              <div className="rounded-2xl border border-[var(--border-default,#e5e7eb)] bg-[var(--bg-elevated,#ffffff)] p-3 sm:p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
+                      {logoFile ? 'Vista previa del nuevo logo' : 'Logo actual'}
+                    </p>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1">
+                      {logoFile
+                        ? 'Este archivo se aplicará cuando guardes los cambios.'
+                        : 'Puedes reemplazarlo con el botón “Cambiar imagen”.'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={openLogoPicker}
+                      disabled={isLoading}
+                      className="text-sm font-medium text-[var(--accent,#2563eb)] hover:text-[var(--accent,#1d4ed8)] underline-offset-2 hover:underline"
+                    >
+                      Cambiar imagen
+                    </button>
+
+                    {mode === 'edit' && !logoFile && hasExistingLogo ? (
+                      <button
+                        type="button"
+                        onClick={markCurrentLogoForRemoval}
+                        disabled={isLoading}
+                        className="text-sm font-medium text-[var(--error,#dc2626)] hover:text-[var(--error,#b91c1c)] underline-offset-2 hover:underline"
+                      >
+                        Quitar imagen actual
+                      </button>
+                    ) : null}
+
+                    {logoFile ? (
+                      <button
+                        type="button"
+                        onClick={clearLogoSelection}
+                        disabled={isLoading}
+                        className={`text-sm font-medium underline-offset-2 hover:underline ${
+                          mode === 'create'
+                            ? 'text-[var(--error,#dc2626)] hover:text-[var(--error,#b91c1c)]'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        Quitar selección
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-3 flex justify-center">
+                  <div className="w-full max-w-[320px] rounded-xl border border-[var(--border-default,#e5e7eb)] bg-[var(--bg-surface,#f9fafb)] p-2 flex items-center justify-center min-h-[180px]">
+                    <img
+                      src={logoDisplaySrc}
+                      alt="Vista previa del logo"
+                      className="max-h-40 max-w-full w-auto object-contain block"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : mode === 'edit' ? (
+              <div className="rounded-xl border border-dashed border-[var(--border-default,#d1d5db)] bg-[var(--bg-surface,#f9fafb)] px-3 py-2 text-xs text-[var(--text-secondary)]">
+                {removeExistingLogo && hasExistingLogo
+                  ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span>El logo actual se quitará al guardar los cambios.</span>
+                      <button
+                        type="button"
+                        onClick={restoreCurrentLogo}
+                        disabled={isLoading}
+                        className="font-medium text-[var(--accent,#2563eb)] hover:text-[var(--accent,#1d4ed8)] underline-offset-2 hover:underline"
+                      >
+                        Restaurar logo
+                      </button>
+                    </div>
+                  )
+                  : 'Esta universidad no tiene logo configurado todavía.'}
               </div>
             ) : null}
           </div>
@@ -570,63 +779,66 @@ export const UniversityForm = ({
             >
               <button
                 type="button"
-                className="absolute top-3 right-3 text-[var(--error,#dc2626)] p-1"
+                className="absolute top-3 right-3 rounded-lg p-1.5 sm:p-2 text-[var(--error,#dc2626)] border border-[var(--error,#dc2626)]/20 bg-[var(--bg-elevated,#ffffff)] hover:bg-red-50 hover:border-[var(--error,#dc2626)]/40 transition-colors"
                 onClick={() => removeModality(idx)}
                 disabled={isLoading || formData.modalities.length <= 1}
                 aria-label="Eliminar modalidad"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
               </button>
-              <Input
-                label="Nombre "
-                value={m.name}
-                onChange={(e) => updateModality(idx, { name: e.target.value })}
-                error={formErrors[`modalities[${idx}].name`] || formErrors[`modality_${idx}_field`]}
-                disabled={isLoading}
-                reserveHelperSpace={false}
-                required
-              />
-              <Input
-                label="Días con salón por semana "
-                type="number"
-                min={0}
-                max={7}
-                value={m.classroom_days_per_week}
-                onChange={(e) => updateModality(idx, { classroom_days_per_week: e.target.value })}
-                error={formErrors[`modality_${idx}_cdpw`]}
-                disabled={isLoading}
-                reserveHelperSpace={false}
-                required
-              />
-              <div>
-                <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
-                  <span>Días en que se estudía</span>
-                  <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {WEEKDAYS.map(({ day, label }) => {
-                    const selected = (m.allowed_days || []).includes(day);
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => toggleModalityDay(idx, day)}
-                        className={`min-w-[2.25rem] px-2 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                          selected
-                            ? 'bg-[var(--accent,#2563eb)] text-white border-[var(--accent,#2563eb)]'
-                            : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)]'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+
+              <div className="space-y-3 pr-12">
+                <Input
+                  label="Nombre "
+                  value={m.name}
+                  onChange={(e) => updateModality(idx, { name: e.target.value })}
+                  error={formErrors[`modalities[${idx}].name`] || formErrors[`modality_${idx}_field`]}
+                  disabled={isLoading}
+                  reserveHelperSpace={false}
+                  required
+                />
+                <Input
+                  label="Días con salón por semana "
+                  type="number"
+                  min={0}
+                  max={7}
+                  value={m.classroom_days_per_week}
+                  onChange={(e) => updateModality(idx, { classroom_days_per_week: e.target.value })}
+                  error={formErrors[`modality_${idx}_cdpw`]}
+                  disabled={isLoading}
+                  reserveHelperSpace={false}
+                  required
+                />
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)] mb-2">
+                    <span>Días en que se estudía</span>
+                    <span className="ml-1 text-[var(--error,#dc2626)]">*</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAYS.map(({ day, label }) => {
+                      const selected = (m.allowed_days || []).includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          disabled={isLoading}
+                          onClick={() => toggleModalityDay(idx, day)}
+                          className={`min-w-[2.25rem] px-2 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                            selected
+                              ? 'bg-[var(--accent,#2563eb)] text-white border-[var(--accent,#2563eb)]'
+                              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)]'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+                <p className="text-xs italic text-[var(--text-secondary)]">
+                  Modalidad por defecto: los días de estudio y salones son editables según tu universidad.
+                </p>
               </div>
-              <p className="text-xs italic text-[var(--text-secondary)]">
-                Modalidad por defecto: los días de estudio y salones son editables según tu universidad.
-              </p>
             </div>
           ))}
           {formErrors.modalities && (
@@ -670,65 +882,68 @@ export const UniversityForm = ({
             <div className="space-y-3">
               {formData.shifts.map((s, idx) => (
                 <div key={s.key || idx} className="space-y-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
-                    <div className="min-w-0 flex-1 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Nombre "
-                            value={s.name}
-                            onChange={(e) => updateShift(idx, { name: e.target.value })}
-                            placeholder="Matutino"
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Hora Inicio "
-                            type="time"
-                            value={s.start_time}
-                            onChange={(e) => updateShift(idx, { start_time: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Hora Fin "
-                            type="time"
-                            value={s.end_time}
-                            onChange={(e) => updateShift(idx, { end_time: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                        <div className="lg:col-span-3">
-                          <Input
-                            label="Orden "
-                            type="number"
-                            min={1}
-                            value={s.order}
-                            onChange={(e) => updateShift(idx, { order: e.target.value })}
-                            disabled={isLoading}
-                            reserveHelperSpace={false}
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
+                  <div className="min-w-0 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface,#f9fafb)] p-4 relative">
                     <button
                       type="button"
-                      className="self-end sm:self-auto shrink-0 rounded-lg p-2.5 text-[var(--error,#dc2626)] border border-transparent hover:bg-red-50 hover:border-red-100 sm:mb-1"
+                      className="absolute top-3 right-3 rounded-lg p-1.5 sm:p-2 text-[var(--error,#dc2626)] border border-[var(--error,#dc2626)]/20 bg-[var(--bg-elevated,#ffffff)] hover:bg-red-50 hover:border-[var(--error,#dc2626)]/40 transition-colors"
                       onClick={() => removeShift(idx)}
                       disabled={isLoading}
                       aria-label="Eliminar turno"
                     >
-                      <X className="w-5 h-5" strokeWidth={2.25} />
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
                     </button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pr-12">
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Nombre "
+                          value={s.name}
+                          onChange={(e) => updateShift(idx, { name: e.target.value })}
+                          placeholder="Matutino"
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Hora Inicio "
+                          type="time"
+                          min={formData.start_time || undefined}
+                          max={formData.end_time || undefined}
+                          value={s.start_time}
+                          onChange={(e) => updateShift(idx, { start_time: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Hora Fin "
+                          type="time"
+                          min={formData.start_time || undefined}
+                          max={formData.end_time || undefined}
+                          value={s.end_time}
+                          onChange={(e) => updateShift(idx, { end_time: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                      <div className="lg:col-span-3">
+                        <Input
+                          label="Orden "
+                          type="number"
+                          min={1}
+                          value={s.order}
+                          onChange={(e) => updateShift(idx, { order: e.target.value })}
+                          disabled={isLoading}
+                          reserveHelperSpace={false}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
                   {(formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]) && (
                     <p className="text-sm text-[var(--error,#dc2626)] pl-0 sm:pl-1">

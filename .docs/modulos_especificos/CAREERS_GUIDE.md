@@ -110,73 +110,43 @@ Esto se usa típicamente para dropdowns en frontend.
 
 ---
 
-### 4.2 POST “simple” (como originalmente)
+### 4.2 POST / PUT (carrera + excepciones en una sola petición)
 `POST /api/v1/university/careers/`
+`PUT /api/v1/university/careers/{id}/`
 
-Crea una carrera con sus campos básicos. **No crea excepciones** aquí.
+El endpoint principal de carreras permite enviar el arreglo `period_exceptions`
+en la misma petición para crear o actualizar de forma transaccional.
 
 Flujo del código (simplificado):
-1. La vista arma el serializer con `request.data`
-2. El serializer valida y en `create()` inyecta:
-   - `university_id` (de `selected_university_id`)
-   - `status=1`, `is_deleted=0`
-3. Se hace `Careers.objects.create(...)`
+1. La vista arma el serializer (`CareerWriteSerializer`) con `request.data`.
+2. El serializer valida:
+  - universidad seleccionada y modalidad,
+  - `total_periods > 0`,
+  - excepciones sin duplicados y dentro del rango permitido.
+3. En `create()`/`update()`:
+  - persiste carrera,
+  - sincroniza `period_exceptions` (lista completa enviada),
+  - todo con transacción.
 
 Archivo de la vista:
-- `horarios_backend/careers/views/careers.py` (`CareerListView.post`)
+- `horarios_backend/careers/views/careers.py` (`CareerListView.post`, `CareerDetailView.put`)
 
 Serializer usado:
 - `horarios_backend/careers/serializers/careers/career_write_serializer.py`
 
+#### ¿Qué pasa si NO mandas excepciones?
+No pasa nada: puedes omitir `period_exceptions` o mandarlo como `[]`.
+- La carrera se crea/actualiza normal.
+- Si se envía en `PUT`, el backend sincroniza la lista completa recibida.
+
 ---
 
-### 4.3 POST “compuesto” (carrera + excepciones)
-`POST /api/v1/university/careers/with-exceptions/`
+### 4.3 Detalle por ID y consumo en frontend
+`GET /api/v1/university/careers/{id}/`
 
-Este endpoint existe para reducir llamadas del frontend y permite crear:
-- la carrera, y además
-- un arreglo `career_period_exceptions`
-
-Ejemplo de request:
-
-```json
-{
-  "name": "DSM",
-  "short_name": "DSM",
-  "code": "DSM-01",
-  "modality_id": 1,
-  "total_periods": 9,
-  "career_period_exceptions": [
-    { "period_number": 9, "reason": "Estadía profesional" }
-  ]
-}
-```
-
-#### ¿Qué hace el serializer compuesto?
-
-1. **Valida `selected_university_id`**
-2. **Valida `modality_id`**:
-   - que exista
-   - y que pertenezca a la universidad seleccionada
-3. Valida excepciones:
-   - `period_number > 0`
-   - `period_number <= total_periods`
-   - no duplicados dentro del arreglo
-4. En `create()`:
-   - crea la carrera
-   - luego crea las excepciones asociadas a esa carrera
-   - todo en **una transacción** (`transaction.atomic`)
-
-Serializer compuesto:
-- `horarios_backend/careers/serializers/careers/career_create_with_exceptions_serializer.py`
-
-Vista:
-- `horarios_backend/careers/views/careers.py` (`CareerCreateWithExceptionsView.post`)
-
-#### ¿Qué pasa si NO mandas excepciones?
-No pasa nada: puedes omitir `career_period_exceptions` o mandarlo como `[]`.
-- La carrera se crea normal
-- La respuesta regresa `career_period_exceptions: []`
+El detalle regresa `period_exceptions` dentro de la misma respuesta, incluyendo `id`
+y `career_id` por elemento. Con esto, frontend puede visualizar/editar sin una
+segunda consulta a `career-period-exceptions`.
 
 ---
 
@@ -188,6 +158,17 @@ Estos siguen el patrón estándar del proyecto:
 - **PUT**: actualiza parcialmente (`partial=True`)
 - **DELETE**: marcado lógico (`is_deleted = 1`)
 - **toggle-status**: alterna `status` 1↔0
+
+En `GET por ID`, `data.period_exceptions` incluye elementos con esta forma:
+
+```json
+{
+  "id": 3,
+  "career_id": 11,
+  "period_number": 9,
+  "reason": "Estadía profesional"
+}
+```
 
 Archivos:
 - Vista: `horarios_backend/careers/views/careers.py`
@@ -240,16 +221,16 @@ Archivos:
 
 **Request**
 
-`POST /api/v1/university/careers/with-exceptions/`
+`POST /api/v1/university/careers/`
 
 ```json
 {
   "name": "Desarrollo de Software Multiplataforma",
   "short_name": "DSM",
   "code": "DSM-01",
-  "modality_id": 1,
+  "modality": 1,
   "total_periods": 9,
-  "career_period_exceptions": [
+  "period_exceptions": [
     { "period_number": 9, "reason": "Estadía profesional" }
   ]
 }
@@ -271,8 +252,13 @@ Archivos:
     "modality": "Presencial",
     "total_periods": 9,
     "status": 1,
-    "career_period_exceptions": [
-      { "id": 3, "period_number": 9, "reason": "Estadía profesional" }
+    "period_exceptions": [
+      {
+        "id": 3,
+        "career_id": 11,
+        "period_number": 9,
+        "reason": "Estadía profesional"
+      }
     ]
   }
 }
@@ -287,9 +273,9 @@ Archivos:
   "name": "Ingeniería en Datos",
   "short_name": "ID",
   "code": "ID-01",
-  "modality_id": 1,
+  "modality": 1,
   "total_periods": 9,
-  "career_period_exceptions": []
+  "period_exceptions": []
 }
 ```
 
@@ -309,7 +295,7 @@ Archivos:
     "modality": "Presencial",
     "total_periods": 9,
     "status": 1,
-    "career_period_exceptions": []
+    "period_exceptions": []
   }
 }
 ```
@@ -324,7 +310,7 @@ Si mandas una excepción con `period_number > total_periods`, el backend respond
   "statusCode": 400,
   "message": "Ha ocurrido un error",
   "data": {
-    "career_period_exceptions": "period_number fuera de rango. Debe ser <= total_periods (9)."
+    "period_exceptions": "period_number fuera de rango. Debe ser <= total_periods (9)."
   }
 }
 ```
@@ -337,7 +323,7 @@ Si mandas una excepción con `period_number > total_periods`, el backend respond
   "statusCode": 400,
   "message": "Ha ocurrido un error",
   "data": {
-    "career_period_exceptions": "Periodos duplicados en la petición: [9]"
+    "period_exceptions": "Periodos duplicados en la petición: [9]"
   }
 }
 ```

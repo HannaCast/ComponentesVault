@@ -45,16 +45,13 @@ export const CareerForm = ({
   careerId = null,
   periodExceptions = [],
   periodExceptionsLoading = false,
-  onCreatePeriodException,
-  onDeletePeriodException,
 }) => {
   const [formData, setFormData] = useState(createDefaultFormData);
   const [formErrors, setFormErrors] = useState({});
   const [showAddException, setShowAddException] = useState(false);
   const [newExceptionPeriod, setNewExceptionPeriod] = useState('');
   const [newExceptionReason, setNewExceptionReason] = useState('');
-  const [exceptionBusyId, setExceptionBusyId] = useState(null);
-  /** Excepciones locales al crear carrera (se envían en el mismo POST). */
+  /** Excepciones locales en create/edit; se envían solo al guardar carrera. */
   const [pendingPeriodExceptions, setPendingPeriodExceptions] = useState([]);
   const previousModeRef = useRef(mode);
 
@@ -98,6 +95,25 @@ export const CareerForm = ({
       setPendingPeriodExceptions([]);
     }
   }, [mode, initialData]);
+
+  useEffect(() => {
+    if (mode === 'create') {
+      return;
+    }
+
+    if (!careerId || periodExceptionsLoading) {
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza estado local cuando se carga la carrera en edición
+    setPendingPeriodExceptions(
+      (periodExceptions || []).map((ex) => ({
+        id: ex.id,
+        period_number: Number(ex.period_number),
+        reason: ex.reason || '',
+      })),
+    );
+  }, [mode, careerId, periodExceptionsLoading, periodExceptions]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -157,13 +173,8 @@ export const CareerForm = ({
     if (sn) payload.short_name = sn;
     if (code) payload.code = code;
 
-    if (mode === 'create' && pendingPeriodExceptions.length > 0) {
+    if (!periodExceptionsLoading) {
       payload.period_exceptions = pendingPeriodExceptions.map((ex) => ({
-        period_number: Number(ex.period_number),
-        reason: (ex.reason || '').trim(),
-      }));
-    } else if (careerId && !periodExceptionsLoading) {
-      payload.period_exceptions = (periodExceptions || []).map((ex) => ({
         period_number: Number(ex.period_number),
         reason: (ex.reason || '').trim(),
       }));
@@ -172,7 +183,7 @@ export const CareerForm = ({
     onSubmit(payload);
   };
 
-  const handleAddException = async () => {
+  const handleAddException = () => {
     const period = Number.parseInt(newExceptionPeriod, 10);
     if (!Number.isFinite(period) || period <= 0) {
       return;
@@ -188,57 +199,36 @@ export const CareerForm = ({
       return;
     }
 
-    if (mode === 'create') {
-      if (pendingPeriodExceptions.some((p) => Number(p.period_number) === period)) {
-        return;
-      }
-      setPendingPeriodExceptions((prev) => [
-        ...prev,
-        {
-          tempId: newTempId(),
-          period_number: period,
-          reason: newExceptionReason.trim(),
-        },
-      ]);
-      setNewExceptionPeriod('');
-      setNewExceptionReason('');
-      setShowAddException(false);
+    if (pendingPeriodExceptions.some((p) => Number(p.period_number) === period)) {
       return;
     }
 
-    if (!careerId) {
-      return;
-    }
-
-    setExceptionBusyId('new');
-    const ok = await onCreatePeriodException({
-      careerId,
-      period_number: period,
-      reason: newExceptionReason,
-    });
-    setExceptionBusyId(null);
-
-    if (ok) {
-      setNewExceptionPeriod('');
-      setNewExceptionReason('');
-      setShowAddException(false);
-    }
+    setPendingPeriodExceptions((prev) => [
+      ...prev,
+      {
+        tempId: newTempId(),
+        period_number: period,
+        reason: newExceptionReason.trim(),
+      },
+    ]);
+    setNewExceptionPeriod('');
+    setNewExceptionReason('');
+    setShowAddException(false);
   };
 
-  const handleRemoveException = async (exception) => {
-    if (mode === 'create' && exception?.tempId) {
-      setPendingPeriodExceptions((prev) => prev.filter((x) => x.tempId !== exception.tempId));
+  const handleRemoveException = (exception) => {
+    const targetId = exception?.id ?? exception?.tempId;
+    if (targetId == null) {
       return;
     }
-    if (!careerId || !exception?.id) return;
-    setExceptionBusyId(exception.id);
-    await onDeletePeriodException(exception.id, careerId);
-    setExceptionBusyId(null);
+
+    setPendingPeriodExceptions((prev) =>
+      prev.filter((x) => String(x.id ?? x.tempId) !== String(targetId)),
+    );
   };
 
   const canManageExceptions = Boolean(careerId) || mode === 'create';
-  const displayExceptions =
-    mode === 'create' ? pendingPeriodExceptions : periodExceptions;
+  const displayExceptions = pendingPeriodExceptions;
 
   let periodExceptionsContent = null;
   if (careerId && periodExceptionsLoading) {
@@ -253,8 +243,7 @@ export const CareerForm = ({
     periodExceptionsContent = (
       <ul className="space-y-2">
         {displayExceptions.map((ex) => {
-          const rowKey = mode === 'create' ? ex.tempId : ex.id;
-          const busy = mode === 'create' ? false : exceptionBusyId === ex.id;
+          const rowKey = ex.id ?? ex.tempId;
           return (
             <li
               key={rowKey}
@@ -270,10 +259,10 @@ export const CareerForm = ({
                 type="button"
                 className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--error,#dc2626)]"
                 onClick={() => handleRemoveException(ex)}
-                disabled={exceptionBusyId != null}
+                disabled={isLoading || (Boolean(careerId) && periodExceptionsLoading)}
                 aria-label="Eliminar excepción"
               >
-                {busy ? <span className="text-xs">…</span> : <Trash2 size={16} />}
+                <Trash2 size={16} />
               </button>
             </li>
           );
@@ -401,8 +390,7 @@ export const CareerForm = ({
                   variant="primary"
                   className="flex-1"
                   onClick={handleAddException}
-                  isLoading={exceptionBusyId === 'new'}
-                  disabled={isLoading || exceptionBusyId === 'new'}
+                  disabled={isLoading || (Boolean(careerId) && periodExceptionsLoading)}
                 />
               </div>
             </div>
@@ -426,7 +414,7 @@ export const CareerForm = ({
           label="Guardar"
           type="submit"
           isLoading={isLoading}
-          disabled={isLoading}
+          disabled={isLoading || (Boolean(careerId) && periodExceptionsLoading)}
           variant="primary"
           className="flex-1"
         />
@@ -465,6 +453,4 @@ CareerForm.propTypes = {
     }),
   ),
   periodExceptionsLoading: PropTypes.bool,
-  onCreatePeriodException: PropTypes.func,
-  onDeletePeriodException: PropTypes.func,
 };

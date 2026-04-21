@@ -40,8 +40,11 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
     start_time: toApiTime(formState.start_time),
     end_time: toApiTime(formState.end_time),
     period_type: Number(formState.period_type),
-    uses_period_groups: usesGroups ? 1 : 0,
   };
+
+  if (!isEdit) {
+    university.uses_period_groups = usesGroups ? 1 : 0;
+  }
 
   if (!isEdit || hasImageId) {
     university.image = imageVal;
@@ -88,13 +91,14 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
   let academic_periods = [];
   if (usesGroups) {
     academic_periods = (formState.academic_periods || []).map((p, idx) => {
-      const start = p.fecha_inicio ? new Date(`${p.fecha_inicio}T12:00:00`) : null;
-      const end = p.fecha_fin ? new Date(`${p.fecha_fin}T12:00:00`) : null;
+      const startDate = p.fecha_inicio ? String(p.fecha_inicio).trim() : null;
+      const endDate = p.fecha_fin ? String(p.fecha_fin).trim() : null;
+      const start = startDate ? new Date(`${startDate}T12:00:00`) : null;
 
       const row = {
         name: String(p.name || '').trim(),
-        start_month: start && !Number.isNaN(start.getTime()) ? start.getMonth() + 1 : null,
-        end_month: end && !Number.isNaN(end.getTime()) ? end.getMonth() + 1 : null,
+        start_date: startDate,
+        end_date: endDate,
         year: start && !Number.isNaN(start.getTime()) ? start.getFullYear() : null,
         order: p.order != null && p.order !== '' ? Number.parseInt(p.order, 10) : idx + 1,
         is_active: p.is_active ? 1 : 0,
@@ -124,21 +128,7 @@ export const createDefaultModalities = () => [
     classroom_days_per_week: 5,
     allowed_days: [1, 2, 3, 4, 5],
   },
-  {
-    key: `m-${uid()}`,
-    name: 'En línea',
-    classroom_days_per_week: 0,
-    allowed_days: [1],
-  },
-  {
-    key: `m-${uid()}`,
-    name: 'Mixta',
-    classroom_days_per_week: 3,
-    allowed_days: [1, 3, 5],
-  },
 ];
-
-const pad2 = (n) => String(n).padStart(2, '0');
 
 const normalizeOptionalId = (value) => {
   if (value == null || value === '') {
@@ -195,16 +185,9 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
   }));
 
   const academic_periods = (profile.academic_periods || []).map((p) => {
-    const y = p.year;
-    const sm = p.start_month;
-    const em = p.end_month;
-    let fecha_inicio = '';
-    let fecha_fin = '';
-    if (y && sm && em) {
-      fecha_inicio = `${y}-${pad2(sm)}-01`;
-      const lastD = new Date(Number(y), Number(em), 0).getDate();
-      fecha_fin = `${y}-${pad2(em)}-${pad2(lastD)}`;
-    }
+    const fecha_inicio = p.start_date ? String(p.start_date).slice(0, 10) : '';
+    const fecha_fin = p.end_date ? String(p.end_date).slice(0, 10) : '';
+
     return {
       key: `p-${p.id}`,
       id: p.id,

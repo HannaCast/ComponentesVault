@@ -22,8 +22,8 @@ class AcademicPeriodListCreateView(APIView):
     SORT_FIELDS = {
         'id',
         'name',
-        'start_month',
-        'end_month',
+        'start_date',
+        'end_date',
         'year',
         'order',
         'is_active',
@@ -65,9 +65,9 @@ class AcademicPeriodListCreateView(APIView):
                 name='order',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='Dirección de ordenamiento: ASC, DESC (por defecto: ASC)',
+                description='Dirección de ordenamiento: ASC, DESC (por defecto: DESC)',
                 enum=['ASC', 'DESC'],
-                default='ASC',
+                default='DESC',
                 required=False,
             ),
         ],
@@ -79,7 +79,7 @@ class AcademicPeriodListCreateView(APIView):
         limit = max(1, int(request.query_params.get('limit', 10)))
         search = request.query_params.get('search', '').strip()
         sort_by = request.query_params.get('sortBy', 'id')
-        order = request.query_params.get('order', 'ASC').upper()
+        order = request.query_params.get('order', 'DESC').upper()
         offset = (page - 1) * limit
 
         if sort_by not in self.SORT_FIELDS:

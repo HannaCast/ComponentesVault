@@ -1,5 +1,5 @@
 -- ============================================================
---  TRIGGERS DE AUDITORÍA → audit_logs - cdi_horarios (MySQL)
+--  TRIGGERS DE AUDITORÍA → audit_logs - dci_horarios (MySQL)
 -- ============================================================
 --
 --  LÓGICA DE source:
@@ -24,7 +24,7 @@
 --    SET @app_action = NULL;
 -- ============================================================
 
-USE `cdi_horarios`;
+USE `dci_horarios`;
 
 -- Expandir el ENUM para incluir los nuevos valores de la app
 ALTER TABLE `audit_logs`
@@ -541,8 +541,8 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'academic_periods',NEW.id,v_action,JSON_OBJECT(),
-    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'start_month',NEW.start_month,
-      'end_month',NEW.end_month,'year',NEW.year,'order',NEW.`order`,'is_active',NEW.is_active,'is_deleted',NEW.is_deleted,
+    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'start_date',NEW.start_date,
+      'end_date',NEW.end_date,'year',NEW.year,'order',NEW.`order`,'is_active',NEW.is_active,'is_deleted',NEW.is_deleted,
       'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
     IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
 END$$
@@ -558,11 +558,11 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'academic_periods',NEW.id,v_action,
-    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'start_month',OLD.start_month,
-      'end_month',OLD.end_month,'year',OLD.year,'order',OLD.`order`,'is_active',OLD.is_active,'is_deleted',OLD.is_deleted,
+    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'start_date',OLD.start_date,
+      'end_date',OLD.end_date,'year',OLD.year,'order',OLD.`order`,'is_active',OLD.is_active,'is_deleted',OLD.is_deleted,
       'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
-    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'start_month',NEW.start_month,
-      'end_month',NEW.end_month,'year',NEW.year,'order',NEW.`order`,'is_active',NEW.is_active,'is_deleted',NEW.is_deleted,
+    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'start_date',NEW.start_date,
+      'end_date',NEW.end_date,'year',NEW.year,'order',NEW.`order`,'is_active',NEW.is_active,'is_deleted',NEW.is_deleted,
       'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
     IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
 END$$
@@ -577,8 +577,8 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'academic_periods',OLD.id,'DELETE',
-    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'start_month',OLD.start_month,
-      'end_month',OLD.end_month,'year',OLD.year,'order',OLD.`order`,'is_active',OLD.is_active,'is_deleted',OLD.is_deleted,
+    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'start_date',OLD.start_date,
+      'end_date',OLD.end_date,'year',OLD.year,'order',OLD.`order`,'is_active',OLD.is_active,'is_deleted',OLD.is_deleted,
       'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
     NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
 END$$

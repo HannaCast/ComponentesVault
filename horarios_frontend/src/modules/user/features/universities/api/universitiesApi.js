@@ -28,6 +28,11 @@ export const deleteUniversity = (universityId) =>
 export const getUniversityProfile = (universityId) =>
   apiToken.get(`/api/v1/universities/${universityId}/profile/`);
 
+export const getUniversityImage = (universityId) =>
+  apiToken.get(`/api/v1/universities/${universityId}/image/`, {
+    responseType: 'blob',
+  });
+
 /**
  * @param {number|null} universityId - Id de universidad o `null` para dejar sin universidad activa.
  */
@@ -68,3 +73,6 @@ export const uploadUniversityLogo = (universityId, file) => {
     ],
   });
 };
+
+export const deleteUniversityLogo = (universityId) =>
+  apiToken.delete(`/api/universities/${universityId}/upload-image/`);

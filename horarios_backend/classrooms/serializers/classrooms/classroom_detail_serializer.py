@@ -5,6 +5,7 @@ from classrooms.models import ClassroomCareers, ClassroomSubjects, Classrooms
 
 class ClassroomDetailSerializer(serializers.ModelSerializer):
     classroom_type = serializers.CharField(source='classroom_type.name', read_only=True)
+    university_name = serializers.CharField(source='universities.name', read_only=True)
     careers = serializers.SerializerMethodField()
     subjects = serializers.SerializerMethodField()
 
@@ -48,6 +49,7 @@ class ClassroomDetailSerializer(serializers.ModelSerializer):
             'code',
             'floor',
             'classroom_type',
+            'university_name',
             'building',
             'building_code',
             'is_restricted',

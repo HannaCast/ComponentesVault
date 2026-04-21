@@ -1,11 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   createCareer,
-  createCareerPeriodException,
   deleteCareer,
-  deleteCareerPeriodException,
   getCareer,
-  getCareerPeriodExceptions,
   getCareersPaginated,
   getModalities,
   toggleCareerStatus,
@@ -67,8 +64,6 @@ export const useCareers = () => {
 
   const [selectedCareer, setSelectedCareer] = useState(null);
   const [careerLoading, setCareerLoading] = useState(false);
-  const [periodExceptions, setPeriodExceptions] = useState([]);
-  const [periodExceptionsLoading, setPeriodExceptionsLoading] = useState(false);
 
   const lastQueryRef = useRef({ page: 1, limit: 10 });
 
@@ -154,8 +149,14 @@ export const useCareers = () => {
       setError(null);
       const response = await getCareer(id);
       const data = response.data?.data ?? response.data;
-      setSelectedCareer(data);
-      return data;
+      const normalized = {
+        ...data,
+        period_exceptions: Array.isArray(data?.period_exceptions)
+          ? data.period_exceptions
+          : [],
+      };
+      setSelectedCareer(normalized);
+      return normalized;
     } catch (err) {
       console.error('Error al cargar carrera:', err);
       const msg = extractApiErrorMessage(err) || 'No se pudo cargar la carrera.';
@@ -163,25 +164,6 @@ export const useCareers = () => {
       return null;
     } finally {
       setCareerLoading(false);
-    }
-  }, []);
-
-  const fetchPeriodExceptionsForCareer = useCallback(async (careerId) => {
-    if (!careerId) {
-      setPeriodExceptions([]);
-      return;
-    }
-
-    try {
-      setPeriodExceptionsLoading(true);
-      const response = await getCareerPeriodExceptions({ careerId });
-      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-      setPeriodExceptions(rows);
-    } catch (err) {
-      console.error('Error al cargar excepciones de periodos:', err);
-      setPeriodExceptions([]);
-    } finally {
-      setPeriodExceptionsLoading(false);
     }
   }, []);
 
@@ -231,39 +213,6 @@ export const useCareers = () => {
       return null;
     } finally {
       setCareerLoading(false);
-    }
-  };
-
-  const handleCreatePeriodException = async ({ careerId, period_number, reason }) => {
-    try {
-      setError(null);
-      await createCareerPeriodException({
-        career: careerId,
-        period_number,
-        reason: reason?.trim() || '',
-      });
-      await fetchPeriodExceptionsForCareer(careerId);
-      return true;
-    } catch (err) {
-      console.error('Error al crear excepción:', err);
-      const msg =
-        extractApiErrorMessage(err) || 'No se pudo registrar la excepción de periodo.';
-      setError(msg);
-      return false;
-    }
-  };
-
-  const handleDeletePeriodException = async (exceptionId, careerId) => {
-    try {
-      setError(null);
-      await deleteCareerPeriodException(exceptionId);
-      await fetchPeriodExceptionsForCareer(careerId);
-      return true;
-    } catch (err) {
-      console.error('Error al eliminar excepción:', err);
-      const msg = extractApiErrorMessage(err) || 'No se pudo eliminar la excepción.';
-      setError(msg);
-      return false;
     }
   };
 
@@ -320,10 +269,5 @@ export const useCareers = () => {
     fetchCareerById,
     handleCreateCareer,
     handleUpdateCareer,
-    periodExceptions,
-    periodExceptionsLoading,
-    fetchPeriodExceptionsForCareer,
-    handleCreatePeriodException,
-    handleDeletePeriodException,
   };
 };

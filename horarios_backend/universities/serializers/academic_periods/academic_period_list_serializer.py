@@ -11,8 +11,8 @@ class AcademicPeriodListSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'start_month',
-            'end_month',
+            'start_date',
+            'end_date',
             'year',
             'order',
             'is_active',

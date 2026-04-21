@@ -67,7 +67,7 @@ const resolveConfig = async () => {
     dbPort: process.env.DB_PORT || envFileVars.DB_PORT || '3306',
     dbUser: process.env.DB_USER || envFileVars.DB_USER || 'root',
     dbPassword: process.env.DB_PASSWORD || envFileVars.DB_PASSWORD || '',
-    dbName: process.env.DB_NAME || envFileVars.DB_NAME || 'cdi_horarios',
+    dbName: process.env.DB_NAME || envFileVars.DB_NAME || 'dci_horarios',
   };
 
   if (!config.dbPassword) {

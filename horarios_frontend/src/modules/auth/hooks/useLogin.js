@@ -24,7 +24,10 @@ export const useLogin = () => {
       navigate(redirectTo);
       return { success: true, data: userData };
     } catch (error) {
-      const backendMessage = error?.response?.data?.message;
+      const backendMessage =
+        error?.response?.data?.message
+        || error?.response?.data?.detail
+        || error?.message;
       setError(backendMessage || fallbackMessage);
 
       return { success: false };

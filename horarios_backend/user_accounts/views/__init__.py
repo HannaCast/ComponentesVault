@@ -6,4 +6,5 @@ from user_accounts.views.auth import (
 	LogoutView,
 	RefreshView,
 )
+from user_accounts.views.dashboard import UniversityDashboardSummaryView
 from user_accounts.views.user import MeView, ConfigurationView, SelectedUniversityConfigurationView

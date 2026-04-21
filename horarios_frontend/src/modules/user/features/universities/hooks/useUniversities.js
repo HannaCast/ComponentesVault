@@ -1,5 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  deleteUniversityLogo,
+  getUniversityImage,
   getUniversitiesPaginated,
   getUniversityProfile,
   getPeriodTypes,
@@ -32,6 +34,81 @@ export const useUniversities = () => {
     search: '',
     asc: true,
   });
+  const listFetchIdRef = useRef(0);
+  const listImageUrlsRef = useRef([]);
+  const profileImageUrlRef = useRef(null);
+
+  const revokeObjectUrl = useCallback((value) => {
+    if (typeof value === 'string' && value.startsWith('blob:')) {
+      URL.revokeObjectURL(value);
+    }
+  }, []);
+
+  const resetListImageUrls = useCallback(() => {
+    listImageUrlsRef.current.forEach(revokeObjectUrl);
+    listImageUrlsRef.current = [];
+  }, [revokeObjectUrl]);
+
+  const resetProfileImageUrl = useCallback(() => {
+    revokeObjectUrl(profileImageUrlRef.current);
+    profileImageUrlRef.current = null;
+  }, [revokeObjectUrl]);
+
+  const fetchUniversityImageUrl = useCallback(async (universityId) => {
+    const response = await getUniversityImage(universityId);
+    const blob = response?.data;
+    if (!(blob instanceof Blob) || blob.size <= 0) {
+      return null;
+    }
+    return URL.createObjectURL(blob);
+  }, []);
+
+  const normalizeUniversitiesRows = useCallback((rows) => (
+    rows.map((row) => ({
+      ...row,
+      image_url: null,
+      image_loading: Boolean(row?.id && row?.image),
+    }))
+  ), []);
+
+  const loadUniversitiesImagesInBackground = useCallback((rows, fetchId) => {
+    rows.forEach((row) => {
+      if (!row?.id || !row?.image) {
+        return;
+      }
+
+      (async () => {
+        let imageUrl = null;
+
+        try {
+          imageUrl = await fetchUniversityImageUrl(row.id);
+        } catch {
+          imageUrl = null;
+        }
+
+        if (fetchId !== listFetchIdRef.current) {
+          revokeObjectUrl(imageUrl);
+          return;
+        }
+
+        if (typeof imageUrl === 'string' && imageUrl.startsWith('blob:')) {
+          listImageUrlsRef.current.push(imageUrl);
+        }
+
+        setUniversities((prev) => prev.map((item) => {
+          if (Number(item?.id) !== Number(row.id)) {
+            return item;
+          }
+
+          return {
+            ...item,
+            image_url: imageUrl,
+            image_loading: false,
+          };
+        }));
+      })();
+    });
+  }, [fetchUniversityImageUrl, revokeObjectUrl]);
 
   const fetchUniversities = useCallback(async ({
     page = 1,
@@ -53,6 +130,13 @@ export const useUniversities = () => {
         order,
       });
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      const fetchId = listFetchIdRef.current + 1;
+      listFetchIdRef.current = fetchId;
+      resetListImageUrls();
+
+      const normalizedRows = normalizeUniversitiesRows(rows);
+      setUniversities(normalizedRows);
+      loadUniversitiesImagesInBackground(normalizedRows, fetchId);
       const meta = response.data?.meta;
 
       if (meta && typeof meta === 'object') {
@@ -72,17 +156,17 @@ export const useUniversities = () => {
         });
       }
 
-      setUniversities(rows);
       lastQueryRef.current = { page, limit, search, asc };
     } catch (err) {
       console.error('Error al cargar universidades:', err);
       setError('No se pudieron cargar las universidades. Intenta de nuevo.');
+      resetListImageUrls();
       setUniversities([]);
       setUniversitiesMeta({ page: 1, limit: 10, total: 0, totalPages: 1 });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadUniversitiesImagesInBackground, normalizeUniversitiesRows, resetListImageUrls]);
 
   const fetchPeriodTypes = useCallback(async () => {
     const response = await getPeriodTypes();
@@ -93,12 +177,30 @@ export const useUniversities = () => {
 
   const fetchUniversityProfile = useCallback(async (universityId) => {
     setProfileLoading(true);
+    resetProfileImageUrl();
     setUniversityProfile(null);
     try {
       const response = await getUniversityProfile(universityId);
       const data = response.data?.data ?? null;
-      setUniversityProfile(data);
-      return data;
+
+      if (!data) {
+        setUniversityProfile(null);
+        return null;
+      }
+
+      let imageUrl = null;
+      if (data.image && data.id) {
+        try {
+          imageUrl = await fetchUniversityImageUrl(data.id);
+        } catch {
+          imageUrl = null;
+        }
+      }
+
+      profileImageUrlRef.current = imageUrl;
+      const profileWithImage = { ...data, image_url: imageUrl };
+      setUniversityProfile(profileWithImage);
+      return profileWithImage;
     } catch (err) {
       console.error('Error al cargar perfil de universidad:', err);
       setUniversityProfile(null);
@@ -106,11 +208,12 @@ export const useUniversities = () => {
     } finally {
       setProfileLoading(false);
     }
-  }, []);
+  }, [fetchUniversityImageUrl, resetProfileImageUrl]);
 
   const clearUniversityProfile = useCallback(() => {
+    resetProfileImageUrl();
     setUniversityProfile(null);
-  }, []);
+  }, [resetProfileImageUrl]);
 
   const createUniversityFullSetup = useCallback(async (payload, logoFile) => {
     setCreateLoading(true);
@@ -128,10 +231,19 @@ export const useUniversities = () => {
     }
   }, []);
 
-  const updateUniversityFullSetup = useCallback(async (universityId, payload, logoFile) => {
+  const updateUniversityFullSetup = useCallback(async (
+    universityId,
+    payload,
+    logoFile,
+    removeLogo = false,
+  ) => {
     setUpdateLoading(true);
     try {
       const response = await putFullUniversitySetup(universityId, payload);
+
+      if (universityId && removeLogo && !(logoFile instanceof File)) {
+        await deleteUniversityLogo(universityId);
+      }
 
       if (universityId && logoFile instanceof File) {
         await uploadUniversityLogo(universityId, logoFile);
@@ -147,6 +259,13 @@ export const useUniversities = () => {
     const response = await deleteUniversityRequest(universityId);
     return response;
   }, []);
+
+  useEffect(() => {
+    return () => {
+      resetListImageUrls();
+      resetProfileImageUrl();
+    };
+  }, [resetListImageUrls, resetProfileImageUrl]);
 
   return {
     universities,

@@ -65,7 +65,14 @@ Responsabilidades:
 - Cada dominio funcional vive en `modules`.
 - Estado actual del repo:
   - `modules/auth/`: implementado (api, hooks, pages).
-  - `modules/user/features/subjects/`: implementado completo y usado como patron.
+  - `modules/user/features/subjects/`: implementado completo y usado como patron base.
+  - `modules/user/features/universities/`: implementado (setup completo, logo, modalidades, turnos y periodos).
+  - `modules/user/features/careers/`: implementado.
+  - `modules/user/features/groups/`: implementado.
+  - `modules/user/features/teachers/`: implementado.
+  - `modules/user/features/classrooms/`: implementado.
+  - `modules/user/features/scheduleGenerator/`: implementado.
+  - `modules/user/features/dashboard/` y `settings/`: implementados.
 
 ---
 
@@ -100,7 +107,15 @@ Segun backend y `.docs`, el frontend debe asumir:
 - Toggle status: `/api/v1/university/subjects/{id}/toggle-status/`
 - Catalogo colores: `/api/v1/subjects/colors/`
 - Catalogo carreras: `/api/v1/university/careers/`
-- Catalogo profesores: `/api/v1/teachers/`
+- Catalogo profesores: `/api/v1/university/teachers/`
+
+6. En `careers`, al abrir ver/editar se usa una sola llamada de detalle:
+- `GET /api/v1/university/careers/{id}/`
+- `data.period_exceptions` ya trae `id` y `career_id`, por lo que no se requiere una segunda consulta a `/api/v1/university/career-period-exceptions/`.
+
+7. En `dashboard` (home del usuario) se consume un resumen consolidado por universidad:
+- `GET /api/v1/university/dashboard/summary/`
+- El frontend debe usar este endpoint como fuente unica para hero, cards KPI, estado de borrador y progreso de completitud.
 
 ---
 
@@ -195,6 +210,14 @@ Reglas:
 - Mensajes de error claros para usuario.
 - Reglas condicionales por `mode` cuando aplique.
 
+### 4.6 Reglas implementadas en formulario de universidades
+
+- Al crear universidad, la modalidad inicial por defecto es solo `Presencial`.
+- Al agregar nuevas modalidades, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- Al agregar nuevos turnos, se insertan al inicio de la lista (arriba), tanto en creacion como en edicion.
+- En los turnos, `start_time` y `end_time` se limitan en UI con `min/max` al rango operativo de la universidad (`start_time`/`end_time` de universidad).
+- Ademas de la restriccion visual, el frontend valida que cada turno quede dentro del rango de apertura/cierre antes de enviar.
+
 ---
 
 ## 5. Flujo recomendado end-to-end (ejemplo subjects)
@@ -234,6 +257,15 @@ Reglas:
 1. Usuario confirma delete.
 2. Hook llama DELETE.
 3. Lista se refresca (el item ya no aparece por `is_deleted=0` en backend).
+
+### 5.6 Dashboard (home de usuario)
+
+1. Al entrar a `/usuario/dashboard`, la page dispara una sola carga de `dashboard/summary`.
+2. El hook del modulo (`useDashboard`) concentra estados `loading/error/summary`.
+3. El hero y cards se alimentan exclusivamente del payload resumen.
+4. La alerta de borrador usa `schedule_generation.has_draft` y metadatos de version.
+5. El panel de completitud usa `completion.score_percentage` + `completion.items`.
+6. Los accesos rapidos se derivan del menu lateral y excluyen el item actual (`/usuario/dashboard`).
 
 ---
 

@@ -1,4 +1,4 @@
-USE cdi_horarios;
+USE dci_horarios;
 
 -- -----------------------------------------------------
 /*  DATOS DE PRUEBA (NO CATALOGOS BASE)               */
@@ -313,14 +313,14 @@ SET @itz_shift_vespertino_id = (
   LIMIT 1
 );
 
-INSERT INTO academic_periods (name, university_id, start_month, end_month, year, `order`, is_active, is_deleted)
-SELECT p.name, p.university_id, p.start_month, p.end_month, p.year, p.ord, p.is_active, 0
+INSERT INTO academic_periods (name, university_id, start_date, end_date, year, `order`, is_active, is_deleted)
+SELECT p.name, p.university_id, p.start_date, p.end_date, p.year, p.ord, p.is_active, 0
 FROM (
-  SELECT 'Enero - Abril 2026' AS name, @utez_id AS university_id, 1 AS start_month, 4 AS end_month, 2026 AS year, 1 AS ord, 0 AS is_active
-  UNION ALL SELECT 'Mayo - Agosto 2026', @utez_id, 5, 8, 2026, 2, 1
-  UNION ALL SELECT 'Septiembre - Diciembre 2026', @utez_id, 9, 12, 2026, 3, 0
-  UNION ALL SELECT 'Enero - Junio 2026', @itz_id, 1, 6, 2026, 1, 1
-  UNION ALL SELECT 'Agosto - Diciembre 2026', @itz_id, 8, 12, 2026, 2, 0
+  SELECT 'Enero - Abril 2026' AS name, @utez_id AS university_id, '2026-01-01' AS start_date, '2026-04-30' AS end_date, 2026 AS year, 1 AS ord, 0 AS is_active
+  UNION ALL SELECT 'Mayo - Agosto 2026', @utez_id, '2026-05-01', '2026-08-31', 2026, 2, 1
+  UNION ALL SELECT 'Septiembre - Diciembre 2026', @utez_id, '2026-09-01', '2026-12-31', 2026, 3, 0
+  UNION ALL SELECT 'Enero - Junio 2026', @itz_id, '2026-01-01', '2026-06-30', 2026, 1, 1
+  UNION ALL SELECT 'Agosto - Diciembre 2026', @itz_id, '2026-08-01', '2026-12-31', 2026, 2, 0
 ) AS p
 LEFT JOIN academic_periods existing
   ON existing.university_id = p.university_id

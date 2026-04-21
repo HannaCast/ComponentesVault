@@ -44,8 +44,8 @@ def _serialize_active_period(active_period: dict | None) -> dict | None:
         'name': active_period.get('name'),
         'year': active_period.get('year'),
         'order': active_period.get('order'),
-        'start_month': active_period.get('start_month'),
-        'end_month': active_period.get('end_month'),
+        'start_date': active_period.get('start_date'),
+        'end_date': active_period.get('end_date'),
     }
 
 

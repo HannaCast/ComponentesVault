@@ -22,8 +22,8 @@ def load_university_context(university_id: int) -> dict:
         'name',
         'year',
         'order',
-        'start_month',
-        'end_month',
+        'start_date',
+        'end_date',
     ).first()
 
     active_period_id = active_period.get('id') if active_period else None

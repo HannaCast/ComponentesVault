@@ -53,7 +53,7 @@ Crea una base de datos vacia y asigna usuario/permiso acorde a tus credenciales 
 Ejemplo:
 
 ```sql
-CREATE DATABASE cdi_horarios CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE dci_horarios CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ### 1.1) Ejecutar scripts SQL (recomendado)
@@ -134,7 +134,7 @@ cp horarios_frontend/.env.example horarios_frontend/.env
 Configura, al menos:
 
 ```env
-DB_NAME=cdi_horarios
+DB_NAME=dci_horarios
 DB_USER=api_user
 DB_PASSWORD=api_password
 DB_HOST=localhost

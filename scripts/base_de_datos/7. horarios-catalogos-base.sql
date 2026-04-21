@@ -1,4 +1,4 @@
-USE cdi_horarios;
+USE dci_horarios;
 
 -- -----------------------------------------------------
 /*  CATALOGOS BASE DE SISTEMA                          */

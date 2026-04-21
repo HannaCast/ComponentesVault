@@ -8,7 +8,7 @@ export const resolveMediaUrl = (urlOrPath) => {
     return null;
   }
   const s = String(urlOrPath).trim();
-  if (/^https?:\/\//i.test(s)) {
+  if (/^(https?:|blob:|data:)/i.test(s)) {
     return s;
   }
   const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');

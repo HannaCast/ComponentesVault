@@ -7,15 +7,19 @@ import { Sidebar } from '@shared/components/layout/Sidebar';
 import { Header } from '@shared/components/layout/Header';
 import { SelectedUniversityAlert } from '@shared/components/layout/SelectedUniversityAlert';
 
-/** Rutas accesibles sin universidad activa (gestión de universidades y cuenta). */
+/** Rutas accesibles sin universidad activa (dashboard, universidades y cuenta). */
+const EXACT_PATHS_WITHOUT_UNIVERSITY = ['/usuario'];
+
 const PATH_PREFIXES_WITHOUT_UNIVERSITY = [
+  '/usuario/dashboard',
   '/usuario/universidades',
   '/usuario/ajustes',
   '/usuario/perfil',
 ];
 
 const isRouteAllowedWithoutUniversity = (pathname) =>
-  PATH_PREFIXES_WITHOUT_UNIVERSITY.some(
+  EXACT_PATHS_WITHOUT_UNIVERSITY.includes(pathname)
+  || PATH_PREFIXES_WITHOUT_UNIVERSITY.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 
