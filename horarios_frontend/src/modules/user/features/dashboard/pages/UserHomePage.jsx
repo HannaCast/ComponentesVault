@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@context/AuthContext';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
 import { USER_MENU_ITEMS } from '../../../../../core/navigation/userMenuItems';
 import { DashboardCompletionPanel } from '../components/DashboardCompletionPanel';
@@ -18,6 +19,7 @@ const QUICK_ACCESS_ITEMS = USER_MENU_ITEMS.filter(
 export const UserHomePage = () => {
   const { user } = useAuth();
   const selectedUniversityId = Number(user?.selected_university?.id) || null;
+  const { shouldRun } = useRequestDeduper({ windowMs: 180 });
 
   const {
     summary,
@@ -31,8 +33,20 @@ export const UserHomePage = () => {
       return;
     }
 
-    fetchDashboardSummary();
-  }, [selectedUniversityId, fetchDashboardSummary]);
+    const signature = buildRequestSignature(
+      {
+        resource: 'dashboard-summary-page',
+        selectedUniversityId,
+      },
+      ['resource', 'selectedUniversityId'],
+    );
+
+    if (!shouldRun(signature)) {
+      return;
+    }
+
+    fetchDashboardSummary({ selectedUniversityId });
+  }, [selectedUniversityId, fetchDashboardSummary, shouldRun]);
 
   const fallbackUniversity = user?.selected_university || null;
   const summaryUniversity = summary?.university || fallbackUniversity;
@@ -65,7 +79,10 @@ export const UserHomePage = () => {
         </p>
         <button
           type="button"
-          onClick={() => fetchDashboardSummary()}
+          onClick={() => fetchDashboardSummary({
+            force: true,
+            selectedUniversityId,
+          })}
           className="mt-4 rounded-lg border px-4 py-2 text-sm font-medium"
           style={{
             borderColor: 'var(--border-default, #d1d5db)',
