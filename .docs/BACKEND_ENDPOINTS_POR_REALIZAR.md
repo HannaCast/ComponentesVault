@@ -48,11 +48,18 @@ Notas:
 | `GET` | `/api/v1/user/my-info/` | Datos del usuario autenticado (nombre, correo, rol, configuracion actual). |
 | `GET` | `/api/v1/user/configurations/` | Obtiene la configuracion actual del usuario autenticado. |
 | `PUT` | `/api/v1/user/configurations/selected-university/` | Asigna o limpia la universidad seleccionada del usuario autenticado. |
+| `GET` | `/api/v1/university/dashboard/summary/` | Resumen operativo del dashboard en contexto de universidad seleccionada (conteos, estado de borrador y completitud). |
 
 Notas de respuesta para configuracion de usuario:
 - Cuando se consulta configuracion (`GET /api/v1/user/configurations/`), el backend retorna `selected_university` (id, name, short_name).
 - Si la universidad seleccionada tiene `uses_period_groups = 1` y existe periodo activo (`academic_periods.is_active = 1`), se retorna tambien `selected_university_active_period_name`.
 - Si no aplica o no existe periodo activo, `selected_university_active_period_name` se retorna como `null`.
+
+Notas de respuesta para dashboard summary:
+- `university`: id, name, short_name, `uses_period_groups`, `active_period_name`.
+- `schedule_generation`: `has_draft`, `draft_version_id`, `draft_version_label`, `draft_created_at`, `draft_origin`.
+- `counts`: resumen por modulo (`careers`, `subjects`, `groups`, `teachers`, `classrooms`) con totales/activos; en `teachers` incluye disponibilidad y en `groups` indica si esta acotado al periodo activo.
+- `completion`: score global (`score_percentage`) y checklist (`items`) para medir avance operativo previo a generar horarios.
 
 ---
 
