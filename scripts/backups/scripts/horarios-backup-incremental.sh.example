@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ================================
+# CONFIGURACION (EDITAR ESTO)
+# ================================
+
+BACKUP_DIR="/RUTA/AQUI/BACKUPS"
+BINLOG_DIR="/RUTA/AQUI/BINLOGS"
+MYSQL_USER="TU_USUARIO"
+MYSQL_PASSWORD="TU_PASSWORD"
+
+# Opcional: cambia estos ejecutables si no estan en PATH
+MYSQL_CLI_BIN="mysql"
+MYSQL_BINLOG_BIN="mysqlbinlog"
+
+# Archivos de control
+LOG_TRACK_FILE="$BACKUP_DIR/ultimo_binlog.txt"
+MASTER_STATUS_FILE="$BACKUP_DIR/master_status_incremental.txt"
+
+# ================================
+# VALIDACIONES
+# ================================
+
+if [[ "$MYSQL_USER" == "TU_USUARIO" ]]; then
+  echo "ERROR: Debes configurar MYSQL_USER"
+  exit 1
+fi
+
+if [[ "$BACKUP_DIR" == "/RUTA/AQUI/BACKUPS" ]]; then
+  echo "ERROR: Debes configurar BACKUP_DIR"
+  exit 1
+fi
+
+if [[ "$BINLOG_DIR" == "/RUTA/AQUI/BINLOGS" ]]; then
+  echo "ERROR: Debes configurar BINLOG_DIR"
+  exit 1
+fi
+
+mkdir -p "$BACKUP_DIR"
+
+if [[ ! -d "$BINLOG_DIR" ]]; then
+  echo "ERROR: BINLOG_DIR no existe: $BINLOG_DIR"
+  exit 1
+fi
+
+# ================================
+# AUTENTICACION MYSQL
+# ================================
+
+MYSQL_AUTH=(-u "$MYSQL_USER")
+if [[ -n "$MYSQL_PASSWORD" && "$MYSQL_PASSWORD" != "TU_PASSWORD" ]]; then
+  MYSQL_AUTH+=(-p"$MYSQL_PASSWORD")
+fi
+
+# ================================
+# FECHA Y ARCHIVO DE SALIDA
+# ================================
+
+DATE="$(date +'%Y-%m-%d_%H-%M')"
+OUTPUT_FILE="$BACKUP_DIR/horarios_incremental_${DATE}.sql"
+
+# Leer ultimo binlog y posicion respaldada
+LAST_BINLOG=""
+LAST_POSITION=""
+if [[ -f "$LOG_TRACK_FILE" ]]; then
+  IFS=, read -r LAST_BINLOG LAST_POSITION < "$LOG_TRACK_FILE" || true
+  echo "Ultimo binlog respaldado: ${LAST_BINLOG:-N/A} en posicion ${LAST_POSITION:-N/A}."
+else
+  echo "No se encontro un registro previo de binlogs respaldados."
+fi
+
+# Obtener binlog y posicion actuales
+"$MYSQL_CLI_BIN" "${MYSQL_AUTH[@]}" -Nse "SHOW MASTER STATUS;" > "$MASTER_STATUS_FILE"
+read -r CURRENT_BINLOG CURRENT_POSITION _ < "$MASTER_STATUS_FILE" || true
+
+if [[ -z "${CURRENT_BINLOG:-}" ]]; then
+  echo "ERROR: No se pudo leer el binlog actual."
+  exit 1
+fi
+
+echo "Binlog actual: $CURRENT_BINLOG, posicion: $CURRENT_POSITION"
+
+# Respaldo incremental
+if [[ -z "${LAST_BINLOG:-}" ]]; then
+  echo "Entrando en caso: No hay binlog previo respaldado."
+  "$MYSQL_BINLOG_BIN" "$BINLOG_DIR/$CURRENT_BINLOG" > "$OUTPUT_FILE"
+elif [[ "$LAST_BINLOG" == "$CURRENT_BINLOG" && -n "${LAST_POSITION:-}" ]]; then
+  echo "Entrando en caso: Respaldo incremental desde la posicion $LAST_POSITION."
+  "$MYSQL_BINLOG_BIN" --start-position="$LAST_POSITION" "$BINLOG_DIR/$CURRENT_BINLOG" > "$OUTPUT_FILE"
+else
+  echo "Entrando en caso: Nuevo binlog detectado."
+  "$MYSQL_BINLOG_BIN" "$BINLOG_DIR/$CURRENT_BINLOG" > "$OUTPUT_FILE"
+fi
+
+printf '%s,%s\n' "$CURRENT_BINLOG" "$CURRENT_POSITION" > "$LOG_TRACK_FILE"
+
+echo "Ruta del binlog procesado: $BINLOG_DIR/$CURRENT_BINLOG"
+echo "Respaldo incremental completado."
+echo "Archivo generado: $OUTPUT_FILE"

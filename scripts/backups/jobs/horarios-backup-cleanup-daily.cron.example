@@ -1,0 +1,3 @@
+# Limpieza diaria de backups viejos a las 01:00
+# m h dom mon dow command
+0 1 * * * /REEMPLAZAR/RUTA/scripts/backups/scripts/horarios-backup-cleanup.sh >> /REEMPLAZAR/RUTA/logs/backup-cleanup.log 2>&1

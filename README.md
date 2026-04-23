@@ -274,6 +274,8 @@ Documentacion completa:
 - `scripts/generate-rsa-keys.mjs`: genera llaves RSA para cifrado de login/registro.
 - `scripts/run-base-de-datos-sql.mjs`: ejecuta todos los SQL de `scripts/base_de_datos` en orden numerico.
 - `scripts/.env.base_de_datos.example`: plantilla de credenciales para el runner SQL.
+- `scripts/backups/scripts/`: examples de respaldos MySQL (incremental diario + full semanal) y limpieza por retencion para Windows (`.bat.example`) y Linux/macOS (`.sh.example`).
+- `scripts/backups/jobs/`: examples de jobs para Task Scheduler (Windows), cron (Linux/macOS) y launchd (macOS).
 - `scripts/base_de_datos/1. horarios-estructura-bd.sql`: estructura de BD (incluye tabla `audit_logs`).
 - `scripts/base_de_datos/2. horarios-usuarios-bd.sql`: crea usuario `api_user` y permisos base.
 - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`: triggers de timestamps/autoria por tabla.
@@ -281,11 +283,22 @@ Documentacion completa:
 - `scripts/base_de_datos/5. horarios-catalogos-base.sql`: catalogos base del sistema.
 - `scripts/base_de_datos/6. horarios-datos-prueba.sql`: inserciones de datos de prueba (opcional).
 
+## Copias de seguridad (resumen opcional)
+
+- Guia completa: `.docs/scripts/BACKUPS_README.md`.
+- Scripts de respaldo: `scripts/backups/scripts/`.
+- Jobs example: `scripts/backups/jobs/`.
+- Programacion recomendada:
+  - incremental diario a las `00:00`.
+  - full semanal en domingo a las `00:00`.
+  - limpieza diaria de copias viejas con retencion configurable.
+
 ## Documentacion tecnica
 
 - `.docs/BACKEND_IMPLEMENTATION_GUIDE.md`
 - `.docs/BACKEND_LÓGICA_DEL_SISTEMA.md`
 - `.docs/modulos_especificos/BACKEND_AUDITORIA.md`
+- `.docs/scripts/BACKUPS_README.md`
 
 ## Notas
 

@@ -1,61 +1,131 @@
-# Backend - Auditoria de Datos
+# BACKEND - Auditoria de Datos
 
-## Objetivo
+## 1) Proposito de este documento
 
-Documentar como funciona la auditoria de datos en backend con enfoque mixto:
+Este documento describe de extremo a extremo como funciona la auditoria en el sistema:
 
-- Base de datos (triggers) para operaciones exitosas.
-- Backend Django para registrar errores de aplicacion.
+- que se registra en base de datos,
+- que se registra en backend,
+- como se construye el contexto de auditoria por request,
+- y como interpretar los registros para soporte, QA y trazabilidad.
 
-## Componentes
+La meta es que cualquier persona del equipo pueda diagnosticar una operacion funcional sin depender del autor original del modulo.
 
-1. Tabla `audit_logs` en MySQL.
-2. Triggers SQL en:
-   - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
-   - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-3. Scripts operativos complementarios:
-   - `scripts/base_de_datos/5. horarios-indices.sql`
-   - `scripts/base_de_datos/6. horarios-eventos.sql`
-4. Contexto de sesion en backend con `core.audit_context`.
+## 2) Alcance
 
-Archivos clave:
+Este documento cubre:
 
-- `scripts/base_de_datos/1. horarios-estructura-bd.sql`
-- `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
-- `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
-- `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-- `scripts/base_de_datos/5. horarios-indices.sql`
-- `scripts/base_de_datos/6. horarios-eventos.sql`
-- `horarios_backend/core/audit_context.py`
-- `horarios_backend/subjects/views/subjects.py`
+- tabla `audit_logs` y su semantica,
+- triggers SQL de auditoria y de metadatos,
+- contexto de auditoria desde Django (`core.audit_context`),
+- endpoints API para consultar bitacora,
+- y recomendaciones operativas de revision.
 
-## Flujo de auditoria
+Este documento no cubre:
 
-### 1) Operaciones exitosas (trigger)
+- monitoreo de infraestructura (CPU, RAM, red),
+- SIEM externo,
+- trazas de APM de terceros.
 
-Cuando se ejecuta `INSERT`, `UPDATE` o `DELETE` sobre tablas auditadas:
+## 3) Arquitectura de auditoria (modelo mixto)
 
-- El trigger inserta una fila en `audit_logs`.
-- `is_succesfull` se guarda en `1`.
-- Se registran `old_data` y `new_data` segun la operacion.
-- Si la conexion es del usuario `api_user`, se considera `source = 'APPLICATION'`.
-- En otro caso, `source = 'DATABASE'`.
+La auditoria opera en dos capas complementarias:
 
-### 2) Errores de aplicacion (backend)
+1. Capa SQL (triggers):
+- Registra operaciones exitosas de escritura cuando una fila realmente cambia.
+- Captura `old_data`, `new_data`, accion y metadata de usuario/transaccion.
 
-En endpoints decorados con `@with_audit_context(...)`:
+2. Capa backend (Django):
+- Registra errores funcionales y excepciones de aplicacion.
+- Aporta contexto de negocio que un trigger no ve cuando hay rollback o validacion fallida.
 
-- Se setean variables de sesion para trazabilidad.
-- Si ocurre una excepcion, se inserta un log con:
-  - `is_succesfull = 0`
-  - `error_message = "TipoError: mensaje"`
-- Si no hay excepcion pero la respuesta HTTP es error (`status >= 400`), tambien se inserta log de error.
+Resultado: la bitacora conserva trazabilidad tanto de operaciones exitosas como de fallos.
 
-Esto permite cubrir errores que no quedan registrados por triggers (por rollback o por validaciones de app).
+## 4) Componentes tecnicos
 
-## Variables de sesion MySQL usadas
+### 4.1 Base de datos
 
-El backend envia:
+- Tabla: `audit_logs`
+- Scripts relacionados:
+  - `scripts/base_de_datos/1. horarios-estructura-bd.sql`
+  - `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
+  - `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
+  - `scripts/base_de_datos/5. horarios-indices.sql`
+  - `scripts/base_de_datos/6. horarios-eventos.sql`
+
+### 4.2 Backend
+
+- Contexto y decoradores:
+  - `horarios_backend/core/audit_context.py`
+- Endpoints de lectura de bitacora:
+  - `horarios_backend/audit/views/audit.py`
+  - `horarios_backend/audit/urls/audit.py`
+
+## 5) Modelo de datos audit_logs
+
+Modelo Django:
+
+- `horarios_backend/audit/models.py`
+
+Campos clave y uso:
+
+- `id`: identificador del evento de auditoria.
+- `user_id`, `username`: usuario de aplicacion cuando existe contexto.
+- `source`: origen del cambio (`APPLICATION` o `DATABASE`).
+- `transaction_id`: correlacion entre eventos del mismo request/operacion.
+- `table_name`: entidad afectada (ej. `careers`, `groups`, `schedule_versions`).
+- `record_id`: PK del registro afectado.
+- `action`: tipo de operacion.
+- `old_data`: estado anterior (JSON).
+- `new_data`: estado nuevo (JSON).
+- `ip_address`, `user_agent`: metadata de cliente.
+- `is_succesfull`: `1` exitoso, `0` error.
+- `error_message`: detalle del error de negocio/aplicacion.
+- `created_at`: momento del evento.
+
+## 6) Acciones de auditoria estandar
+
+Conjunto operativo esperado en `action`:
+
+- `CREATE`
+- `UPDATE`
+- `DELETE`
+- `INSERT`
+- `CHANGE_STATUS`
+
+Interpretacion sugerida:
+
+- `INSERT` suele representar insercion disparada desde aplicacion.
+- `CREATE` puede aparecer en inserciones directas segun estrategia de trigger/procedimiento.
+- `CHANGE_STATUS` se usa para toggles funcionales (activar/desactivar).
+
+## 7) Flujo de auditoria de operaciones exitosas
+
+Cuando un endpoint de escritura persiste cambios:
+
+1. El request define contexto de auditoria en sesion MySQL.
+2. Se ejecuta la operacion (`INSERT`/`UPDATE`/`DELETE`) en la tabla de negocio.
+3. El trigger escribe una fila en `audit_logs` con `is_succesfull = 1`.
+4. Se guarda fotografia vieja/nueva (`old_data`/`new_data`) segun tipo de accion.
+
+Esto garantiza trazabilidad transaccional en operaciones confirmadas.
+
+## 8) Flujo de auditoria de errores
+
+Cuando un endpoint decorado falla por validacion o excepcion:
+
+1. El backend mantiene contexto de auditoria para la entidad.
+2. Si ocurre error HTTP `>= 400` o excepcion controlada, se registra evento de error.
+3. El evento incluye `is_succesfull = 0` y `error_message`.
+
+Valor agregado:
+
+- Permite rastrear fallos que no llegan a trigger por rollback.
+- Mejora soporte en incidencias funcionales.
+
+## 9) Contexto de sesion usado por backend
+
+Variables de sesion que el backend establece para auditoria:
 
 - `@app_user_id`
 - `@app_username`
@@ -65,41 +135,57 @@ El backend envia:
 - `@app_action`
 - `@app_last_action`
 
-Notas:
+Uso recomendado:
 
-- `@app_action` se usa solo de forma puntual para evitar contaminacion entre operaciones.
-- `@app_last_action` conserva la ultima accion especial para trazabilidad de error.
+- `@app_action` para accion puntual de la operacion actual.
+- `@app_last_action` para mantener ultima accion relevante ante errores.
 
-## Acciones soportadas
+## 10) Uso correcto en vistas Django
 
-Valores esperados en `audit_logs.action`:
+Patron recomendado para endpoints de escritura:
 
-- `CREATE`
-- `UPDATE`
-- `DELETE`
-- `INSERT`
-- `CHANGE_STATUS`
-
-## Uso recomendado en vistas
-
-Para metodos de escritura:
-
-1. Decorar con `@with_audit_context(table_name='nombre_tabla')`.
-2. Mantener `@transaction.atomic` debajo de `@with_audit_context(...)`.
-3. Para acciones especiales, envolver solo la operacion puntual con `with_audit_action('CHANGE_STATUS')`.
+1. Decorar con `@with_audit_context(table_name='...')`.
+2. Combinar con `@transaction.atomic`.
+3. Para acciones especiales, envolver el `save` con `with_audit_action('CHANGE_STATUS')`.
 
 Ejemplo conceptual:
 
 ```python
-@with_audit_context(table_name='subjects')
+@with_audit_context(table_name='groups')
 @transaction.atomic
 def put(self, request, pk):
     ...
     with with_audit_action('CHANGE_STATUS'):
-        subject.save()
+        group.save()
 ```
 
-## Orden recomendado de scripts SQL
+## 11) Endpoints de consulta de auditoria
+
+### 11.1 Lista paginada
+
+- Metodo: `GET`
+- Ruta: `/api/v1/audit/logs/paginated/`
+- Vista: `AuditLogPaginatedView`
+- Permiso: solo administradores (`IsAdmin` via `require_permissions`).
+
+Parametros soportados:
+
+- `page`, `limit`
+- `search`
+- `entity` (table_name)
+- `action` (`CREATE`, `UPDATE`, `DELETE`, `INSERT`, `CHANGE_STATUS`)
+- `sortBy`, `order`
+
+### 11.2 Detalle de evento
+
+- Metodo: `GET`
+- Ruta: `/api/v1/audit/logs/{pk}/`
+- Vista: `AuditLogDetailView`
+- Permiso: solo administradores.
+
+## 12) Orden de despliegue SQL recomendado
+
+Para levantar entorno desde cero:
 
 1. `scripts/base_de_datos/1. horarios-estructura-bd.sql`
 2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
@@ -110,48 +196,60 @@ def put(self, request, pk):
 7. `scripts/base_de_datos/7. horarios-catalogos-base.sql`
 8. `scripts/base_de_datos/8. horarios-datos-prueba.sql` (opcional)
 
-## Revision rapida de los SQL actuales
+## 13) Casos de uso de revision operativa
 
-Estado general: funcionales para el modelo de auditoria actual, con observaciones:
+Escenario 1: validar una alta de carrera
 
-1. `scripts/base_de_datos/1. horarios-estructura-bd.sql`
-   - Correcto: tabla `audit_logs` con `is_succesfull` y `error_message`.
-   - Ajustado: `action` ahora incluye `INSERT` y `CHANGE_STATUS`.
+1. Ejecutar alta desde frontend.
+2. Buscar en bitacora por `table_name = careers`.
+3. Confirmar `is_succesfull = 1` y `action` esperado.
+4. Revisar `new_data` para verificar payload persistido.
 
-2. `scripts/base_de_datos/2. horarios-usuarios-bd.sql`
-   - Correcto: crea usuario y permisos base para app.
-   - Ajustado: `CREATE USER IF NOT EXISTS` para ejecucion idempotente.
-   - Recomendacion: en ambientes productivos, usar password segura y host restringido.
+Escenario 2: validar error de negocio
 
-3. `scripts/base_de_datos/3. horarios-triggers-tablas.sql`
-   - Correcto: registra timestamps y autoria por triggers BEFORE INSERT/UPDATE.
+1. Enviar request invalido (ej. regla de validacion).
+2. Revisar bitacora por `transaction_id` o usuario.
+3. Confirmar `is_succesfull = 0`.
+4. Revisar `error_message` para diagnostico.
 
-4. `scripts/base_de_datos/4. horarios-triggers-auditoria.sql`
-   - Correcto: registra operaciones exitosas y contexto de app/database.
-   - Incluye auditoria para `schedule_versions` (INSERT/UPDATE/DELETE).
-   - Consideracion: los triggers no llenan `error_message` por si solos; los errores de app los registra backend.
+Escenario 3: validar toggles de estado
 
-5. `scripts/base_de_datos/5. horarios-indices.sql`
-   - Correcto: agrega indices compuestos para consultas frecuentes.
-   - Enfoque: acelerar filtros por universidad/estado en `schedule_versions` y `academic_periods`.
+1. Ejecutar endpoint `toggle-status`.
+2. Confirmar evento con `action = CHANGE_STATUS`.
+3. Validar `old_data.status` y `new_data.status`.
 
-6. `scripts/base_de_datos/6. horarios-eventos.sql`
-   - Correcto: define eventos de limpieza periodica.
-   - Incluye purga de `user_tokens` expirados y borradores soft-delete antiguos de `schedule_versions`.
+## 14) Errores frecuentes y como resolverlos
 
-7. `scripts/base_de_datos/7. horarios-catalogos-base.sql`
-   - Correcto: concentra catalogos del sistema (roles, period_types, colors y classroom_types).
-   - Enfoque: datos estables para cualquier entorno.
+1. No aparecen eventos de auditoria en escritura:
+- Verificar que el endpoint este decorado con `@with_audit_context`.
+- Verificar instalacion/ejecucion de triggers en base de datos.
 
-8. `scripts/base_de_datos/8. horarios-datos-prueba.sql`
-   - Correcto: agrupa toda la data semilla para pruebas funcionales.
-   - Nota: no inserta registros en `schedule_versions`.
+2. Solo aparecen eventos exitosos pero no errores:
+- Revisar manejo de errores en la vista.
+- Revisar que el flujo no este saliendo antes del contexto de auditoria.
 
-## Validacion sugerida
+3. Falta `username` o `user_id`:
+- Revisar que el request este autenticado cuando aplique.
+- Revisar inyeccion de variables de sesion en `core.audit_context`.
 
-Pruebas minimas manuales:
+4. Lentitud en busquedas de bitacora:
+- Revisar indices de `scripts/base_de_datos/5. horarios-indices.sql`.
+- Evitar filtros demasiado amplios sin paginacion.
 
-1. Crear o actualizar un registro (debe quedar `is_succesfull = 1`).
-2. Forzar validacion 400 en endpoint decorado (debe quedar `is_succesfull = 0`).
-3. Forzar excepcion en endpoint decorado (debe quedar `is_succesfull = 0` y mensaje).
-4. Ejecutar toggle-status (debe registrar `action = CHANGE_STATUS`).
+## 15) Checklist de calidad para este modulo
+
+- [ ] Endpoints de escritura decorados con auditoria.
+- [ ] Triggers activos en entorno local y productivo.
+- [ ] Lista paginada responde con filtros/ordenamiento esperados.
+- [ ] Errores de negocio generan evento con `is_succesfull = 0`.
+- [ ] Toggle-status registra `CHANGE_STATUS`.
+- [ ] Equipo de soporte conoce uso de `transaction_id` para correlacion.
+
+## 16) Resumen ejecutivo
+
+La auditoria del sistema combina triggers SQL y contexto backend para cubrir dos necesidades:
+
+- Trazabilidad fuerte de cambios persistidos.
+- Observabilidad funcional de errores de aplicacion.
+
+Con este enfoque, la bitacora permite soporte tecnico, validacion de negocio y control operativo con evidencia consistente por entidad, usuario y transaccion.

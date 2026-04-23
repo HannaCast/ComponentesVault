@@ -1,144 +1,224 @@
-# Guia rapida: `universities` (Universidades), setup completo y logo privado
+# BACKEND - Modulo Universities (Universidades, Setup Completo y Logo)
 
-> **Rutas y listado completo de endpoints:** ver **`BACKEND_ENDPOINTS_POR_REALIZAR.md`**.
+## 1) Proposito de este documento
 
-- **`Universities`**: datos generales de la universidad.
-- **`Images`**: metadatos del logo (archivo privado).
-- **`Modalities`**: modalidades academicas por universidad.
-- **`Shifts`**: turnos operativos por universidad.
-- **`AcademicPeriods`**: periodos academicos por universidad.
+Explicar de forma integral el modulo `universities`:
 
----
+- ciclo de vida de una universidad,
+- setup atomico de configuracion academica,
+- gestion de logo privado,
+- y reglas que condicionan modulos dependientes (`groups`, `dashboard`, `schedule_generator`).
 
-## 1) Modelos y relacion funcional
+## 2) Alcance
 
-### `Universities` (tabla `universities`)
-Define la entidad principal de universidad.
+Incluye:
 
-Campos importantes:
-- `name`, `short_name`, `institution_code`
-- `start_time`, `end_time` (ventana operativa)
-- `period_type`
-- `uses_period_groups` (0/1)
-- `image` (FK a `images`, opcional)
-- `status`, `is_deleted`
+- entidades `Universities`, `Images`, `Shifts`, `AcademicPeriods`,
+- setup completo (`create`/`update`) con transaccion,
+- endpoints de perfil y logo,
+- reglas de negocio criticas (`uses_period_groups`, ventana horaria, turnos).
 
-Modelo:
+No incluye:
+
+- UI de formularios en detalle visual,
+- decisiones de despliegue de almacenamiento externo de imagenes.
+
+## 3) Mapa funcional rapido
+
+1. Usuario crea universidad base o setup completo.
+2. Se configuran modalidades, turnos y periodos academicos.
+3. `uses_period_groups` define politica de segmentacion para grupos.
+4. Se puede subir/reemplazar/eliminar logo de forma segura.
+5. Otros modulos consumen esta configuracion como fuente de verdad.
+
+## 4) Ubicacion del modulo
+
+Archivos clave:
+
 - `horarios_backend/universities/models/universities.py`
-
-### `Images` (tabla `images`)
-Guarda metadatos del archivo del logo (nombre, hash, mime, ruta interna, etc.).
-
-Modelo:
 - `horarios_backend/universities/models/images.py`
-
-### `Modalities` (tabla `modalities`)
-Modalidades por universidad con `configurations` JSON (`allowed_days`, `classroom_days_per_week`).
-
-Modelo:
-- `horarios_backend/careers/models/modalities.py`
-
-### `Shifts` (tabla `shifts`)
-Turnos por universidad con orden y rango horario.
-
-Modelo:
 - `horarios_backend/universities/models/shifts.py`
-
-### `AcademicPeriods` (tabla `academic_periods`)
-Periodos por universidad con orden e indicador `is_active`.
-
-Modelo:
 - `horarios_backend/universities/models/academic_periods.py`
-
----
-
-## 2) Reglas de negocio clave
-
-1. **Inmutabilidad de `uses_period_groups`**
-- Se define al crear la universidad.
-- Despues no se puede cambiar (ni de `1 -> 0` ni de `0 -> 1`).
-- Si se intenta cambiar en update, backend responde error de validacion.
-
-2. **Ventana operativa de universidad**
-- `start_time` debe ser menor a `end_time` en universidad.
-
-3. **Rango valido para turnos**
-- Cada turno debe cumplir:
-  - `shift.start_time >= university.start_time`
-  - `shift.end_time <= university.end_time`
-  - `shift.start_time < shift.end_time`
-- Se valida en endpoints directos de turnos y tambien en setup completo.
-
-4. **Logo privado y sin exposicion de ruta real**
-- El logo se obtiene por endpoint autenticado binario.
-- El upload no devuelve ruta de archivo publica.
-- Al reemplazar o eliminar logo se marca la imagen previa como borrada logica (`images.is_deleted = 1`).
-
-5. **Setup completo atomico**
-- Crear/actualizar setup completo corre en transaccion atomica.
-- Si falla cualquier validacion, no quedan cambios parciales persistidos.
-
----
-
-## 3) Endpoints del modulo
-
-Rutas:
+- `horarios_backend/universities/views/universities.py`
+- `horarios_backend/universities/views/university_profile.py`
+- `horarios_backend/universities/views/full_universities.py`
+- `horarios_backend/universities/views/university_images.py`
+- `horarios_backend/universities/services/full_setup_sync.py`
 - `horarios_backend/universities/urls/universities.py`
 
-### 3.1 Universidad (principal)
-- `GET /api/v1/universities/` (lista paginada)
-- `POST /api/v1/universities/create/` (crear datos generales)
-- `GET /api/v1/universities/{id}/` (detalle)
-- `PUT /api/v1/universities/{id}/` (actualizar datos generales)
-- `DELETE /api/v1/universities/{id}/` (soft delete)
+## 5) Seguridad y contexto
 
-### 3.2 Perfil y setup
-- `GET /api/v1/universities/{id}/profile/` (datos + modalidades + turnos + periodos)
-- `POST /api/setup/university-complete/` (crear setup completo)
-- `PUT /api/v1/universities/{id}/full-setup/` (actualizar setup completo)
+Endpoints de escritura y recursos privados usan:
 
-### 3.3 Logo
-- `GET /api/v1/universities/{id}/image/` (binario autenticado)
-- `POST /api/universities/{id}/upload-image/` (subir o reemplazar logo)
-- `DELETE /api/universities/{id}/upload-image/` (quitar logo)
+- `IsAuthenticated`
+- aislamiento por usuario/propiedad de universidad en consultas
 
-### 3.4 Recursos relacionados en contexto de universidad
-- Modalidades: `/api/v1/university/modalities/*`
-- Turnos: `/api/v1/university/shifts/*`
-- Periodos academicos: `/api/v1/university/academic-periods/*`
+Implicacion:
 
----
+- un usuario no puede manipular universidades de otro usuario,
+- el logo se sirve por endpoint autenticado, no por ruta publica.
 
-## 4) Flujo recomendado de formulario (frontend)
+## 6) Entidades y campos relevantes
 
-Archivos frontend clave:
-- `horarios_frontend/src/modules/user/features/universities/components/UniversityForm.jsx`
-- `horarios_frontend/src/modules/user/features/universities/components/UniversityFormPageContainer.jsx`
-- `horarios_frontend/src/modules/user/features/universities/hooks/useUniversities.js`
-- `horarios_frontend/src/modules/user/features/universities/api/universitiesApi.js`
-- `horarios_frontend/src/modules/user/features/universities/utils/universityPayloadUtils.js`
-- `horarios_frontend/src/modules/user/features/universities/validations/universityValidationSchema.js`
+### 6.1 Universities
 
-Comportamiento implementado:
-1. En creacion:
-- Modalidad inicial por defecto: solo `Presencial`.
-- Nuevas modalidades y turnos se insertan arriba.
+Campos de negocio:
 
-2. En edicion:
-- El switch de `uses_period_groups` se muestra bloqueado (solo lectura).
-- El payload de edicion no intenta cambiar `uses_period_groups`.
+- `name`, `short_name`, `institution_code`
+- `start_time`, `end_time`
+- `period_type`
+- `uses_period_groups`
+- `image`
+- `status`, `is_deleted`
 
-3. Turnos:
-- Inputs de hora usan `min/max` con apertura/cierre de universidad.
-- Validacion local adicional antes de enviar.
+### 6.2 Images
 
----
+Metadatos de archivo:
 
-## 5) Ejemplos de request
+- nombre visible,
+- mime,
+- extension,
+- hash,
+- tamano,
+- ruta interna en media,
+- ciclo de vida (`is_deleted`).
 
-### A) Crear setup completo
+### 6.3 Shifts
 
-`POST /api/setup/university-complete/`
+- turno por universidad,
+- `order` para secuencia operativa,
+- rango horario valido dentro de ventana institucional.
+
+### 6.4 AcademicPeriods
+
+- periodos academicos por universidad,
+- control de `is_active` para flujos que dependen del periodo vigente.
+
+## 7) Reglas de negocio clave
+
+1. `uses_period_groups` se define en creacion y no debe mutar en edicion.
+2. `start_time` debe ser menor a `end_time`.
+3. Turnos deben quedar dentro de la ventana operativa institucional.
+4. Setup completo debe ser atomico: si falla algo, no persiste parcial.
+5. Logo:
+- no expone ruta de almacenamiento real,
+- reemplazos marcan imagen previa como eliminada logicamente.
+
+## 8) Endpoints del modulo
+
+### 8.1 Universidad principal
+
+- `GET /api/v1/universities/`
+- `POST /api/v1/universities/create/`
+- `GET /api/v1/universities/{id}/`
+- `PUT /api/v1/universities/{id}/`
+- `DELETE /api/v1/universities/{id}/`
+
+### 8.2 Perfil y setup
+
+- `GET /api/v1/universities/{id}/profile/`
+- `POST /api/setup/university-complete/`
+- `PUT /api/v1/universities/{id}/full-setup/`
+
+### 8.3 Logo
+
+- `GET /api/v1/universities/{id}/image/`
+- `POST /api/universities/{id}/upload-image/`
+- `DELETE /api/universities/{id}/upload-image/`
+
+## 9) Setup completo (alta)
+
+Vista:
+
+- `UniversityFullSetupView.post`
+
+Flujo:
+
+1. valida payload completo (`FullSetupSerializer`),
+2. crea universidad base,
+3. sincroniza modalidades, turnos y periodos,
+4. confirma transaccion y responde `university_id`.
+
+Ventaja:
+
+- evita que frontend deba coordinar multiples requests dependientes.
+
+## 10) Setup completo (edicion)
+
+Vista:
+
+- `UniversityFullSetupUpdateView.put`
+
+Flujo:
+
+1. valida payload de setup,
+2. bloquea universidad objetivo (`select_for_update`),
+3. actualiza entidad principal,
+4. sincroniza recursos hijos,
+5. responde setup consolidado.
+
+## 11) Perfil de universidad
+
+Vista:
+
+- `UniversityProfileView.get`
+
+Retorna en una sola respuesta:
+
+- datos base de universidad,
+- modalidades,
+- turnos,
+- periodos academicos,
+- datos necesarios para rehidratar formulario de edicion.
+
+## 12) Gestion de logo privado
+
+Vistas:
+
+- `UniversityImageByUniversityView.get`
+- `UniversityUploadImageView.post`
+- `UniversityUploadImageView.delete`
+
+Comportamiento:
+
+- el binario se entrega autenticado via backend,
+- en reemplazo se marca imagen previa como `is_deleted=1`,
+- en delete se limpia FK y se conserva trazabilidad de metadatos.
+
+## 13) Dependencias con otros modulos
+
+1. `groups`:
+- depende de `uses_period_groups` para alcance por periodo activo.
+
+2. `dashboard`:
+- muestra contexto institucional y periodo activo basado en universidad seleccionada.
+
+3. `schedule_generator`:
+- usa configuracion institucional para restricciones y contexto de generacion.
+
+4. `careers` y `classrooms`:
+- consumen universidad como frontera de datos.
+
+## 14) Errores frecuentes
+
+1. Error de ventana horaria:
+- `start_time >= end_time`.
+
+2. Error en turnos:
+- turno fuera de rango institucional,
+- `start_time >= end_time` en el turno.
+
+3. Error al cambiar `uses_period_groups` en edicion:
+- cambio no permitido por consistencia historica.
+
+4. `404` en logo:
+- universidad inexistente/no accesible,
+- imagen ausente o marcada como eliminada.
+
+5. Error en setup:
+- validacion en modalidad/turno/periodo invalido dentro de payload compuesto.
+
+## 15) Ejemplo de setup completo
 
 ```json
 {
@@ -177,66 +257,18 @@ Comportamiento implementado:
 }
 ```
 
-### B) Actualizar setup completo (sin cambiar `uses_period_groups`)
+## 16) Checklist de QA
 
-`PUT /api/v1/universities/{id}/full-setup/`
+- [ ] Crear universidad simple y validar respuesta.
+- [ ] Crear setup completo en una sola solicitud.
+- [ ] Editar setup completo sin mutar `uses_period_groups`.
+- [ ] Probar validaciones de turnos fuera de rango.
+- [ ] Subir y reemplazar logo.
+- [ ] Eliminar logo y verificar estado de imagen asociada.
+- [ ] Verificar que otras vistas respeten universidad seleccionada.
 
-```json
-{
-  "university": {
-    "name": "Universidad Emiliano Zapata",
-    "short_name": "UTEZ",
-    "institution_code": "UTEZ001",
-    "start_time": "07:00",
-    "end_time": "22:00",
-    "period_type": 1
-  },
-  "modalities": [
-    {
-      "id": 10,
-      "name": "Presencial",
-      "require_classroom": 1,
-      "configurations": {
-        "allowed_days": [1, 2, 3, 4, 5],
-        "classroom_days_per_week": 5
-      }
-    }
-  ],
-  "shifts": [
-    { "id": 21, "name": "Matutino", "start_time": "07:00", "end_time": "14:00", "order": 1 }
-  ],
-  "academic_periods": []
-}
-```
+## 17) Resumen ejecutivo
 
-### C) Quitar logo
+`universities` es el modulo raiz de configuracion institucional.
 
-`DELETE /api/universities/{id}/upload-image/`
-
-Resultado funcional:
-- `universities.image = NULL`
-- imagen asociada marcada como borrada logica (`images.is_deleted = 1`)
-
----
-
-## 6) Archivos backend clave
-
-- Vistas:
-  - `horarios_backend/universities/views/universities.py`
-  - `horarios_backend/universities/views/university_profile.py`
-  - `horarios_backend/universities/views/full_universities.py`
-  - `horarios_backend/universities/views/university_images.py`
-
-- Serializers:
-  - `horarios_backend/universities/serializers/universities/university_write_serializer.py`
-  - `horarios_backend/universities/serializers/universities/serializer_full.py`
-  - `horarios_backend/universities/serializers/shifts/shift_write_serializer.py`
-
-- Servicios:
-  - `horarios_backend/universities/services/full_setup_sync.py`
-
----
-
-## 7) Nota operativa
-
-Aunque frontend bloquea cambios de `uses_period_groups` en edicion, la garantia final esta en backend. Esto evita cambios por clientes externos o payloads manuales y mantiene consistencia historica de periodos academicos y configuracion de grupos.
+Define las reglas base del ecosistema academico (horarios, periodos, segmentacion por grupos) y su calidad de datos determina la estabilidad del resto de modulos operativos.
