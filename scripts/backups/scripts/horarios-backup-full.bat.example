@@ -1,0 +1,55 @@
+@echo off
+
+:: ================================
+:: CONFIGURACIÓN (EDITAR ESTO)
+:: ================================
+
+:: Usuario de MySQL
+set MYSQL_USER=REEMPLAZAR_USUARIO
+
+:: Contraseña (opcional si usas my.ini o .cnf)
+set MYSQL_PASSWORD=REEMPLAZAR_PASSWORD
+
+:: Nombre de la base de datos
+set DB_NAME=REEMPLAZAR_DB
+
+:: Carpeta donde guardar backups
+set BACKUP_DIR=REEMPLAZAR_RUTA_BACKUPS
+
+:: ================================
+:: VALIDACIONES
+:: ================================
+
+if "%MYSQL_USER%"=="REEMPLAZAR_USUARIO" (
+    echo ERROR: Debes configurar MYSQL_USER
+    exit /b 1
+)
+
+if "%DB_NAME%"=="REEMPLAZAR_DB" (
+    echo ERROR: Debes configurar DB_NAME
+    exit /b 1
+)
+
+if "%BACKUP_DIR%"=="REEMPLAZAR_RUTA_BACKUPS" (
+    echo ERROR: Debes configurar BACKUP_DIR
+    exit /b 1
+)
+
+
+
+:: ================================
+:: CREACIÓN DE LA COPIA COMPLETA
+:: ================================
+
+:: Generar fecha (MISMO FORMATO QUE TU INCREMENTAL)
+for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value ^| find "="') do set datetime=%%I
+set DATE=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2%_%datetime:~8,2%-%datetime:~10,2%
+set DATE=%DATE::=-%
+
+:: BACKUP FULL (MISMO FORMATO QUE INCREMENTAL)
+mysqldump -u %MYSQL_USER% -p%MYSQL_PASSWORD% %DB_NAME% > "%BACKUP_DIR%\horarios_full_%DATE%.sql"
+
+echo Backup completo generado:
+echo %BACKUP_DIR%\horarios_full_%DATE%.sql
+
+pause
