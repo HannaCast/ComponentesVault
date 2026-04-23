@@ -196,7 +196,7 @@ SPECTACULAR_SETTINGS = { # Configuración de drf-spectacular para documentación
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1), # minutes=30
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': False,
@@ -232,15 +232,15 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Archivos estáticos (CSS y JavaScript)
+# Archivos estáticos (CSS, JavaScript, Imágenes)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Almacenamiento privado de imágenes (no servido por URL pública)
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR/'media'
 
 
 ## Configuración de logging con Loguru

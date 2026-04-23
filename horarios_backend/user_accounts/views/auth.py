@@ -113,8 +113,8 @@ def _ensure_default_user_configuration(user):
 
 def _clear_auth_cookies(response):
     """Limpia cookies de sesion para evitar auto-login no intencional."""
-    response.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH)
-    response.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH)
+    response.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH, samesite=settings.AUTH_COOKIE_SAMESITE)
+    response.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH, samesite=settings.AUTH_COOKIE_SAMESITE)
     return response
 
 
@@ -329,6 +329,6 @@ class LogoutView(APIView):
                 pass
 
         resp = ApiResponse.success(message='Sesion cerrada exitosamente')
-        resp.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH)
-        resp.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH)
+        resp.delete_cookie('access_token', path=_ACCESS_COOKIE_PATH, samesite=settings.AUTH_COOKIE_SAMESITE)
+        resp.delete_cookie('refresh_token', path=_REFRESH_COOKIE_PATH, samesite=settings.AUTH_COOKIE_SAMESITE)
         return resp
