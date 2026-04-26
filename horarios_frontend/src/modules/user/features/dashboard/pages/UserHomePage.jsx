@@ -73,11 +73,13 @@ export const UserHomePage = () => {
   );
   const shortUniversityName = String(summary?.university?.short_name || '').trim() || null;
 
-  const activePeriodName = String(
+  const usesPeriodGroups = summaryUniversity?.uses_period_groups === 1 || summaryUniversity?.uses_period_groups === true;
+
+  const activePeriodName = usesPeriodGroups ? (String(
     summary?.university?.active_period_name
       || user?.selected_university_active_period_name
       || '',
-  ).trim() || null;
+  ).trim() || null) : null;
 
   const completionScore = Number(summary?.completion?.score_percentage) || 0;
 

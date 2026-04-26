@@ -134,6 +134,11 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
         university = self._get_university_for_validation(selected_university_id)
 
         uses_period_groups = int(university.uses_period_groups or 0) == 1
+        if not uses_period_groups:
+            raise serializers.ValidationError(
+                {'university': 'Esta universidad no utiliza periodos académicos, no se pueden registrar.'}
+            )
+
         start_date = self._get_effective_value(attrs, self.instance, 'start_date')
         end_date = self._get_effective_value(attrs, self.instance, 'end_date')
         self._validate_dates(start_date, end_date)

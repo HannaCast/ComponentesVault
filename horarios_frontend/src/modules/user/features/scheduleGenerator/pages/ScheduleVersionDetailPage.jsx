@@ -67,6 +67,8 @@ export const ScheduleVersionDetailPage = () => {
     [selectedUniversity],
   );
 
+  const usesPeriodGroups = selectedUniversity?.uses_period_groups === 1 || selectedUniversity?.uses_period_groups === true;
+
   useEffect(() => {
     const parsedVersionId = Number(versionId);
 
@@ -207,9 +209,11 @@ export const ScheduleVersionDetailPage = () => {
             <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
               Contexto: {selectedUniversityName}
             </p>
-            <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
-              {selectedVersion?.academic_period ? `Periodo: ${selectedVersion.academic_period.name}` : ''}
-            </p>
+            {usesPeriodGroups && selectedVersion?.academic_period ? (
+              <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                Periodo: {selectedVersion.academic_period.name}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

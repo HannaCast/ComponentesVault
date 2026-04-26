@@ -15,8 +15,8 @@ import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
 
 const PAGE_SIZE = 6;
 
-const getContextLabel = (selectedUniversityName, activeAcademicPeriodName) => {
-  if (!activeAcademicPeriodName) {
+const getContextLabel = (selectedUniversityName, activeAcademicPeriodName, usesPeriodGroups) => {
+  if (!usesPeriodGroups || !activeAcademicPeriodName) {
     return `Contexto: ${selectedUniversityName}`;
   }
 

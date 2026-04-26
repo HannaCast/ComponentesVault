@@ -6,4 +6,4 @@ from universities.models.universities import Universities
 class SelectedUniversitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Universities
-        fields = ['id', 'name', 'short_name']
+        fields = ['id', 'name', 'short_name', 'uses_period_groups']
