@@ -19,6 +19,7 @@ export const useSubjects = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('todos');
+  const [careerFiltro, setCareerFiltro] = useState('todas');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -40,6 +41,7 @@ export const useSubjects = () => {
     limit = 10,
     search = '',
     estado = 'todos',
+    careerId = 'todas',
     asc = true,
   } = {}) => {
     try {
@@ -60,13 +62,14 @@ export const useSubjects = () => {
         limit,
         search,
         status,
+        careerId,
         sortBy: 'name',
         order,
       });
 
       setSubjectsPage(Array.isArray(response.data?.data) ? response.data.data : []);
       setTotalItems(Number(response.data?.meta?.total) || 0);
-      lastQueryRef.current = { page, limit, search, estado, asc };
+      lastQueryRef.current = { page, limit, search, estado, careerId, asc };
     } catch (err) {
       console.error('Error al cargar materias:', err);
       setError('No se pudieron cargar las materias. Intenta de nuevo.');
@@ -222,6 +225,8 @@ export const useSubjects = () => {
     setSearchTerm,
     estadoFiltro,
     setEstadoFiltro,
+    careerFiltro,
+    setCareerFiltro,
     ordenAscendente,
     setOrdenAscendente,
     deleteModal,

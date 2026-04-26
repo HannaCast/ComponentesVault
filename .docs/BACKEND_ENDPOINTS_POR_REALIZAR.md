@@ -365,6 +365,7 @@ La creacion incluye la asignacion a carrera(s) con numero de periodo, la asignac
 - `limit` - tamano de pagina (default: `10`)
 - `search` - nombre o codigo
 - `status` - `true` / `false`
+- `career_id` - filtrar por carrera
 - `sortBy` - `id`, `name`, `code`, `hours_per_week`
 - `order` - `ASC` / `DESC`
 

@@ -42,8 +42,8 @@ const getSubjectTitle = (subject) => {
   return subject.name;
 };
 
-const getEmptyState = (searchTerm, estadoFiltro, onCreate) => {
-  const isDefaultState = !searchTerm && estadoFiltro === 'todos';
+const getEmptyState = (searchTerm, estadoFiltro, careerFiltro, onCreate) => {
+  const isDefaultState = !searchTerm && estadoFiltro === 'todos' && careerFiltro === 'todas';
 
   if (isDefaultState) {
     return {
@@ -133,6 +133,8 @@ export const SubjectsPage = () => {
     setSearchTerm,
     estadoFiltro,
     setEstadoFiltro,
+    careerFiltro,
+    setCareerFiltro,
     ordenAscendente,
     setOrdenAscendente,
     deleteModal,
@@ -180,7 +182,12 @@ export const SubjectsPage = () => {
   const isAnyRowActionRunning = rowActionState.subjectId !== null;
   const saveModalContent = getSaveModalContent(saveModal.mode);
   const toggleModalContent = getToggleModalContent(toggleModal.isCurrentlyActive);
-  const emptyState = getEmptyState(searchTerm, estadoFiltro, handleOpenDrawerCreate);
+  const emptyState = getEmptyState(searchTerm, estadoFiltro, careerFiltro, handleOpenDrawerCreate);
+
+  const careerSelectOptions = [
+    { value: 'todas', label: 'Todas' },
+    ...careerOptions,
+  ];
 
   const runRowAction = async (subjectId, action, task) => {
     if (isAnyRowActionRunning) {
@@ -326,14 +333,19 @@ export const SubjectsPage = () => {
   };
 
   useEffect(() => {
+    fetchCareerOptions();
+  }, [fetchCareerOptions]);
+
+  useEffect(() => {
     const queryParams = {
       page: currentPage,
       limit: ITEMS_PER_PAGE,
       search: searchTerm,
       estado: estadoFiltro,
+      careerId: careerFiltro,
       asc: ordenAscendente,
     };
-    const queryKey = buildRequestSignature(queryParams, ['page', 'limit', 'search', 'estado', 'asc']);
+    const queryKey = buildRequestSignature(queryParams, ['page', 'limit', 'search', 'estado', 'careerId', 'asc']);
 
     if (!shouldRun(queryKey)) {
       return;
@@ -345,6 +357,7 @@ export const SubjectsPage = () => {
     ITEMS_PER_PAGE,
     searchTerm,
     estadoFiltro,
+    careerFiltro,
     ordenAscendente,
     shouldRun,
     fetchSubjects,
@@ -413,13 +426,28 @@ export const SubjectsPage = () => {
 
       <SurfacePanel>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-6">
+          <div className="md:col-span-3">
             <Input
               label="Buscar Materia"
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Nombre o codigo"
+              reserveHelperSpace={false}
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <Select
+              label="Carrera"
+              value={careerFiltro}
+              onChange={(e) => {
+                setCareerFiltro(e.target.value);
+                setCurrentPage(1);
+              }}
+              options={careerSelectOptions}
+              placeholder="Todas"
+              showPlaceholderOption={false}
               reserveHelperSpace={false}
             />
           </div>

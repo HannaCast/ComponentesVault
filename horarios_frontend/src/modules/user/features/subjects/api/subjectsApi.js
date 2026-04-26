@@ -5,7 +5,7 @@ export const getSubjects = () =>
   apiToken.get("/api/v1/university/subjects/");
 
 // Obtener materias paginadas con filtros/orden desde backend
-export const getSubjectsPaginated = ({ page = 1, limit = 10, search = '', status, sortBy = 'name', order = 'ASC' } = {}) => {
+export const getSubjectsPaginated = ({ page = 1, limit = 10, search = '', status, careerId, sortBy = 'name', order = 'ASC' } = {}) => {
   const params = {
     page,
     limit,
@@ -19,6 +19,10 @@ export const getSubjectsPaginated = ({ page = 1, limit = 10, search = '', status
 
   if (status !== undefined && status !== null) {
     params.status = status;
+  }
+
+  if (careerId !== undefined && careerId !== null && careerId !== 'todas') {
+    params.career_id = careerId;
   }
 
   return apiToken.get('/api/v1/university/subjects/paginated/', { params });

@@ -100,6 +100,13 @@ class SubjectPaginatedView(APIView):
                 default='ASC',
                 required=False,
             ),
+            OpenApiParameter(
+                name='career_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='ID de la carrera para filtrar materias. Sin valor: retorna todas las materias.',
+                required=False,
+            ),
         ],
     )
     def get(self, request):
@@ -110,6 +117,7 @@ class SubjectPaginatedView(APIView):
         limit = max(1, int(request.query_params.get('limit', 10)))
         search = request.query_params.get('search', '').strip()
         status_param = request.query_params.get('status', None)
+        career_id_param = request.query_params.get('career_id', None)
         sort_by = request.query_params.get('sortBy', 'id')
         order = request.query_params.get('order', 'ASC').upper()
         offset = (page - 1) * limit
@@ -134,6 +142,16 @@ class SubjectPaginatedView(APIView):
                 Q(name__icontains=search) |
                 Q(code__icontains=search)
             )
+
+        if career_id_param:
+            try:
+                career_id = int(career_id_param)
+                queryset = queryset.filter(
+                    careersubjects__careers_id=career_id,
+                    careersubjects__is_deleted=0
+                ).distinct()
+            except ValueError:
+                pass
 
         queryset = queryset.order_by(order_field)
         total = queryset.count()
