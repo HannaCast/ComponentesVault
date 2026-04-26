@@ -18,12 +18,13 @@ from schedule_generator.generation_logic.loaders import (
 def generate_schedule(
     university_id: int,
     *,
+    target_period_id: int | None = None,
     allow_multiple_teachers_per_group_subject: bool = False,
     randomize_generation: bool = False,
     random_seed: int | None = None,
 ):
     """Orquesta la generacion completa de horarios para una universidad."""
-    university_context = load_university_context(university_id)
+    university_context = load_university_context(university_id, target_period_id)
     uses_period_groups = bool(university_context.get('uses_period_groups', False))
 
     groups = load_active_groups(

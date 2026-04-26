@@ -14,6 +14,7 @@ const extractDataFromResponse = (response) => ({
   id: response.data.data.id,
   role: response.data.data.role_name,
   selected_university: response.data.data.selected_university,
+  selected_university_active_period_id: response.data.data.selected_university_active_period_id || null,
   selected_university_active_period_name: response.data.data.selected_university_active_period_name || null,
   theme: response.data.data.theme || 'light',
   accent: response.data.data.accent || 'blue',

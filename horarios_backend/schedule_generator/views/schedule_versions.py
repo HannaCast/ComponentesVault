@@ -106,6 +106,7 @@ class ScheduleVersionGenerateView(APIView):
             schedule_version = generate_or_update_draft_schedule_version(
                 university_id=request.selected_university_id,
                 user=request.user,
+                target_period_id=serializer.validated_data.get('academic_period_id'),
                 parameters=serializer.validated_data.get('parameters'),
                 is_confirmed_default=serializer.validated_data.get('is_confirmed', 0),
                 is_deleted_default=serializer.validated_data.get('is_deleted', 0),
@@ -246,6 +247,13 @@ class ScheduleVersionPaginatedView(APIView):
                 required=False,
                 description='Filtra por versiones confirmadas (true) o borradores (false).',
             ),
+            OpenApiParameter(
+                name='academic_period_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Filtra por periodo académico.',
+            ),
         ]
     )
     def get(self, request):
@@ -254,6 +262,7 @@ class ScheduleVersionPaginatedView(APIView):
         limit = max(1, int(request.query_params.get('limit', 10)))
         search = request.query_params.get('search', '').strip()
         confirmed_param = request.query_params.get('confirmed', None)
+        academic_period_id = request.query_params.get('academic_period_id', None)
         offset = (page - 1) * limit
 
         queryset = get_schedule_versions_queryset(
@@ -266,6 +275,9 @@ class ScheduleVersionPaginatedView(APIView):
         if confirmed_param is not None:
             is_confirmed = 1 if confirmed_param.lower() == 'true' else 0
             queryset = queryset.filter(is_confirmed=is_confirmed)
+
+        if academic_period_id is not None:
+            queryset = queryset.filter(academic_period_id=academic_period_id)
 
         total = queryset.count()
         rows = queryset[offset:offset + limit]

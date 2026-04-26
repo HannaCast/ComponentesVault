@@ -1,13 +1,19 @@
 import apiToken from '@requests/apiToken';
 
-export const generateScheduleDraft = () =>
-  apiToken.post('/api/v1/university/schedules/generate/');
+export const generateScheduleDraft = (academicPeriodId = null) => {
+  const payload = {};
+  if (academicPeriodId) {
+    payload.academic_period_id = academicPeriodId;
+  }
+  return apiToken.post('/api/v1/university/schedules/generate/', payload);
+};
 
 export const getScheduleVersionsPaginated = ({
   page = 1,
   limit = 8,
   search = '',
   confirmed,
+  academic_period_id,
 } = {}) => {
   const params = {
     page,
@@ -20,6 +26,10 @@ export const getScheduleVersionsPaginated = ({
 
   if (confirmed !== undefined && confirmed !== null && confirmed !== '') {
     params.confirmed = confirmed;
+  }
+
+  if (academic_period_id !== undefined && academic_period_id !== null) {
+    params.academic_period_id = academic_period_id;
   }
 
   return apiToken.get('/api/v1/university/schedules/paginated/', { params });

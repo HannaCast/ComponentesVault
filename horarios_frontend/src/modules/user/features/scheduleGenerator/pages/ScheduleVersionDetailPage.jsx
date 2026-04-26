@@ -7,6 +7,7 @@ import { ConfirmModal } from '@shared/components/ConfirmModal';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { ScheduleGeneratedPanel } from '../components/ScheduleGeneratedPanel';
+import { TeacherAvailabilityErrorModal } from '../components/TeacherAvailabilityErrorModal';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
 
 const DEFAULT_VIEW_CONFIG = {
@@ -48,6 +49,7 @@ export const ScheduleVersionDetailPage = () => {
   const [viewConfig, setViewConfig] = useState(DEFAULT_VIEW_CONFIG);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [regenerateModalOpen, setRegenerateModalOpen] = useState(false);
+  const [teacherAvailabilityError, setTeacherAvailabilityError] = useState({ isOpen: false, teachers: [] });
 
   const {
     selectedVersion,
@@ -156,9 +158,20 @@ export const ScheduleVersionDetailPage = () => {
   };
 
   const handleRegenerateSchedule = async () => {
-    const result = await generateScheduleVersion();
+    const periodId = selectedVersion?.academic_period?.id || null;
+    const result = await generateScheduleVersion(periodId);
     if (!result?.success) {
       if (!result?.deduped) {
+        const teachersList = Array.isArray(result?.errorData?.teachers)
+          ? result.errorData.teachers
+          : [];
+
+        if (teachersList.length > 0) {
+          setRegenerateModalOpen(false);
+          setTeacherAvailabilityError({ isOpen: true, teachers: teachersList });
+          return;
+        }
+
         toast.error(result?.message || 'No se pudo generar nuevamente el borrador.');
       }
       return;
@@ -193,6 +206,9 @@ export const ScheduleVersionDetailPage = () => {
             </h2>
             <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
               Contexto: {selectedUniversityName}
+            </p>
+            <p className="mt-1 text-base" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+              {selectedVersion?.academic_period ? `Periodo: ${selectedVersion.academic_period.name}` : ''}
             </p>
           </div>
 
@@ -254,6 +270,12 @@ export const ScheduleVersionDetailPage = () => {
         message="Al volver a generar se perderan todas las configuraciones actuales del borrador. ¿Deseas continuar?"
         confirmLabel="Generar nuevamente"
         closeOnConfirm={false}
+      />
+
+      <TeacherAvailabilityErrorModal
+        isOpen={teacherAvailabilityError.isOpen}
+        onClose={() => setTeacherAvailabilityError({ isOpen: false, teachers: [] })}
+        teachers={teacherAvailabilityError.teachers}
       />
     </div>
   );

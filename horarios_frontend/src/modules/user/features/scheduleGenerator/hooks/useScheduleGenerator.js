@@ -233,7 +233,7 @@ export const useScheduleGenerator = () => {
     }
   }, [shouldRunDetail]);
 
-  const generateScheduleVersion = useCallback(async () => {
+  const generateScheduleVersion = useCallback(async (academicPeriodId = null) => {
     const actionType = 'generate';
 
     if (!beginAction(actionType)) {
@@ -252,7 +252,7 @@ export const useScheduleGenerator = () => {
     }
 
     try {
-      const response = await generateScheduleDraft();
+      const response = await generateScheduleDraft(academicPeriodId);
       const detail = getResponseData(response);
 
       if (detail?.id) {

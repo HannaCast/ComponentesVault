@@ -186,6 +186,7 @@ def generate_or_update_draft_schedule_version(
     *,
     university_id: int,
     user,
+    target_period_id: int | None = None,
     parameters: dict | None = None,
     is_confirmed_default: int = 0,
     is_deleted_default: int = 0,
@@ -195,7 +196,7 @@ def generate_or_update_draft_schedule_version(
 
     now_dt = timezone.now()
 
-    university_context = load_university_context(university_id)
+    university_context = load_university_context(university_id, target_period_id)
 
     parameters_payload = _build_parameters_payload(
         parameters,
@@ -207,6 +208,7 @@ def generate_or_update_draft_schedule_version(
 
     result = generate_schedule(
         university_id=university_id,
+        target_period_id=target_period_id,
         allow_multiple_teachers_per_group_subject=bool(
             parameters_payload.get('allow_multiple_teachers_per_group_subject', False)
         ),

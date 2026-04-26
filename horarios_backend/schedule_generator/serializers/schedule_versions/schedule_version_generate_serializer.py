@@ -8,6 +8,10 @@ class ScheduleVersionGenerateSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
     )
+    academic_period_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+    )
     parameters = serializers.JSONField(
         required=False,
         default=dict,

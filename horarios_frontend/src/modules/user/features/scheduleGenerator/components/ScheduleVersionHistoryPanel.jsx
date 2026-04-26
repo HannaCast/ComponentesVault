@@ -82,12 +82,13 @@ const getVersionMetaText = (version) => {
   const assignedCount = Number(version?.assigned_count) || 0;
   const unassignedCount = Number(version?.unassigned_count) || 0;
   const isConfirmed = Number(version?.is_confirmed) === 1;
+  const periodText = version?.academic_period ? ` · Periodo: ${version.academic_period.name}` : '';
 
   if (isConfirmed) {
-    return `${assignedCount} asignados · ${unassignedCount} sin asignar · Confirmado ${formatDateTime(version?.confirmed_at)}`;
+    return `${assignedCount} asignados · ${unassignedCount} sin asignar${periodText} · Confirmado ${formatDateTime(version?.confirmed_at)}`;
   }
 
-  return `${assignedCount} asignados · ${unassignedCount} sin asignar · Actualizado ${formatRelativeTime(version?.updated_at || version?.created_at)}`;
+  return `${assignedCount} asignados · ${unassignedCount} sin asignar${periodText} · Actualizado ${formatRelativeTime(version?.updated_at || version?.created_at)}`;
 };
 
 const getButtonDisabledState = (pendingAction, versionId, currentAction, globalDisabled) => {

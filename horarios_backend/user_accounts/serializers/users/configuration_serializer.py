@@ -11,13 +11,16 @@ class ConfigurationSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(source='user.role.name', read_only=True)
     selected_university = SelectedUniversitySerializer(read_only=True)
     selected_university_active_period_name = serializers.SerializerMethodField()
+    selected_university_active_period_id = serializers.SerializerMethodField()
 
-    def get_selected_university_active_period_name(self, obj):
+    def _get_active_period(self, obj):
+        # Cache internal to avoid hitting DB twice
+        if hasattr(self, '_active_period_cache'):
+            return self._active_period_cache
+
         selected_university = getattr(obj, 'selected_university', None)
-        if not selected_university:
-            return None
-
-        if selected_university.uses_period_groups != 1:
+        if not selected_university or selected_university.uses_period_groups != 1:
+            self._active_period_cache = None
             return None
 
         active_period = (
@@ -30,11 +33,17 @@ class ConfigurationSerializer(serializers.ModelSerializer):
             .order_by('-id')
             .first()
         )
+        self._active_period_cache = active_period
+        return active_period
 
-        if not active_period:
-            return None
+    def get_selected_university_active_period_name(self, obj):
+        active_period = self._get_active_period(obj)
+        return active_period.name if active_period else None
 
-        return active_period.name
+    def get_selected_university_active_period_id(self, obj):
+        active_period = self._get_active_period(obj)
+        return active_period.id if active_period else None
+
 
     class Meta:
         model = UserConfiguration
@@ -42,6 +51,7 @@ class ConfigurationSerializer(serializers.ModelSerializer):
             'id',
             'role_name',
             'selected_university',
+            'selected_university_active_period_id',
             'selected_university_active_period_name',
             'theme',
             'accent',

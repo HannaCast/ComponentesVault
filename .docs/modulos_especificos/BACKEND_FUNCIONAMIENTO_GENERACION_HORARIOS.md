@@ -71,20 +71,23 @@ Nota de ruteo:
 - En urls raiz del proyecto se hace include de schedule_generator bajo prefijo /api/.
 - Por eso las rutas reales quedan bajo /api/...
 
-### 5.1 Generar y persistir borrador
+### 5.1 Generar o Regenerar draft de la universidad (o de un periodo específico)
 
 - Metodo: POST
 - Ruta: /api/v1/university/schedules/generate/
 - Vista: ScheduleVersionGenerateView
-- Serializer entrada: ScheduleVersionGenerateSerializer
-- Servicio principal: generate_or_update_draft_schedule_version
+- Servicio base: generate_or_update_draft_schedule_version
 
 Que hace:
 
-- Ejecuta toda la generacion.
-- Guarda resultado en schedule_versions (create o update de borrador activo).
-- Si no existe borrador, crea uno nuevo con label por defecto: Borrador YYYY-MM-DD HH:MM.
-- Si ya existe borrador, regenera contenido del borrador y conserva su label actual.
+- Toma la universidad seleccionada.
+- Opcionalmente toma `academic_period_id` si se desea generar para un periodo específico, de lo contrario asume el periodo activo.
+- Llama al motor generate_schedule con sus dependencias (clases loaders, graph, constraints).
+- Obtiene resultado JSON.
+- Busca un registro ScheduleVersions en estado borrador (is_confirmed=0) de esa universidad.
+  - Si no existe, crea registro nuevo (Borrador {fecha}).
+  - Si existe, lo sobreescribe actualizando sus métricas y su `academic_period_id` al nuevo, y elimina soft-delete borradores huerfanos.
+- Garantiza que la universidad siempre tenga un maximo de un borrador vivo en todo momento (independientemente del periodo).
 - En parameters, el campo uses_period_groups siempre se fuerza desde backend.
 - En `parameters.allow_multiple_teachers_per_group_subject` se controla si una materia de un grupo puede quedar repartida entre varios profesores.
 - Si ese parametro no viene en el request, el backend usa `false` por defecto (un solo profesor por materia en cada grupo).
@@ -215,6 +218,7 @@ Campos:
 
 - label: opcional, max 100, admite null/vacio por compatibilidad de payload.
 - parameters: JSON object opcional (default dict).
+- academic_period_id: entero opcional. Si se envía, la generación se asociará y calculará para ese período.
 - is_confirmed: HiddenField default 0.
 - is_deleted: HiddenField default 0.
 

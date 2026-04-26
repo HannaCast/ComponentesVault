@@ -2,7 +2,7 @@ from universities.models.academic_periods import AcademicPeriods
 from universities.models.universities import Universities
 
 # Se carga datos institucionales minimos para arrancar la generacion.
-def load_university_context(university_id: int) -> dict:
+def load_university_context(university_id: int, target_period_id: int | None = None) -> dict:
     """Carga datos institucionales minimos para arrancar la generacion."""
     university = Universities.objects.filter(
         id=university_id,
@@ -13,18 +13,32 @@ def load_university_context(university_id: int) -> dict:
     if university is None:
         raise ValueError('UNIVERSITY_NOT_FOUND')
 
-    active_period = AcademicPeriods.objects.filter(
-        university_id=university_id,
-        is_active=1,
-        is_deleted=0,
-    ).values(
-        'id',
-        'name',
-        'year',
-        'order',
-        'start_date',
-        'end_date',
-    ).first()
+    if target_period_id is not None:
+        active_period = AcademicPeriods.objects.filter(
+            id=target_period_id,
+            university_id=university_id,
+            is_deleted=0,
+        ).values(
+            'id',
+            'name',
+            'year',
+            'order',
+            'start_date',
+            'end_date',
+        ).first()
+    else:
+        active_period = AcademicPeriods.objects.filter(
+            university_id=university_id,
+            is_active=1,
+            is_deleted=0,
+        ).values(
+            'id',
+            'name',
+            'year',
+            'order',
+            'start_date',
+            'end_date',
+        ).first()
 
     active_period_id = active_period.get('id') if active_period else None
 
