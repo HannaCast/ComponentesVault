@@ -1,3 +1,4 @@
+import ast
 from dataclasses import asdict
 
 from django.db.models import Q
@@ -29,6 +30,18 @@ from schedule_generator.services import (
 
 
 def _generation_error_response(error_code: str):
+    _PREFIX = 'TEACHERS_WITHOUT_AVAILABILITY:'
+    if error_code.startswith(_PREFIX):
+        try:
+            teachers_detail = ast.literal_eval(error_code[len(_PREFIX):])
+        except (ValueError, SyntaxError):
+            teachers_detail = []
+        return ApiResponse.error(
+            message='Hay profesores asignados a materias que no tienen disponibilidad configurada.',
+            status_code=422,
+            errors={'teachers': teachers_detail},
+        )
+
     messages = {
         'NO_UNIVERSITY_SELECTED': 'No hay universidad seleccionada para generar el horario.',
         'UNIVERSITY_NOT_FOUND': 'La universidad seleccionada no existe o está inactiva.',
@@ -36,6 +49,7 @@ def _generation_error_response(error_code: str):
         'NO_SCHEDULABLE_SUBJECTS': 'No hay materias u horarios base disponibles para generar un horario.',
         'NO_ACTIVE_PERIOD': 'No hay periodo académico activo configurado.',
         'ACADEMIC_PERIOD_NOT_FOUND': 'El periodo académico enviado no existe para la universidad seleccionada.',
+        'TEACHERS_WITHOUT_AVAILABILITY': 'Hay profesores asignados a materias que no tienen disponibilidad configurada.',
     }
     return ApiResponse.error(
         message=messages.get(error_code, error_code),

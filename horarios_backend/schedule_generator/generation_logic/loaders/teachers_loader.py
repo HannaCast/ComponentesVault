@@ -82,3 +82,20 @@ def load_teachers_for_subject(subject_id: int, university_id: int) -> list[Teach
         )
         for teacher in teachers
     ]
+
+
+# Retorna los teacher_ids del conjunto dado que no tienen ningún bloque is_available=1.
+def get_teacher_ids_without_availability(teacher_ids: list[int]) -> list[int]:
+    """Retorna los teacher_ids del conjunto dado que no tienen ningun bloque is_available=1."""
+    if not teacher_ids:
+        return []
+
+    with_availability = set(
+        TeacherAvailabilities.objects.filter(
+            teacher_id__in=teacher_ids,
+            is_available=1,
+            is_deleted=0,
+        ).values_list('teacher_id', flat=True).distinct()
+    )
+
+    return [tid for tid in teacher_ids if tid not in with_availability]

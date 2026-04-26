@@ -267,6 +267,23 @@ Reglas:
 5. El panel de completitud usa `completion.score_percentage` + `completion.items`.
 6. Los accesos rapidos se derivan del menu lateral y excluyen el item actual (`/usuario/dashboard`).
 
+### 5.7 Generacion de horarios (scheduleGenerator)
+
+1. El hook `useScheduleGenerator` expone `generateScheduleVersion()` que orquesta la llamada al backend.
+2. Cuando el backend responde con error 422 y `data.teachers[]` (error `TEACHERS_WITHOUT_AVAILABILITY`),
+   `generateScheduleVersion()` retorna `{ success: false, message, errorData: { teachers: [...] } }`.
+3. La page detecta `result.errorData.teachers` y muestra un modal informativo con la lista de nombres
+   (en lugar de un toast generico) para que el usuario sepa exactamente que profesores necesitan configurar disponibilidad.
+4. El modal incluye un link directo a la seccion de Profesores usando `<Link>` de react-router-dom
+   para mantener el comportamiento SPA.
+5. Para otros errores de generacion (sin `teachers[]`), se mantiene el comportamiento previo: `toast.error`.
+
+Patron de extraccion de errores estructurados en `useScheduleGenerator.js`:
+
+- `extractApiError(err, fallback)` retorna `{ message, errorData }`.
+- `errorData` es el campo `data` del cuerpo de error (puede ser `{ teachers: [...] }` u `null`).
+- `extractApiErrorMessage(err, fallback)` es un wrapper de compatibilidad que solo retorna el texto.
+
 ---
 
 ## 6. Reglas de consistencia para nuevos modulos

@@ -48,7 +48,7 @@ const extractMessageFromFieldErrors = (fieldErrors) => {
   return '';
 };
 
-const extractApiErrorMessage = (err, fallbackMessage) => {
+const extractApiError = (err, fallbackMessage) => {
   const data = err?.response?.data;
   const directMessage = pickFirstNonEmptyString([
     data?.message,
@@ -57,8 +57,15 @@ const extractApiErrorMessage = (err, fallbackMessage) => {
   ]);
   const fieldMessage = extractMessageFromFieldErrors(data?.data);
 
-  return fieldMessage || directMessage || fallbackMessage;
+  return {
+    message: fieldMessage || directMessage || fallbackMessage,
+    errorData: data?.data ?? null,
+  };
 };
+
+// Compatibilidad: retorna solo el mensaje de texto.
+const extractApiErrorMessage = (err, fallbackMessage) =>
+  extractApiError(err, fallbackMessage).message;
 
 export const useScheduleGenerator = () => {
   const [historyItems, setHistoryItems] = useState([]);
@@ -265,9 +272,11 @@ export const useScheduleGenerator = () => {
       };
     } catch (err) {
       console.error('Error al generar horario:', err);
+      const { message, errorData } = extractApiError(err, 'No se pudo generar el horario.');
       return {
         success: false,
-        message: extractApiErrorMessage(err, 'No se pudo generar el horario.'),
+        message,
+        errorData,
       };
     } finally {
       endAction();

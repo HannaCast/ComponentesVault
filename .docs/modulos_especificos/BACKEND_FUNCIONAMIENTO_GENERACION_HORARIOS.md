@@ -600,6 +600,7 @@ Errores de generacion:
 - NO_SCHEDULABLE_SUBJECTS
 - NO_ACTIVE_PERIOD
 - ACADEMIC_PERIOD_NOT_FOUND
+- TEACHERS_WITHOUT_AVAILABILITY
 
 Errores de versionamiento:
 
@@ -610,6 +611,7 @@ Mapeo de estado HTTP en vistas:
 
 - DRAFT_NOT_FOUND y VERSION_NOT_FOUND -> 404.
 - Resto de negocio en este flujo -> 422.
+- TEACHERS_WITHOUT_AVAILABILITY -> 422 con campo data.teachers[] listando los profesores sin disponibilidad (id, full_name).
 - Errores de serializer -> respuesta de validacion estandar ApiResponse.error.
 
 ## 18) Auditoria y responsabilidades entre app y BD
@@ -705,10 +707,13 @@ Si falla la generacion, revisar en este orden:
 4. Que existan grupos activos para esa universidad.
 5. Que existan materias activas para carrera/periodo de esos grupos.
 6. Que existan profesores ligados a materias y habilitados en la universidad.
-7. Disponibilidad de profesores por dia/hora.
-8. Disponibilidad de slots dentro del turno y allowed_days.
-9. Si requiere aula, validar aulas y restricciones por carrera, por materia y por tipo de aula.
-10. Revisar unassigned[] para entender por que no se pudo asignar cada nodo.
+7. Que todos los profesores candidatos tengan al menos un bloque con is_available=1 en teacher_availabilities.
+   - Si el error es TEACHERS_WITHOUT_AVAILABILITY, el campo data.teachers[] lista los profesores afectados.
+   - Este criterio es identico al que usa el dashboard en su checklist de completitud.
+8. Disponibilidad de profesores por dia/hora.
+9. Disponibilidad de slots dentro del turno y allowed_days.
+10. Si requiere aula, validar aulas y restricciones por carrera, por materia y por tipo de aula.
+11. Revisar unassigned[] para entender por que no se pudo asignar cada nodo.
 
 Si hay duda de persistencia o auditoria:
 

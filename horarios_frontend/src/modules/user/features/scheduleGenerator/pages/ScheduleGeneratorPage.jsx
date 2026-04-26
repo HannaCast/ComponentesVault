@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { ConfirmModal } from '@shared/components/ConfirmModal';
 import { PageSectionHeader } from '@shared/components/layout/PageSectionHeader';
@@ -37,6 +37,10 @@ export const ScheduleGeneratorPage = () => {
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, version: null });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, version: null });
+  const [teacherAvailabilityError, setTeacherAvailabilityError] = useState({
+    isOpen: false,
+    teachers: [],
+  });
 
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
 
@@ -111,6 +115,16 @@ export const ScheduleGeneratorPage = () => {
 
     if (!result?.success) {
       if (!result?.deduped) {
+        const teachersList = Array.isArray(result?.errorData?.teachers)
+          ? result.errorData.teachers
+          : [];
+
+        if (teachersList.length > 0) {
+          setGenerateModalOpen(false);
+          setTeacherAvailabilityError({ isOpen: true, teachers: teachersList });
+          return;
+        }
+
         toast.error(result?.message || 'No se pudo generar el horario.');
       }
       return;
@@ -319,6 +333,91 @@ export const ScheduleGeneratorPage = () => {
         confirmLabel="Eliminar"
         closeOnConfirm={false}
       />
+
+      {teacherAvailabilityError.isOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="teacher-availability-modal-title"
+        >
+          <div
+            className="w-full max-w-md rounded-xl border shadow-xl"
+            style={{
+              backgroundColor: 'var(--bg-elevated, #ffffff)',
+              borderColor: 'var(--border-default, #d1d5db)',
+            }}
+          >
+            <div className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+              <span
+                className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--warning-subtle, #fef3c7)' }}
+              >
+                <Users className="h-4 w-4" style={{ color: 'var(--warning, #d97706)' }} aria-hidden />
+              </span>
+              <div>
+                <h2
+                  id="teacher-availability-modal-title"
+                  className="text-base font-semibold"
+                  style={{ color: 'var(--text-primary, #111827)' }}
+                >
+                  Profesores sin disponibilidad configurada
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                  Los siguientes profesores están asignados a materias pero no tienen ningún bloque marcado como disponible.
+                  Configura su disponibilidad antes de generar el horario.
+                </p>
+              </div>
+            </div>
+
+            <ul className="max-h-56 overflow-y-auto divide-y px-5 py-3" style={{ divideColor: 'var(--border-subtle, #e5e7eb)' }}>
+              {teacherAvailabilityError.teachers.map((t) => (
+                <li
+                  key={t.full_name}
+                  className="flex items-center gap-2 py-2 text-sm"
+                  style={{ color: 'var(--text-primary, #111827)' }}
+                >
+                  <span
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                    style={{
+                      backgroundColor: 'var(--warning-subtle, #fef3c7)',
+                      color: 'var(--warning, #d97706)',
+                    }}
+                  >
+                    {String(t.full_name || '').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="truncate font-medium">{t.full_name}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex items-center justify-between gap-3 border-t px-5 py-4" style={{ borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+              <Link
+                to="/usuario/universidad/profesores"
+                className="text-sm font-medium transition-opacity hover:opacity-80"
+                style={{ color: 'var(--accent, #2563eb)' }}
+                onClick={() => setTeacherAvailabilityError({ isOpen: false, teachers: [] })}
+              >
+                Ir a Profesores →
+              </Link>
+              <button
+                type="button"
+                id="teacher-availability-modal-close"
+                onClick={() => setTeacherAvailabilityError({ isOpen: false, teachers: [] })}
+                className="rounded-lg border px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+                style={{
+                  borderColor: 'var(--border-default, #d1d5db)',
+                  color: 'var(--text-primary, #111827)',
+                  backgroundColor: 'var(--bg-elevated, #ffffff)',
+                }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

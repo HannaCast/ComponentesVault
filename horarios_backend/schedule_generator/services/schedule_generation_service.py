@@ -6,6 +6,7 @@ from schedule_generator.generation_logic.graph import (
 )
 from schedule_generator.generation_logic.loaders import (
     build_time_slots,
+    get_teacher_ids_without_availability,
     load_active_groups,
     load_classrooms_for_university,
     load_subjects_for_group,
@@ -36,8 +37,9 @@ def generate_schedule(
 
     classrooms = load_classrooms_for_university(university_id)
 
-    nodes = []
-    slots_by_id = {}
+    # Acumular todos los candidatos unicos para validar disponibilidad antes de iniciar el algoritmo.
+    all_teacher_contexts: dict[int, str] = {}
+    per_group_data: list[dict] = []
 
     for group in groups:
         subjects = load_subjects_for_group(group.career_id, group.period_number)
@@ -54,21 +56,48 @@ def generate_schedule(
 
         teachers_by_subject = {}
         for subject in subjects:
-            teachers_by_subject[subject.subject_id] = load_teachers_for_subject(
+            candidates = load_teachers_for_subject(
                 subject_id=subject.subject_id,
                 university_id=university_id,
             )
+            teachers_by_subject[subject.subject_id] = candidates
+            for tc in candidates:
+                all_teacher_contexts[tc.teacher_id] = tc.full_name
 
+        per_group_data.append({
+            'group': group,
+            'subjects': subjects,
+            'teachers_by_subject': teachers_by_subject,
+            'group_slots': group_slots,
+        })
+
+    # Validacion de disponibilidad: todos los profesores candidatos deben tener
+    # al menos un bloque marcado como is_available=1, igual que el criterio del dashboard.
+    if all_teacher_contexts:
+        teacher_ids_list = list(all_teacher_contexts.keys())
+        ids_without = get_teacher_ids_without_availability(teacher_ids_list)
+        if ids_without:
+            teachers_detail = [
+                {'full_name': all_teacher_contexts[tid]}
+                for tid in ids_without
+            ]
+            raise ValueError(f'TEACHERS_WITHOUT_AVAILABILITY:{teachers_detail}')
+
+
+    nodes: list = []
+    slots_by_id: dict = {}
+
+    for entry in per_group_data:
         nodes.extend(
             build_schedule_nodes(
-                group=group,
-                subjects=subjects,
-                teachers_by_subject=teachers_by_subject,
-                group_slots=group_slots,
+                group=entry['group'],
+                subjects=entry['subjects'],
+                teachers_by_subject=entry['teachers_by_subject'],
+                group_slots=entry['group_slots'],
             )
         )
 
-        for slot in group_slots:
+        for slot in entry['group_slots']:
             slots_by_id[slot.slot_id] = slot
 
     if not nodes:
