@@ -831,7 +831,7 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'shifts',NEW.id,v_action,JSON_OBJECT(),
-    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'order',NEW.`order`,
+    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,
       'start_time',NEW.start_time,'end_time',NEW.end_time,'status',NEW.status,'is_deleted',NEW.is_deleted,
       'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
     IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
@@ -848,10 +848,10 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'shifts',NEW.id,v_action,
-    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'order',OLD.`order`,
+    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,
       'start_time',OLD.start_time,'end_time',OLD.end_time,'status',OLD.status,'is_deleted',OLD.is_deleted,
       'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
-    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,'order',NEW.`order`,
+    JSON_OBJECT('id',NEW.id,'name',NEW.name,'university_id',NEW.university_id,
       'start_time',NEW.start_time,'end_time',NEW.end_time,'status',NEW.status,'is_deleted',NEW.is_deleted,
       'created_at',NEW.created_at,'created_by',NEW.created_by,'updated_at',NEW.updated_at,'updated_by',NEW.updated_by),
     IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());
@@ -867,7 +867,7 @@ BEGIN
   INSERT INTO `audit_logs`(user_id,username,source,transaction_id,table_name,record_id,action,old_data,new_data,ip_address,user_agent,is_succesfull,created_at)
   VALUES(IF(v_is_app,@app_user_id,NULL),IF(v_is_app,COALESCE(@app_username,USER()),USER()),v_source,IF(v_is_app,@app_transaction_id,NULL),
     'shifts',OLD.id,'DELETE',
-    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,'order',OLD.`order`,
+    JSON_OBJECT('id',OLD.id,'name',OLD.name,'university_id',OLD.university_id,
       'start_time',OLD.start_time,'end_time',OLD.end_time,'status',OLD.status,'is_deleted',OLD.is_deleted,
       'created_at',OLD.created_at,'created_by',OLD.created_by,'updated_at',OLD.updated_at,'updated_by',OLD.updated_by),
     NULL,IF(v_is_app,@app_ip,NULL),IF(v_is_app,@app_user_agent,NULL),1,NOW());

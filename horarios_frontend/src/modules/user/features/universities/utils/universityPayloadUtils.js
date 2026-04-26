@@ -72,10 +72,9 @@ export const buildFullUniversityPayload = (formState, options = {}) => {
     return row;
   });
 
-  const shifts = (formState.shifts || []).map((s, index) => {
+  const shifts = (formState.shifts || []).map((s) => {
     const row = {
       name: String(s.name || '').trim(),
-      order: Number.parseInt(s.order, 10) || index + 1,
       start_time: toApiTime(s.start_time),
       end_time: toApiTime(s.end_time),
     };
@@ -179,7 +178,6 @@ export const profileToFormState = (profile, periodTypeOptions = []) => {
     key: `s-${s.id}`,
     id: s.id,
     name: s.name || '',
-    order: s.order,
     start_time: formatTimeInput(s.start_time),
     end_time: formatTimeInput(s.end_time),
   }));
@@ -237,7 +235,6 @@ export const createDefaultFormState = (periodTypeOptions = []) => {
         name: 'Matutino',
         start_time: '07:00',
         end_time: '14:00',
-        order: 1,
       },
     ],
     academic_periods: [],

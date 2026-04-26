@@ -273,13 +273,13 @@ SET @itz_mod_mixta_id = (
   LIMIT 1
 );
 
-INSERT INTO shifts (name, university_id, `order`, start_time, end_time, status, is_deleted)
-SELECT s.name, s.university_id, s.ord, s.start_time, s.end_time, 1, 0
+INSERT INTO shifts (name, university_id, start_time, end_time, status, is_deleted)
+SELECT s.name, s.university_id, s.start_time, s.end_time, 1, 0
 FROM (
-  SELECT 'Matutino' AS name, @utez_id AS university_id, 1 AS ord, '07:00:00' AS start_time, '14:00:00' AS end_time
-  UNION ALL SELECT 'Vespertino', @utez_id, 2, '14:00:00', '22:00:00'
-  UNION ALL SELECT 'Matutino', @itz_id, 1, '07:00:00', '13:00:00'
-  UNION ALL SELECT 'Vespertino', @itz_id, 2, '13:00:00', '20:00:00'
+  SELECT 'Matutino' AS name, @utez_id AS university_id, '07:00:00' AS start_time, '14:00:00' AS end_time
+  UNION ALL SELECT 'Vespertino', @utez_id, '14:00:00', '22:00:00'
+  UNION ALL SELECT 'Matutino', @itz_id, '07:00:00', '13:00:00'
+  UNION ALL SELECT 'Vespertino', @itz_id, '13:00:00', '20:00:00'
 ) AS s
 LEFT JOIN shifts existing
   ON existing.university_id = s.university_id

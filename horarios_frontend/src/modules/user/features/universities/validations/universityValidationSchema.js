@@ -51,13 +51,6 @@ const modalitySchema = yup.object({
 const shiftSchema = yup.object({
   key: yup.string(),
   name: yup.string().trim().required('El nombre del turno es obligatorio'),
-  order: yup
-    .mixed()
-    .required()
-    .test('order', 'Orden inválido', (v) => {
-      const n = parseIntegerInput(v);
-      return Number.isFinite(n) && n >= 1;
-    }),
   start_time: yup
     .string()
     .matches(timePattern, 'Hora de inicio inválida')
@@ -165,7 +158,7 @@ export const validateUniversityCrossRules = (data) => {
         );
       }
       if (st >= en) {
-        errors[`shift_${idx}_order`] = 'La hora de fin debe ser posterior a la de inicio';
+        errors[`shift_${idx}_times`] = 'La hora de fin debe ser posterior a la de inicio';
       }
     });
   }

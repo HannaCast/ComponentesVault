@@ -55,7 +55,7 @@ class UniversityProfileView(APIView):
             university_id=university.id,
             status=1,
             is_deleted=0,
-        ).order_by('order', 'id')
+        ).order_by('-id')
 
         academic_periods = AcademicPeriods.objects.filter(
             university_id=university.id,

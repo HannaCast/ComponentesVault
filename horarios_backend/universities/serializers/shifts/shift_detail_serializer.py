@@ -12,7 +12,6 @@ class ShiftDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
-            'order',
             'start_time',
             'end_time',
             'status',

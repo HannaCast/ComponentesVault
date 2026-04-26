@@ -33,7 +33,7 @@ class ShiftListView(APIView):
                 is_deleted=0,
                 university_id=selected_university_id,
             )
-            .order_by('order', 'id')
+            .order_by('-id')
         )
 
         return ApiResponse.success(

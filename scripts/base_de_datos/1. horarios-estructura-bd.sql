@@ -334,7 +334,6 @@ CREATE TABLE IF NOT EXISTS `dci_horarios`.`shifts` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,
   `university_id` INT NOT NULL,
-  `order` INT NOT NULL,
   `start_time` TIME NOT NULL,
   `end_time` TIME NOT NULL,
   `status` TINYINT NOT NULL DEFAULT 1,

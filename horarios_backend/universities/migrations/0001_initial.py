@@ -77,7 +77,6 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100)),
-                ('order', models.IntegerField()),
                 ('start_time', models.TimeField()),
                 ('end_time', models.TimeField()),
                 ('status', models.IntegerField()),

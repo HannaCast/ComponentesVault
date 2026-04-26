@@ -187,24 +187,18 @@ export const UniversityForm = ({
   };
 
   const addShift = () => {
-    setFormData((prev) => {
-      const nextOrder = prev.shifts.length
-        ? Math.max(...prev.shifts.map((s) => Number(s.order) || 0)) + 1
-        : 1;
-      return {
-        ...prev,
-        shifts: [
-          {
-            key: `s-${uid()}`,
-            name: '',
-            start_time: prev.start_time || '08:00',
-            end_time: prev.end_time || '14:00',
-            order: nextOrder,
-          },
-          ...prev.shifts,
-        ],
-      };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      shifts: [
+        {
+          key: `s-${uid()}`,
+          name: '',
+          start_time: prev.start_time || '08:00',
+          end_time: prev.end_time || '14:00',
+        },
+        ...prev.shifts,
+      ],
+    }));
   };
 
   const updateShift = (index, patch) => {
@@ -893,8 +887,8 @@ export const UniversityForm = ({
                       <X className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.25} />
                     </button>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pr-12">
-                      <div className="lg:col-span-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pr-12">
+                      <div>
                         <Input
                           label="Nombre "
                           value={s.name}
@@ -905,7 +899,7 @@ export const UniversityForm = ({
                           required
                         />
                       </div>
-                      <div className="lg:col-span-3">
+                      <div>
                         <Input
                           label="Hora Inicio "
                           type="time"
@@ -918,7 +912,7 @@ export const UniversityForm = ({
                           required
                         />
                       </div>
-                      <div className="lg:col-span-3">
+                      <div>
                         <Input
                           label="Hora Fin "
                           type="time"
@@ -931,23 +925,11 @@ export const UniversityForm = ({
                           required
                         />
                       </div>
-                      <div className="lg:col-span-3">
-                        <Input
-                          label="Orden "
-                          type="number"
-                          min={1}
-                          value={s.order}
-                          onChange={(e) => updateShift(idx, { order: e.target.value })}
-                          disabled={isLoading}
-                          reserveHelperSpace={false}
-                          required
-                        />
-                      </div>
                     </div>
                   </div>
-                  {(formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]) && (
+                  {(formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_times`]) && (
                     <p className="text-sm text-[var(--error,#dc2626)] pl-0 sm:pl-1">
-                      {formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_order`]}
+                      {formErrors[`shift_${idx}_range`] || formErrors[`shift_${idx}_times`]}
                     </p>
                   )}
                 </div>
