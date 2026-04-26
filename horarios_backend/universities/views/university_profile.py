@@ -13,6 +13,17 @@ from universities.serializers import (
 )
 
 
+def _build_display_range(period):
+    """Genera un rango legible desde start_date y end_date del periodo."""
+    start = period.start_date
+    end = period.end_date
+    if start and end:
+        return f'{start.strftime("%b %Y")} – {end.strftime("%b %Y")}'
+    if start:
+        return start.strftime('%b %Y')
+    return None
+
+
 @extend_schema(
     tags=['Universities'],
     summary='Perfil completo de universidad',
@@ -51,14 +62,36 @@ class UniversityProfileView(APIView):
             is_deleted=0,
         ).order_by('-id')
 
+        # Periodo activo enriquecido con rango legible.
+        active_period_obj = academic_periods.filter(is_active=1).first()
+        active_period_payload = None
+        if active_period_obj:
+            active_period_payload = {
+                'id': active_period_obj.id,
+                'name': active_period_obj.name,
+                'display_range': _build_display_range(active_period_obj),
+            }
+
+        # Serializar periodos con display_range incluido.
+        periods_data = []
+        for period in academic_periods:
+            period_dict = AcademicPeriodListSerializer(period).data
+            period_dict['display_range'] = _build_display_range(period)
+            periods_data.append(period_dict)
+
         payload = {
             **UniversityWriteSerializer(
                 university,
                 context={'request': request},
             ).data,
+            'period_type_name': (
+                university.period_type.name if university.period_type_id else None
+            ),
+            'active_period': active_period_payload,
             'modalities': ModalitiesDetailSerializer(modalities, many=True).data,
             'shifts': ShiftListSerializer(shifts, many=True).data,
-            'academic_periods': AcademicPeriodListSerializer(academic_periods, many=True).data,
+            'academic_periods': periods_data,
         }
 
         return ApiResponse.success(payload)
+

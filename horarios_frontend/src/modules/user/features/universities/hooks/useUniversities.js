@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import {
   deleteUniversityLogo,
   getUniversityImage,
@@ -37,6 +38,9 @@ export const useUniversities = () => {
   const listFetchIdRef = useRef(0);
   const listImageUrlsRef = useRef([]);
   const profileImageUrlRef = useRef(null);
+  const profileImageFetchingRef = useRef(null);
+
+  const { shouldRun: shouldRunProfileImage } = useRequestDeduper({ windowMs: 500 });
 
   const revokeObjectUrl = useCallback((value) => {
     if (typeof value === 'string' && value.startsWith('blob:')) {
@@ -190,10 +194,16 @@ export const useUniversities = () => {
 
       let imageUrl = null;
       if (data.image && data.id) {
-        try {
-          imageUrl = await fetchUniversityImageUrl(data.id);
-        } catch {
-          imageUrl = null;
+        const imgSignature = buildRequestSignature({ universityId: data.id, hasImage: true }, ['universityId', 'hasImage']);
+        if (profileImageFetchingRef.current !== data.id && shouldRunProfileImage(imgSignature)) {
+          profileImageFetchingRef.current = data.id;
+          try {
+            imageUrl = await fetchUniversityImageUrl(data.id);
+          } catch {
+            imageUrl = null;
+          } finally {
+            profileImageFetchingRef.current = null;
+          }
         }
       }
 
@@ -208,7 +218,7 @@ export const useUniversities = () => {
     } finally {
       setProfileLoading(false);
     }
-  }, [fetchUniversityImageUrl, resetProfileImageUrl]);
+  }, [fetchUniversityImageUrl, resetProfileImageUrl, shouldRunProfileImage]);
 
   const clearUniversityProfile = useCallback(() => {
     resetProfileImageUrl();
