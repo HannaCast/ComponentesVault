@@ -7,6 +7,8 @@ class Careers(models.Model):
     university = models.ForeignKey(Universities, models.DO_NOTHING)
     short_name = models.CharField(max_length=20, blank=True, null=True)
     code = models.CharField(max_length=50, blank=True, null=True)
+    parent_career = models.ForeignKey('self', models.DO_NOTHING, db_column='parent_career_id', blank=True, null=True)
+    continuation_from_period = models.IntegerField(default=1, blank=True, null=True)
     modality = models.ForeignKey(Modalities, models.DO_NOTHING)
     total_periods = models.IntegerField()
     status = models.IntegerField()

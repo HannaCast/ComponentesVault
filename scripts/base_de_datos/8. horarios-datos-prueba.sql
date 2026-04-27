@@ -349,8 +349,8 @@ SET @utez_period_active_id = (
 /*  4) CARRERAS, EXCEPCIONES Y GRUPOS                 */
 -- -----------------------------------------------------
 
-INSERT INTO careers (name, university_id, short_name, code, modality_id, total_periods, status, is_deleted)
-SELECT c.name, c.university_id, c.short_name, c.code, c.modality_id, c.total_periods, 1, 0
+INSERT INTO careers (name, university_id, short_name, code, modality_id, total_periods, parent_career_id, continuation_from_period, status, is_deleted)
+SELECT c.name, c.university_id, c.short_name, c.code, c.modality_id, c.total_periods, NULL, 1, 1, 0
 FROM (
   SELECT 'Ingenieria en Tecnologias de la Informacion e Innovacion Digital' AS name, @utez_id AS university_id, 'ITIID' AS short_name, 'UTEZ-ITIID' AS code, @utez_mod_presencial_id AS modality_id, 9 AS total_periods
   UNION ALL SELECT 'Ingenieria Industrial', @utez_id, 'II', 'UTEZ-II', @utez_mod_presencial_id, 9

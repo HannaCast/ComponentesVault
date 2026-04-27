@@ -3,6 +3,7 @@ import {
   createCareer,
   deleteCareer,
   getCareer,
+  getCareers,
   getCareersPaginated,
   getModalities,
   toggleCareerStatus,
@@ -61,6 +62,7 @@ export const useCareers = () => {
 
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, name: '' });
   const [modalitiesOptions, setModalitiesOptions] = useState([]);
+  const [careerOptions, setCareerOptions] = useState([]);
 
   const [selectedCareer, setSelectedCareer] = useState(null);
   const [careerLoading, setCareerLoading] = useState(false);
@@ -140,6 +142,23 @@ export const useCareers = () => {
       );
     } catch (err) {
       console.error('Error al cargar modalidades:', err);
+    }
+  }, []);
+
+  const fetchCareerOptions = useCallback(async () => {
+    try {
+      const response = await getCareers();
+      const careers = Array.isArray(response.data?.data) ? response.data.data : [];
+
+      setCareerOptions(
+        careers.map((career) => ({
+          value: String(career.id),
+          label: career.name,
+          total_periods: career.total_periods,
+        })),
+      );
+    } catch (err) {
+      console.error('Error al cargar opciones de carreras:', err);
     }
   }, []);
 
@@ -259,7 +278,9 @@ export const useCareers = () => {
     setDeleteModal,
     statusOptions,
     modalitiesOptions,
+    careerOptions,
     fetchModalitiesOptions,
+    fetchCareerOptions,
     fetchCareers,
     handleToggleStatus,
     handleDelete,

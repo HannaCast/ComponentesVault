@@ -252,6 +252,8 @@ CREATE TABLE IF NOT EXISTS `dci_horarios`.`careers` (
   `code` VARCHAR(50) NULL,
   `modality_id` INT NOT NULL,
   `total_periods` INT NOT NULL,
+  `parent_career_id` INT NULL,
+  `continuation_from_period` INT NULL DEFAULT 1,
   `status` TINYINT NOT NULL DEFAULT 1,
   `is_deleted` TINYINT NOT NULL DEFAULT 0,
   `created_at` DATETIME NULL,
@@ -261,6 +263,7 @@ CREATE TABLE IF NOT EXISTS `dci_horarios`.`careers` (
   PRIMARY KEY (`id`),
   INDEX `fk_careers_universities1_idx` (`university_id` ASC) VISIBLE,
   INDEX `fk_careers_modalities1_idx` (`modality_id` ASC) VISIBLE,
+  INDEX `fk_careers_parent_career1_idx` (`parent_career_id` ASC) VISIBLE,
   CONSTRAINT `fk_careers_universities1`
     FOREIGN KEY (`university_id`)
     REFERENCES `dci_horarios`.`universities` (`id`)
@@ -269,6 +272,11 @@ CREATE TABLE IF NOT EXISTS `dci_horarios`.`careers` (
   CONSTRAINT `fk_careers_modalities1`
     FOREIGN KEY (`modality_id`)
     REFERENCES `dci_horarios`.`modalities` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_careers_parent_career1`
+    FOREIGN KEY (`parent_career_id`)
+    REFERENCES `dci_horarios`.`careers` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

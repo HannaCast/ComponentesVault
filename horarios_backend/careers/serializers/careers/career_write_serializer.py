@@ -20,9 +20,10 @@ class CareerWriteSerializer(serializers.ModelSerializer):
     period_exceptions = CareerPeriodExceptionNestedSerializer(
         many=True,
         required=False,
-        allow_empty=True,
         allow_null=True,
     )
+    parent_career_id = serializers.IntegerField(required=False, allow_null=True)
+    continuation_from_period = serializers.IntegerField(required=False, allow_null=True, default=1)
 
     class Meta:
         model = Careers
@@ -33,6 +34,8 @@ class CareerWriteSerializer(serializers.ModelSerializer):
             'modality',
             'total_periods',
             'period_exceptions',
+            'parent_career_id',
+            'continuation_from_period',
         ]
 
     def validate_total_periods(self, value):
@@ -47,6 +50,29 @@ class CareerWriteSerializer(serializers.ModelSerializer):
                 'La modalidad no pertenece a la universidad seleccionada.'
             )
         return modality
+
+    def validate_continuation_from_period(self, value):
+        if value is not None and value < 1:
+            raise serializers.ValidationError('Debe ser mayor o igual a 1')
+        return value
+
+    def validate_parent_career_id(self, value):
+        if value is None:
+            return value
+        
+        selected_university_id = self.context.get('selected_university_id')
+        try:
+            parent = Careers.objects.get(pk=value, is_deleted=0)
+        except Careers.DoesNotExist:
+            raise serializers.ValidationError('La carrera anterior seleccionada no existe o fue eliminada.')
+            
+        if selected_university_id and parent.university_id != selected_university_id:
+            raise serializers.ValidationError('La carrera anterior no pertenece a la universidad seleccionada.')
+            
+        if getattr(self, 'instance', None) is not None and self.instance.pk == value:
+            raise serializers.ValidationError('Una carrera no puede ser continuación de sí misma.')
+            
+        return value
 
     def validate_period_exceptions(self, value):
         if value is None:

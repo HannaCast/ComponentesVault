@@ -65,4 +65,9 @@ class Migration(migrations.Migration):
             name='modality',
             field=models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, to='careers.modalities'),
         ),
+        migrations.AddField(
+            model_name='careers',
+            name='parent_career',
+            field=models.ForeignKey(blank=True, db_column='parent_career_id', null=True, on_delete=django.db.models.deletion.DO_NOTHING, to='careers.careers'),
+        ),
     ]

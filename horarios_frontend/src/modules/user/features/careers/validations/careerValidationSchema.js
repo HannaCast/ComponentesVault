@@ -14,4 +14,10 @@ export const careerValidationSchema = Yup.object({
     .typeError('Indica cuántos periodos tiene la carrera (número mayor que 0).')
     .required('Indica cuántos periodos tiene la carrera (número mayor que 0).')
     .moreThan(0, 'El total de periodos debe ser mayor que 0.'),
+  parent_career_id: Yup.string().nullable(),
+  continuation_from_period: Yup.number()
+    .nullable()
+    .transform((value, originalValue) => (originalValue === '' ? null : value))
+    .typeError('El periodo de continuación debe ser un número.')
+    .min(1, 'Debe ser mayor o igual a 1.'),
 });

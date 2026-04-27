@@ -94,6 +94,27 @@ export const CareerDetail = ({
             {totalPeriodsLabel}
           </p>
         </div>
+
+        {career.parent_career_name && (
+          <>
+            <div className="md:col-span-6">
+              <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Carrera Anterior
+              </p>
+              <p className="text-sm text-[var(--text-primary)]">
+                {career.parent_career_name}
+              </p>
+            </div>
+            <div className="md:col-span-6">
+              <p className="block text-xs font-semibold text-[var(--text-tertiary)] uppercase mb-1">
+                Continúa desde periodo
+              </p>
+              <p className="text-lg font-semibold text-[var(--text-primary)]">
+                {career.continuation_from_period}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div>
@@ -124,6 +145,9 @@ CareerDetail.propTypes = {
     modality_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     total_periods: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     status: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    parent_career_name: PropTypes.string,
+    parent_career_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    continuation_from_period: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }),
   periodExceptions: PropTypes.arrayOf(
     PropTypes.shape({

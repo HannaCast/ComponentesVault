@@ -102,6 +102,7 @@ export const CareersPage = () => {
   const pageChangeTimeoutRef = useRef(null);
   const { shouldRun } = useRequestDeduper({ windowMs: 150 });
   const { shouldRun: shouldRunModalitiesRequest } = useRequestDeduper({ windowMs: 150 });
+  const { shouldRun: shouldRunCareersOptionsRequest } = useRequestDeduper({ windowMs: 150 });
   const ITEMS_PER_PAGE = 6;
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -138,7 +139,9 @@ export const CareersPage = () => {
     setDeleteModal,
     statusOptions,
     modalitiesOptions,
+    careerOptions,
     fetchModalitiesOptions,
+    fetchCareerOptions,
     fetchCareers,
     handleToggleStatus,
     handleDelete,
@@ -213,12 +216,28 @@ export const CareersPage = () => {
     await fetchModalitiesOptions();
   }, [selectedUniversityId, shouldRunModalitiesRequest, fetchModalitiesOptions]);
 
+  const loadCareerOptions = useCallback(async () => {
+    const signature = buildRequestSignature(
+      {
+        resource: 'careers-options',
+        selectedUniversityId,
+      },
+      ['resource', 'selectedUniversityId'],
+    );
+
+    if (!shouldRunCareersOptionsRequest(signature)) {
+      return;
+    }
+
+    await fetchCareerOptions();
+  }, [selectedUniversityId, shouldRunCareersOptionsRequest, fetchCareerOptions]);
+
   async function handleOpenDrawerCreate() {
     if (isOpeningCreate) return;
 
     setIsOpeningCreate(true);
     try {
-      await loadModalitiesOptions();
+      await Promise.all([loadModalitiesOptions(), loadCareerOptions()]);
       setDrawerMode('create');
       setSelectedCareer(null);
       setDrawerOpen(true);
@@ -240,7 +259,7 @@ export const CareersPage = () => {
   const handleOpenDrawerEdit = async (id) => {
     await runRowAction(id, 'edit', async () => {
       setDrawerMode('edit');
-      await loadModalitiesOptions();
+      await Promise.all([loadModalitiesOptions(), loadCareerOptions()]);
       const careerData = await fetchCareerById(id);
       if (careerData) {
         setDrawerOpen(true);
@@ -257,7 +276,7 @@ export const CareersPage = () => {
 
   const handleDrawerEditClick = async () => {
     if (selectedCareer) {
-      await loadModalitiesOptions();
+      await Promise.all([loadModalitiesOptions(), loadCareerOptions()]);
       setDrawerMode('edit');
     }
   };
@@ -536,6 +555,7 @@ export const CareersPage = () => {
             onCancel={handleCloseDrawer}
             mode={drawerMode}
             modalityOptions={modalitiesOptions}
+            careerOptions={careerOptions}
             careerId={selectedCareer?.id}
             periodExceptions={selectedCareer?.period_exceptions || []}
             periodExceptionsLoading={careerLoading}

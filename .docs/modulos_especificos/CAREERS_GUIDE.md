@@ -59,6 +59,8 @@ Campos frecuentes:
 - `name`, `short_name`, `code`
 - `modality`
 - `total_periods`
+- `parent_career_id` (para jerarquías de carreras, opcional)
+- `continuation_from_period` (por defecto 1, se usa cuando se continúa desde otra carrera)
 - `status`
 - `is_deleted`
 
@@ -215,8 +217,10 @@ Reglas destacadas:
 1. `total_periods > 0`.
 2. La modalidad debe pertenecer a la universidad seleccionada.
 3. `period_exceptions` no puede tener periodos duplicados.
-4. Ningun `period_number` de excepcion puede ser mayor a `total_periods`.
-5. En `create`, fuerza:
+4. Ningún `period_number` de excepción puede ser mayor a `total_periods`.
+5. Si se provee `parent_career_id`, este no puede ser la misma carrera y debe pertenecer a la misma universidad.
+6. Si se provee `continuation_from_period`, debe ser `>= 1`.
+7. En `create`, fuerza:
 - `university_id` desde contexto,
 - `status = 1`,
 - `is_deleted = 0`.
@@ -287,6 +291,8 @@ Interpretacion:
   "code": "DSM-01",
   "modality": 1,
   "total_periods": 9,
+  "parent_career_id": null,
+  "continuation_from_period": 1,
   "period_exceptions": [
     { "period_number": 9, "reason": "Estadia profesional" }
   ]

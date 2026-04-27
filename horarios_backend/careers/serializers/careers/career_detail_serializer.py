@@ -9,6 +9,7 @@ from careers.serializers.career_period_exceptions import (
 class CareerDetailSerializer(serializers.ModelSerializer):
     university = serializers.CharField(source='university.name', read_only=True)
     modality = serializers.CharField(source='modality.name', read_only=True)
+    parent_career_name = serializers.CharField(source='parent_career.name', read_only=True)
     period_exceptions = serializers.SerializerMethodField()
 
     class Meta:
@@ -22,6 +23,9 @@ class CareerDetailSerializer(serializers.ModelSerializer):
             'modality',
             'total_periods',
             'status',
+            'parent_career_id',
+            'parent_career_name',
+            'continuation_from_period',
             'period_exceptions',
         )
 

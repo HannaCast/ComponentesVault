@@ -12,6 +12,8 @@ const createDefaultFormData = () => ({
   code: '',
   modality: '',
   total_periods: '',
+  parent_career_id: '',
+  continuation_from_period: '1',
 });
 
 const resolveModalityValue = (initialData, modalityOptions) => {
@@ -42,6 +44,7 @@ export const CareerForm = ({
   onCancel,
   mode = 'create',
   modalityOptions = [],
+  careerOptions = [],
   careerId = null,
   periodExceptions = [],
   periodExceptionsLoading = false,
@@ -75,6 +78,11 @@ export const CareerForm = ({
         initialData.total_periods != null && initialData.total_periods !== ''
           ? String(initialData.total_periods)
           : '',
+      parent_career_id: initialData.parent_career_id != null ? String(initialData.parent_career_id) : '',
+      continuation_from_period:
+        initialData.continuation_from_period != null && initialData.continuation_from_period !== ''
+          ? String(initialData.continuation_from_period)
+          : '1',
     });
   }, [initialData, modalityOptions]);
 
@@ -116,10 +124,21 @@ export const CareerForm = ({
   }, [mode, careerId, periodExceptionsLoading, periodExceptions]);
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const nextData = { ...prev, [field]: value };
+      
+      if (field === 'parent_career_id') {
+        if (value) {
+          const selectedParent = careerOptions.find((c) => String(c.value) === String(value));
+          const parentPeriods = selectedParent ? Number(selectedParent.total_periods) || 0 : 0;
+          nextData.continuation_from_period = String(parentPeriods + 1);
+        } else {
+          nextData.continuation_from_period = '1';
+        }
+      }
+      
+      return nextData;
+    });
 
     setFormErrors((prev) => {
       if (!prev[field]) {
@@ -172,6 +191,18 @@ export const CareerForm = ({
     const code = formData.code.trim();
     if (sn) payload.short_name = sn;
     if (code) payload.code = code;
+
+    if (formData.parent_career_id) {
+      payload.parent_career_id = Number.parseInt(formData.parent_career_id, 10);
+    } else {
+      payload.parent_career_id = null;
+    }
+
+    if (formData.continuation_from_period) {
+      payload.continuation_from_period = Number.parseInt(formData.continuation_from_period, 10);
+    } else {
+      payload.continuation_from_period = null;
+    }
 
     if (!periodExceptionsLoading) {
       payload.period_exceptions = pendingPeriodExceptions.map((ex) => ({
@@ -271,6 +302,20 @@ export const CareerForm = ({
     );
   }
 
+  const filteredCareerOptions = careerOptions.filter(
+    (c) => String(c.value) !== String(careerId)
+  );
+
+  const selectedParentCareer = careerOptions.find((c) => String(c.value) === String(formData.parent_career_id));
+  const parentTotalPeriods = selectedParentCareer ? Number(selectedParentCareer.total_periods) || 0 : 0;
+
+  const continuationOptions = formData.parent_career_id
+    ? [
+        { value: '1', label: '1 (Desde el inicio)' },
+        { value: String(parentTotalPeriods + 1), label: `${parentTotalPeriods + 1} (Continuación de ${parentTotalPeriods} periodos)` }
+      ]
+    : [{ value: '1', label: '1' }];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-6" noValidate>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -337,6 +382,33 @@ export const CareerForm = ({
             disabled={isLoading}
             min="1"
             required
+            reserveHelperSpace={false}
+          />
+        </div>
+
+        <div className="md:col-span-6">
+          <Select
+            label="Carrera Anterior (Opcional)"
+            options={filteredCareerOptions}
+            value={formData.parent_career_id}
+            onChange={(e) => handleInputChange('parent_career_id', e.target.value)}
+            placeholder="Ninguna"
+            error={formErrors.parent_career_id}
+            disabled={isLoading}
+            reserveHelperSpace={false}
+          />
+        </div>
+
+        <div className="md:col-span-6">
+          <Select
+            label="Periodo de continuación"
+            options={continuationOptions}
+            value={formData.continuation_from_period}
+            onChange={(e) => handleInputChange('continuation_from_period', e.target.value)}
+            placeholder="Selecciona el periodo inicial"
+            error={formErrors.continuation_from_period}
+            disabled={isLoading || !formData.parent_career_id}
+            infoMessage="Indica en qué periodo comenzará esta carrera. Por ejemplo, si es continuación de una carrera de 5 periodos, puedes indicar que inicie en el periodo 6."
             reserveHelperSpace={false}
           />
         </div>
@@ -438,6 +510,12 @@ CareerForm.propTypes = {
   onCancel: PropTypes.func.isRequired,
   mode: PropTypes.oneOf(['create', 'edit']),
   modalityOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      label: PropTypes.string,
+    }),
+  ),
+  careerOptions: PropTypes.arrayOf(
     PropTypes.shape({
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       label: PropTypes.string,

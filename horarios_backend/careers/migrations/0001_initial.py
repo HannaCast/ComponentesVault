@@ -36,6 +36,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=100)),
                 ('short_name', models.CharField(blank=True, max_length=20, null=True)),
                 ('code', models.CharField(blank=True, max_length=50, null=True)),
+                ('continuation_from_period', models.IntegerField(blank=True, default=1, null=True)),
                 ('total_periods', models.IntegerField()),
                 ('status', models.IntegerField()),
                 ('is_deleted', models.IntegerField()),
