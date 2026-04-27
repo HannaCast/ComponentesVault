@@ -7,6 +7,7 @@ import { ConfirmModal } from '@shared/components/ConfirmModal';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { ScheduleGeneratedPanel } from '../components/ScheduleGeneratedPanel';
+import { ScheduleGenerationOptionsModal } from '../components/ScheduleGenerationOptionsModal';
 import { TeacherAvailabilityErrorModal } from '../components/TeacherAvailabilityErrorModal';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
 
@@ -159,9 +160,9 @@ export const ScheduleVersionDetailPage = () => {
     setConfirmModalOpen(false);
   };
 
-  const handleRegenerateSchedule = async () => {
+  const handleRegenerateSchedule = async (parameters) => {
     const periodId = selectedVersion?.academic_period?.id || null;
-    const result = await generateScheduleVersion(periodId);
+    const result = await generateScheduleVersion(periodId, parameters);
     if (!result?.success) {
       if (!result?.deduped) {
         const teachersList = Array.isArray(result?.errorData?.teachers)
@@ -214,6 +215,25 @@ export const ScheduleVersionDetailPage = () => {
                 Periodo: {selectedVersion.academic_period.name}
               </p>
             ) : null}
+
+            {selectedVersion?.parameters && (
+              <div className="mt-3 flex flex-col gap-1 rounded-md p-3 text-sm border" style={{ backgroundColor: 'var(--bg-subtle, #f8fafc)', borderColor: 'var(--border-subtle, #e5e7eb)' }}>
+                <p style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                  <span className="font-medium" style={{ color: 'var(--text-primary, #111827)' }}>Múltiples profesores por materia en grupo:</span>{' '}
+                  {selectedVersion.parameters.allow_multiple_teachers_per_group_subject !== false ? 'Sí' : 'No'}
+                </p>
+                <p style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                  <span className="font-medium" style={{ color: 'var(--text-primary, #111827)' }}>Generación aleatoria:</span>{' '}
+                  {selectedVersion.parameters.randomize_generation ? 'Activada' : 'Desactivada'}
+                </p>
+                {selectedVersion.parameters.randomize_generation && selectedVersion.parameters.random_seed !== undefined && (
+                  <p style={{ color: 'var(--text-secondary, #6b7280)' }}>
+                    <span className="font-medium" style={{ color: 'var(--text-primary, #111827)' }}>Semilla utilizada:</span>{' '}
+                    {selectedVersion.parameters.random_seed}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -266,14 +286,12 @@ export const ScheduleVersionDetailPage = () => {
         closeOnConfirm={false}
       />
 
-      <ConfirmModal
+      <ScheduleGenerationOptionsModal
         isOpen={regenerateModalOpen}
         onClose={() => setRegenerateModalOpen(false)}
-        onConfirm={handleRegenerateSchedule}
-        title="Generar nuevamente"
-        message="Al volver a generar se perderan todas las configuraciones actuales del borrador. ¿Deseas continuar?"
-        confirmLabel="Generar nuevamente"
-        closeOnConfirm={false}
+        onGenerate={handleRegenerateSchedule}
+        isGenerating={isRegenerating}
+        initialParameters={selectedVersion?.parameters}
       />
 
       <TeacherAvailabilityErrorModal

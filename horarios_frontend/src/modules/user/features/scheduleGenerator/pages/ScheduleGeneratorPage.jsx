@@ -9,6 +9,7 @@ import { SurfacePanel } from '@shared/components/layout/SurfacePanel';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import { getSelectedUniversityDisplayName } from '@shared/utils/universityContext';
 import { getScheduleVersionsPaginated } from '../api/scheduleGeneratorApi';
+import { ScheduleGenerationOptionsModal } from '../components/ScheduleGenerationOptionsModal';
 import { ScheduleVersionHistoryPanel } from '../components/ScheduleVersionHistoryPanel';
 import { TeacherAvailabilityErrorModal } from '../components/TeacherAvailabilityErrorModal';
 import { useScheduleGenerator } from '../hooks/useScheduleGenerator';
@@ -112,8 +113,8 @@ export const ScheduleGeneratorPage = () => {
     navigate(`/usuario/universidad/generar-horario/ver/${versionId}`);
   };
 
-  const handleGenerateSchedule = async () => {
-    const result = await generateScheduleVersion(activeAcademicPeriodId);
+  const handleGenerateSchedule = async (parameters) => {
+    const result = await generateScheduleVersion(activeAcademicPeriodId, parameters);
 
     if (!result?.success) {
       if (!result?.deduped) {
@@ -306,14 +307,12 @@ export const ScheduleGeneratorPage = () => {
         </div>
       </SurfacePanel>
 
-      <ConfirmModal
+      <ScheduleGenerationOptionsModal
         isOpen={generateModalOpen}
         onClose={() => setGenerateModalOpen(false)}
-        onConfirm={handleGenerateSchedule}
-        title="Generar horario"
-        message="Se regenerara el borrador activo con los datos institucionales del backend. ¿Deseas continuar?"
-        confirmLabel="Generar"
-        closeOnConfirm={false}
+        onGenerate={handleGenerateSchedule}
+        isGenerating={pendingAction?.type === 'generate'}
+        initialParameters={null}
       />
 
       <ConfirmModal

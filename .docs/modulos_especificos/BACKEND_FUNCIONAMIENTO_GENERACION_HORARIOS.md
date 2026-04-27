@@ -89,11 +89,10 @@ Que hace:
   - Si existe, lo sobreescribe actualizando sus métricas y su `academic_period_id` al nuevo, y elimina soft-delete borradores huerfanos.
 - Garantiza que la universidad siempre tenga un maximo de un borrador vivo en todo momento (independientemente del periodo).
 - En parameters, el campo uses_period_groups siempre se fuerza desde backend.
-- En `parameters.allow_multiple_teachers_per_group_subject` se controla si una materia de un grupo puede quedar repartida entre varios profesores.
-- Si ese parametro no viene en el request, el backend usa `false` por defecto (un solo profesor por materia en cada grupo).
-- En `parameters.randomize_generation` se controla si el solver usa desempates aleatorios en esa ejecucion.
-- Si `randomize_generation` no viene, el backend usa `false` por defecto (comportamiento determinista actual).
-- Si `randomize_generation = true` y no se envia `parameters.random_seed`, backend genera una semilla y la persiste en la version.
+- Desde el Frontend ahora se envían explícitamente los parámetros a través del objeto JSON `parameters`.
+- En `parameters.allow_multiple_teachers_per_group_subject` se controla si una materia de un grupo puede quedar repartida entre varios profesores (Por defecto enviado en `false` desde UI).
+- En `parameters.randomize_generation` se controla si el solver usa desempates aleatorios en esa ejecucion (Por defecto enviado en `false` desde UI).
+- Si `randomize_generation = true` y no se envia `parameters.random_seed`, backend genera una semilla y la persiste en la version. La interfaz se encarga de reinyectar la semilla generada para subsecuentes regeneraciones.
 
 ### 5.2 Actualizar borrador existente
 

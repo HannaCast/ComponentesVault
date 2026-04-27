@@ -1,9 +1,12 @@
 import apiToken from '@requests/apiToken';
 
-export const generateScheduleDraft = (academicPeriodId = null) => {
+export const generateScheduleDraft = (academicPeriodId = null, parameters = null) => {
   const payload = {};
   if (academicPeriodId) {
     payload.academic_period_id = academicPeriodId;
+  }
+  if (parameters) {
+    payload.parameters = parameters;
   }
   return apiToken.post('/api/v1/university/schedules/generate/', payload);
 };
