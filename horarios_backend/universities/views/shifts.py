@@ -1,6 +1,7 @@
 from django.db import transaction
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -19,25 +20,91 @@ from universities.serializers.shifts import (
 class ShiftListView(APIView):
     permission_classes = [IsAuthenticated, RequireSelectedUniversity]
 
+    SORT_FIELDS = {
+        'id',
+        'name',
+        'start_time',
+        'end_time',
+        'order',
+    }
+
     @extend_schema(
-        responses=ShiftListSerializer(many=True),
-        summary='Listar turnos',
+        summary='Lista paginada de turnos',
+        parameters=[
+            OpenApiParameter(
+                name='page',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Número de página (por defecto: 1)',
+                default=1,
+            ),
+            OpenApiParameter(
+                name='limit',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Cantidad de resultados por página (por defecto: 10)',
+                default=10,
+            ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Texto de búsqueda (por nombre)',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='sortBy',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Campo de ordenamiento (por defecto: id)',
+                default='id',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='order',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Dirección de ordenamiento: ASC, DESC (por defecto: DESC)',
+                enum=['ASC', 'DESC'],
+                default='DESC',
+                required=False,
+            ),
+        ],
     )
     def get(self, request):
         """Turnos activos de la universidad seleccionada."""
         selected_university_id = request.selected_university_id
 
-        shifts = (
-            Shifts.objects.filter(
-                status=1,
-                is_deleted=0,
-                university_id=selected_university_id,
-            )
-            .order_by('-id')
+        page = max(1, int(request.query_params.get('page', 1)))
+        limit = max(1, int(request.query_params.get('limit', 10)))
+        search = request.query_params.get('search', '').strip()
+        sort_by = request.query_params.get('sortBy', 'id')
+        order = request.query_params.get('order', 'DESC').upper()
+        offset = (page - 1) * limit
+
+        if sort_by not in self.SORT_FIELDS:
+            sort_by = 'id'
+        order_field = sort_by if order == 'ASC' else f'-{sort_by}'
+
+        from django.db.models import Q
+        queryset = Shifts.objects.filter(
+            status=1,
+            is_deleted=0,
+            university_id=selected_university_id,
         )
 
-        return ApiResponse.success(
-            ShiftListSerializer(shifts, many=True).data
+        if search:
+            queryset = queryset.filter(Q(name__icontains=search))
+
+        queryset = queryset.order_by(order_field)
+        total = queryset.count()
+        rows = queryset[offset : offset + limit]
+
+        return ApiResponse.paginated(
+            data=ShiftListSerializer(rows, many=True).data,
+            page=page,
+            limit=limit,
+            total=total,
         )
 
     @extend_schema(request=ShiftWriteSerializer)

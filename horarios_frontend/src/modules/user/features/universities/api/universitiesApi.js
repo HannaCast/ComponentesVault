@@ -45,7 +45,19 @@ export const getPeriodTypes = () =>
   apiToken.get('/api/v1/period-types/');
 
 /**
- * Alta atómica: universidad + modalidades + turnos (+ periodos si aplica).
+ * Crea la universidad (solo los datos generales).
+ */
+export const createUniversity = (payload) =>
+  apiToken.post('/api/v1/universities/create/', payload);
+
+/**
+ * Actualiza la universidad (solo los datos generales).
+ */
+export const updateUniversity = (universityId, payload) =>
+  apiToken.put(`/api/v1/universities/${universityId}/`, payload);
+
+/**
+ * Alta atómica (Legacy): universidad + modalidades + turnos (+ periodos si aplica).
  */
 export const postFullUniversitySetup = (payload) =>
   apiToken.post('/api/setup/university-complete/', payload);
@@ -76,3 +88,51 @@ export const uploadUniversityLogo = (universityId, file) => {
 
 export const deleteUniversityLogo = (universityId) =>
   apiToken.delete(`/api/universities/${universityId}/upload-image/`);
+
+// ==========================================
+// ENDPOINTS DE RELACIONES (Periodos, Turnos, Modalidades)
+// ==========================================
+
+export const getAcademicPeriodsPaginated = (params) =>
+  apiToken.get('/api/v1/university/academic-periods/', { params });
+
+export const postAcademicPeriod = (payload) =>
+  apiToken.post('/api/v1/university/academic-periods/', payload);
+
+export const putAcademicPeriod = (id, payload) =>
+  apiToken.put(`/api/v1/university/academic-periods/${id}/`, payload);
+
+export const deleteAcademicPeriod = (id) =>
+  apiToken.delete(`/api/v1/university/academic-periods/${id}/`);
+
+export const toggleAcademicPeriodStatus = (id) =>
+  apiToken.put(`/api/v1/university/academic-periods/${id}/toggle-status/`);
+
+
+export const getShiftsPaginated = (params) =>
+  apiToken.get('/api/v1/university/shifts/', { params });
+
+export const postShift = (payload) =>
+  apiToken.post('/api/v1/university/shifts/', payload);
+
+export const putShift = (id, payload) =>
+  apiToken.put(`/api/v1/university/shifts/${id}/`, payload);
+
+export const deleteShift = (id) =>
+  apiToken.delete(`/api/v1/university/shifts/${id}/`);
+
+
+export const getModalitiesPaginated = (params) =>
+  apiToken.get('/api/v1/university/modalities/paginated/', { params });
+
+export const postModality = (payload) =>
+  apiToken.post('/api/v1/university/modalities/', payload);
+
+export const putModality = (id, payload) =>
+  apiToken.put(`/api/v1/university/modalities/${id}/`, payload);
+
+export const deleteModality = (id) =>
+  apiToken.delete(`/api/v1/university/modalities/${id}/`);
+
+export const toggleModalityStatus = (id) =>
+  apiToken.put(`/api/v1/university/modalities/${id}/toggle-status/`);

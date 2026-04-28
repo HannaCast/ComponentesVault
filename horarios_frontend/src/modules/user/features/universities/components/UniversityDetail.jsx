@@ -4,6 +4,9 @@ import { Pencil } from 'lucide-react';
 import { ActionButton } from '@shared/components/inputs/ActionButton';
 import { LoadingStatePanel } from '@shared/components/layout/LoadingStatePanel';
 import { UniversityLogoMark } from './UniversityLogoMark';
+import { ModalitiesTab } from './tabs/ModalitiesTab';
+import { ShiftsTab } from './tabs/ShiftsTab';
+import { PeriodsTab } from './tabs/PeriodsTab';
 
 const DETAIL_TABS = [
   { id: 'general', label: 'Datos generales' },
@@ -204,111 +207,9 @@ export const UniversityDetail = ({
         </div>
       )}
 
-      {activeTab === 'modalities' && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">
-              Modalidades de estudio
-            </h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Total:
-              {' '}
-              {modalities.length}
-            </p>
-          </div>
-          <div className="space-y-3">
-            {modalities.map((m) => {
-              const cfg = m.configurations || {};
-              const cdpw = cfg.classroom_days_per_week;
-              const days = formatAllowedDays(cfg.allowed_days);
-
-              return (
-                <div key={m.id} className={innerCard}>
-                  <p className="font-semibold text-[var(--text-primary)]">{m.name || '—'}</p>
-                  <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    {cdpw == null ? '—' : `${cdpw} días con salón`}
-                  </p>
-                  <p className="text-sm text-[var(--text-primary)] mt-2">{days}</p>
-                </div>
-              );
-            })}
-          </div>
-          {!modalities.length && (
-            <p className="text-sm text-[var(--text-secondary)]">Sin modalidades registradas.</p>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'shifts' && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">
-              Turnos de la Universidad
-            </h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Turnos disponibles para la generación de horarios.
-            </p>
-          </div>
-          <div className="space-y-2">
-            {shifts.map((s) => (
-              <div
-                key={s.id}
-                className={`flex flex-wrap items-center justify-between gap-2 ${innerCard}`}
-              >
-                <span className="text-sm font-medium text-[var(--text-primary)]">{s.name}</span>
-                <span className="text-sm text-[var(--text-secondary)] tabular-nums">
-                  {formatTimeShort(s.start_time)}
-                  {' '}
-                  –
-                  {' '}
-                  {formatTimeShort(s.end_time)}
-                </span>
-              </div>
-            ))}
-          </div>
-          {!shifts.length && (
-            <p className="text-sm text-[var(--text-secondary)]">Sin turnos configurados.</p>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'periods' && usesGroups && (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">
-              Periodos académicos
-            </h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Periodos configurados para la universidad.
-            </p>
-          </div>
-          <div className="space-y-2">
-            {periods.map((p) => (
-              <div
-                key={p.id}
-                className={`flex flex-wrap items-center justify-between gap-2 ${innerCard}`}
-              >
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
-                  <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {p.name || '—'}
-                  </span>
-                  {Number(p.is_active) === 1 && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                      Activo
-                    </span>
-                  )}
-                </div>
-                {p.display_range && (
-                  <span className="text-sm text-[var(--text-secondary)]">{p.display_range}</span>
-                )}
-              </div>
-            ))}
-          </div>
-          {!periods.length && (
-            <p className="text-sm text-[var(--text-secondary)]">Sin periodos registrados.</p>
-          )}
-        </div>
-      )}
+      {activeTab === 'modalities' && <ModalitiesTab readOnly />}
+      {activeTab === 'shifts' && <ShiftsTab readOnly />}
+      {activeTab === 'periods' && usesGroups && <PeriodsTab readOnly />}
 
       <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-[var(--border-default)]">
         <ActionButton

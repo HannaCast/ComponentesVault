@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildRequestSignature, useRequestDeduper } from '@shared/hooks/useRequestDeduper';
 import {
+  createUniversity,
   deleteUniversityLogo,
   getUniversityImage,
   getUniversitiesPaginated,
@@ -8,6 +9,7 @@ import {
   getPeriodTypes,
   postFullUniversitySetup,
   putFullUniversitySetup,
+  updateUniversity,
   uploadUniversityLogo,
   deleteUniversity as deleteUniversityRequest,
 } from '../api/universitiesApi';
@@ -225,6 +227,42 @@ export const useUniversities = () => {
     setUniversityProfile(null);
   }, [resetProfileImageUrl]);
 
+  const createUniversityBase = useCallback(async (payload, logoFile) => {
+    setCreateLoading(true);
+    try {
+      const response = await createUniversity(payload.university);
+      const newId = response?.data?.data?.id;
+      
+      if (logoFile && newId) {
+        try {
+          await uploadUniversityLogo(newId, logoFile);
+        } catch (uploadError) {
+          console.error('La universidad se creó, pero el logo falló', uploadError);
+        }
+      }
+      return { data: { data: { university_id: newId } } };
+    } finally {
+      setCreateLoading(false);
+    }
+  }, []);
+
+  const updateUniversityBase = useCallback(async (id, payload, logoFile, removeLogo) => {
+    setUpdateLoading(true);
+    try {
+      await updateUniversity(id, payload.university);
+      
+      if (removeLogo) {
+        await deleteUniversityLogo(id);
+      } else if (logoFile) {
+        await uploadUniversityLogo(id, logoFile);
+      }
+      
+      return true;
+    } finally {
+      setUpdateLoading(false);
+    }
+  }, []);
+
   const createUniversityFullSetup = useCallback(async (payload, logoFile) => {
     setCreateLoading(true);
     try {
@@ -290,8 +328,10 @@ export const useUniversities = () => {
     fetchUniversities,
     periodTypeOptions,
     fetchPeriodTypes,
-    createUniversityFullSetup,
-    updateUniversityFullSetup,
+    createUniversityBase,
+    updateUniversityBase,
+    createUniversityFullSetup: createUniversityBase, // Mantener nombre temporalmente
+    updateUniversityFullSetup: updateUniversityBase, // Mantener nombre temporalmente
     createLoading,
     updateLoading,
     universityProfile,

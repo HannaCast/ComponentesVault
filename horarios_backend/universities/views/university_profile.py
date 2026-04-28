@@ -7,8 +7,6 @@ from careers.serializers.modalities import ModalitiesDetailSerializer
 from core.api_response import ApiResponse
 from universities.models import AcademicPeriods, Shifts, Universities
 from universities.serializers import (
-    AcademicPeriodListSerializer,
-    ShiftListSerializer,
     UniversityWriteSerializer,
 )
 
@@ -46,17 +44,6 @@ class UniversityProfileView(APIView):
                 status_code=404,
             )
 
-        modalities = Modalities.objects.filter(
-            university_id=university.id,
-            status=1,
-        ).order_by('id')
-
-        shifts = Shifts.objects.filter(
-            university_id=university.id,
-            status=1,
-            is_deleted=0,
-        ).order_by('-id')
-
         academic_periods = AcademicPeriods.objects.filter(
             university_id=university.id,
             is_deleted=0,
@@ -72,13 +59,6 @@ class UniversityProfileView(APIView):
                 'display_range': _build_display_range(active_period_obj),
             }
 
-        # Serializar periodos con display_range incluido.
-        periods_data = []
-        for period in academic_periods:
-            period_dict = AcademicPeriodListSerializer(period).data
-            period_dict['display_range'] = _build_display_range(period)
-            periods_data.append(period_dict)
-
         payload = {
             **UniversityWriteSerializer(
                 university,
@@ -88,9 +68,6 @@ class UniversityProfileView(APIView):
                 university.period_type.name if university.period_type_id else None
             ),
             'active_period': active_period_payload,
-            'modalities': ModalitiesDetailSerializer(modalities, many=True).data,
-            'shifts': ShiftListSerializer(shifts, many=True).data,
-            'academic_periods': periods_data,
         }
 
         return ApiResponse.success(payload)

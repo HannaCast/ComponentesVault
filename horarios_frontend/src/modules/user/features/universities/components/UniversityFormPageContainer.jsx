@@ -108,6 +108,7 @@ const persistUniversitySave = async ({
   createUniversityFullSetup,
   closeSaveModal,
   goToView,
+  goToEdit,
   goToList,
 }) => {
   const {
@@ -134,7 +135,7 @@ const persistUniversitySave = async ({
     }
 
     const response = await createUniversityFullSetup(payload, logoFile);
-    toast.success('Universidad creada correctamente');
+    toast.success('Universidad creada correctamente. Ahora agrega modalidades, turnos y periodos.');
     closeSaveModal();
     const newId = response?.data?.data?.university_id;
     if (newId == null) {
@@ -142,7 +143,7 @@ const persistUniversitySave = async ({
       return;
     }
 
-    goToView(newId);
+    goToEdit(newId);
   } catch (err) {
     console.error(err);
     const fallback = getSaveFallbackMessage(Boolean(isEditSave));
@@ -177,6 +178,10 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
 
   const goToView = useCallback((id) => {
     navigate(`/usuario/universidades/${id}`);
+  }, [navigate]);
+
+  const goToEdit = useCallback((id) => {
+    navigate(`/usuario/universidades/${id}/editar`);
   }, [navigate]);
 
   const closeSaveModal = useCallback(() => {
@@ -254,6 +259,7 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
       createUniversityFullSetup,
       closeSaveModal,
       goToView,
+      goToEdit,
       goToList,
     });
   }, [
@@ -261,6 +267,7 @@ export const UniversityFormPageContainer = ({ mode, universityId }) => {
     updateUniversityFullSetup,
     closeSaveModal,
     goToView,
+    goToEdit,
     createUniversityFullSetup,
     goToList,
   ]);

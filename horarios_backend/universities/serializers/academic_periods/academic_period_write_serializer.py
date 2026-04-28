@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import transaction, models
 from rest_framework import serializers
 
 from universities.models import AcademicPeriods, Universities
@@ -64,6 +64,7 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
         *,
         start_date,
         instance,
+        selected_university_id,
     ):
         year = attrs.get('year')
         order = attrs.get('order')
@@ -84,9 +85,17 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
                     {'year': 'Este campo es obligatorio cuando uses_period_groups = True.'}
                 )
             if order is None:
-                raise serializers.ValidationError(
-                    {'order': 'Este campo es obligatorio cuando uses_period_groups = True.'}
-                )
+                if instance is None:
+                    max_order = AcademicPeriods.objects.filter(
+                        university_id=selected_university_id,
+                        is_deleted=0
+                    ).aggregate(models.Max('order'))['order__max']
+                    order = 1 if max_order is None else max_order + 1
+                    attrs['order'] = order
+                else:
+                    raise serializers.ValidationError(
+                        {'order': 'Este campo es obligatorio cuando uses_period_groups = True.'}
+                    )
 
             if start_date is not None and int(year) != start_date.year:
                 raise serializers.ValidationError(
@@ -148,6 +157,7 @@ class AcademicPeriodWriteSerializer(serializers.ModelSerializer):
             uses_period_groups,
             start_date=start_date,
             instance=self.instance,
+            selected_university_id=selected_university_id,
         )
         self._validate_unique_order(selected_university_id, uses_period_groups, order)
         self._validate_is_active_field(attrs)
