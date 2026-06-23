@@ -1,3 +1,0 @@
-from .availability_write_serializer import TeacherAvailabilityWriteSerializer
-from .availability_detail_serializer import TeacherAvailabilityDetailSerializer
-from .availability_list_serializer import TeacherAvailabilityListSerializer

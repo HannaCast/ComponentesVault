@@ -1,4 +1,0 @@
-from .modalities_detail_serializers import ModalitiesDetailSerializer
-from .modalities_list_serializers import ModalitiesListSerializer
-from .modalities_write_serializers import ModalitiesWriteSerializer
-from .modalities_select_serializers import ModalitiesSelectSerializer

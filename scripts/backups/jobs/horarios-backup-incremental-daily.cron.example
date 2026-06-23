@@ -1,3 +1,0 @@
-# Backup incremental diario a las 00:00
-# m h dom mon dow command
-0 0 * * * /REEMPLAZAR/RUTA/scripts/backups/scripts/horarios-backup-incremental.sh >> /REEMPLAZAR/RUTA/logs/backup-incremental.log 2>&1

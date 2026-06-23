@@ -1,2 +1,0 @@
-from .classroom_type_select_serializer import ClassroomTypeSelectSerializer
-

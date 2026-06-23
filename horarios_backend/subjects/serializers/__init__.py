@@ -1,2 +1,0 @@
-from .colors import ColorWriteSerializer, ColorDetailSerializer, ColorListSerializer, ColorSelectSerializer
-from .subjects import SubjectWriteSerializer, SubjectDetailSerializer, SubjectListSerializer, SubjectSelectSerializer

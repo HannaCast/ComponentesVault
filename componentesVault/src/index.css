@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Tokens base de Infinity Vault */
+  --bg-base: #ffffff;
+  --bg-surface: #f8fafc;
+  --bg-elevated: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-disabled: #cbd5e1;
+  --text-on-accent: #ffffff;
+  --border-subtle: #edf2f7;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-secondary: #7c3aed;
+  --accent-tertiary: #06b6d4;
+  --accent-subtle: #eef4ff;
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  --gradient-hero: linear-gradient(135deg, #7c3aed 0%, #2563eb 52%, #06b6d4 100%);
+  --shadow-soft: 0 16px 40px rgba(37, 99, 235, 0.12);
+  --shadow-card: 0 10px 28px rgba(15, 23, 42, 0.08);
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+
+  /* Paleta de sistema (variant default) sincronizada con accent */
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
+
+  /* Feedback */
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fee2e2;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  /* Outline button defaults */
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-strong);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+
+[data-theme="light"] {
+
+  /* Fondos */
+  --bg-base:        #ffffff;   /* página principal */
+  --bg-surface:     #f8fafc;   /* cards y superficies secundarias */
+  --bg-elevated:    #ffffff;   /* modals, dropdowns */
+
+  /* Texto */
+  --text-primary:   #1e293b;
+  --text-secondary: #64748b;
+  --text-disabled:  #cbd5e1;
+  --text-on-accent: #ffffff;   /* texto sobre botón filled */
+
+  /* Bordes */
+  --border-subtle:  #edf2f7;
+  --border-default: #e2e8f0;
+  --border-strong:  #cbd5e1;
+
+  --error: #dc2626;
+  --error-subtle: #fef2f2;
+  --error-border: #fecaca;
+  --warning: #d97706;
+  --warning-subtle: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-500: #ef4444;
+  --danger-600: #dc2626;
+  --danger-700: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+/* ─── TEMA OSCURO ─────────────────────────────── */
+[data-theme="dark"] {
+
+  --bg-base:        #0f172a;
+  --bg-surface:     #1e293b;
+  --bg-elevated:    #334155;
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-disabled:  #475569;
+  --text-on-accent: #ffffff;
+
+  --border-subtle:  #1e293b;
+  --border-default: #334155;
+  --border-strong:  #475569;
+
+  --error: #f87171;
+  --error-subtle: #3f1d1d;
+  --error-border: #7f1d1d;
+  --warning: #fbbf24;
+  --warning-subtle: #3f2a0f;
+  --warning-border: #92400e;
+  --warning-text: #fde68a;
+  --danger-500: #f87171;
+  --danger-600: #ef4444;
+  --danger-700: #dc2626;
+  --danger-subtle: #3f1d1d;
+
+  --button-outline-bg: transparent;
+  --button-outline-text: #f8fafc;
+  --button-outline-border: #94a3b8;
+  --button-outline-hover-bg: #334155;
+  --button-outline-hover-border: #cbd5e1;
+  --button-outline-hover-text: #ffffff;
+}
+
+[data-system-theme="vault"] {
+  --bg-base: #ffffff;
+  --bg-surface: #f8fafc;
+  --bg-elevated: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-disabled: #cbd5e1;
+  --text-on-accent: #ffffff;
+  --border-subtle: #edf2f7;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-secondary: #7c3aed;
+  --accent-tertiary: #06b6d4;
+  --accent-subtle: #eef4ff;
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  --gradient-hero: linear-gradient(135deg, #7c3aed 0%, #2563eb 52%, #06b6d4 100%);
+  --system-accent: var(--accent);
+  --system-accent-hover: var(--accent-hover);
+  --system-accent-subtle: var(--accent-subtle);
+  --system-text-on-accent: var(--text-on-accent);
+  --system-button-outline-bg: transparent;
+  --system-button-outline-text: var(--text-primary);
+  --system-button-outline-border: var(--border-default);
+  --system-button-outline-hover-bg: var(--accent-subtle);
+  --system-button-outline-hover-border: var(--accent);
+  --system-button-outline-hover-text: var(--text-primary);
+  --system-secondary-border: var(--border-default);
+  --system-secondary-hover-border: var(--border-strong);
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--text-primary);
+  --button-outline-border: var(--border-default);
+  --button-outline-hover-bg: var(--accent-subtle);
+  --button-outline-hover-border: var(--accent);
+  --button-outline-hover-text: var(--text-primary);
+}
+
+
+
+/* ─── AZUL (default) ─────────────────────────── */
+[data-accent="blue"][data-theme="light"] {
+  --accent:          #2563eb; /* color principal de botones, links, highlights */
+  --accent-hover:    #1d4ed8; /* hover de botones, links */
+  --accent-subtle:   #eff6ff;  /* hover de outline, badges */
+}
+[data-accent="blue"][data-theme="dark"] {
+  --accent:          #60a5fa;   /* más claro para contraste */
+  --accent-hover:    #93c5fd;
+  --accent-subtle:   #1e3a5f;
+}
+
+/* ─── ROJO ───────────────────────────────────── */
+[data-accent="red"][data-theme="light"] {
+  --accent:          #dc2626;
+  --accent-hover:    #b91c1c;
+  --accent-subtle:   #fef2f2;
+}
+[data-accent="red"][data-theme="dark"] {
+  --accent:          #f87171;
+  --accent-hover:    #fca5a5;
+  --accent-subtle:   #450a0a;
+}
+
+/* ─── VERDE ──────────────────────────────────── */
+[data-accent="green"][data-theme="light"] {
+  --accent:          #16a34a;
+  --accent-hover:    #15803d;
+  --accent-subtle:   #f0fdf4;
+}
+[data-accent="green"][data-theme="dark"] {
+  --accent:          #4ade80;
+  --accent-hover:    #86efac;
+  --accent-subtle:   #052e16;
+}
+
+/* ─── MORADO ─────────────────────────────────── */
+[data-accent="purple"][data-theme="light"] {
+  --accent:          #7c3aed;
+  --accent-hover:    #6d28d9;
+  --accent-subtle:   #f5f3ff;
+}
+[data-accent="purple"][data-theme="dark"] {
+  --accent:          #c084fc;
+  --accent-hover:    #d8b4fe;
+  --accent-subtle:   #3b0764;
+}

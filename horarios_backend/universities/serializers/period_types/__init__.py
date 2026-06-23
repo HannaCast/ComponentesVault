@@ -1,2 +1,0 @@
-from .period_type_select_serializer import PeriodTypeSelectSerializer
-
